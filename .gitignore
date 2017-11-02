@@ -1,0 +1,4 @@
+# Flyway database migration credentials file
+conf/flyway.conf
+
+.env
