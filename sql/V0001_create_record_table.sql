@@ -4,11 +4,11 @@ CREATE DATABASE qcdb;
 \c qcdb;
 
 CREATE TABLE FileQc (
-  fileQcId SERIAL PRIMARY KEY,
+  fileqcid SERIAL PRIMARY KEY,
   project varchar(10) NOT NULL,
-  filePath text UNIQUE NOT NULL,
-  fileSWID bigint UNIQUE NOT NULL,
-  qcPassed boolean NOT NULL,
+  filepath text UNIQUE NOT NULL,
+  fileswid bigint UNIQUE NOT NULL,
+  qcpassed boolean NOT NULL,
   username varchar NOT NULL,
-  why text
+  comment text
 );

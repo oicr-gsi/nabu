@@ -17,8 +17,8 @@ var fileQcRouter = express.Router();
 // get all FileQCs
 fileQcRouter.get('s/', function(req, res) { });
 // get one FileQC by identifier
-fileQcRouter.get('/:identifier', lookupFileQc, function(req, res) {
-  res.json(req.fileQc);
+fileQcRouter.get('/:identifier', getFileQc, function(req, res) {
+  res.json(req.fileqc);
 });
 // add or update one FileQC
 fileQcRouter.post('/', addFileQc, function(req, res) { });
@@ -28,17 +28,14 @@ app.use('/fileqc', fileQcRouter);
 
 module.exports = app;
 
-function lookupFileQc(req, res, next) {
+function getFileQc(req, res, next) {
   // access the request params
-  var qcId = req.params.identifier;
-  qcId = parseInt(qcId);
+  var swid = getSwidParam(req);
 
-  if (isNaN(qcId)) return res.json({ errors: ['Error: qcId is ' + qcId + ' but must be an integer'] });
-
-  var sql = 'SELECT * FROM FileQC where fileQcId = $1';
-  postgres.client.query(sql, [ qcId ], function(err, results) {
+  var sql = 'SELECT * FROM FileQC WHERE fileswid = $1';
+  postgres.client.query(sql, [ swid ], function(err, results) {
     if (err) {
-      console.error(err);
+      debug(err);
       res.statusCode = 500;
       return res.json({ errors: ['Error retrieving record'] });
     }
@@ -53,17 +50,35 @@ function lookupFileQc(req, res, next) {
   });
 }
 
+function getAllFileQcs(req, res, next) {
+  // access the project param
+  var proj = getProjectQueryParam(req);
+
+  var sql = 'SELECT * FROM FileQC WHERE project = $1';
+  postgres.client.query(sql, [ proj ], function(err, results) {
+    if (err) {
+      debug(err);
+      res.statusCode = 500;
+      return res.json({ errors: ['Error retrieving records'] });
+    }
+
+    // TODO: something in here about DTOifying the responses
+    next();
+  });
+}
+
 function addFileQc(req, res, next) {
   // TODO: fix this
-  var project = req.body.project;
-  var filePath = req.body.filePath;
-  var fileSWID = req.body.fileSWID;
-  var qcPassed = req.body.qcPassed;
+  var project = getProjectQueryParam(req);
+  var filePath = req.body.filepath;
+  var fileSWID = getSwidParam(req);
   var username = req.body.username;
-  var why = nullifyIfBlank(req.body.why);
+  var comment = nullifyIfBlank(req.body.comment);
+  var qcPassed = convertQcStatusToBoolean(req.body.qcstatus);
+  if (qcPassed === null) return400Error(res, 'FileQC status was "PENDING" but must be "PASS" or "FAIL"');
 
-  var sql = 'INSERT INTO FileQc (project, filePath, fileSWID, qcPassed, username, why) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id';
-  postgres.client.query(sql, [project, filePath, fileSWID, qcPassed, username, why], function(err, result) {
+  var sql = 'INSERT INTO FileQc (project, filepath, fileswid, qcpassed, username, comment) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id';
+  postgres.client.query(sql, [project, filePath, fileSWID, qcPassed, username, comment], function(err, result) {
     if (err) {
       debug(err);
       res.statusCode = 500;
@@ -72,10 +87,39 @@ function addFileQc(req, res, next) {
 
     var newFileQcId = result.rows[0].recordId;
     res.statusCode = 201;
+    
   });
+}
+
+function getProjectQueryParam(req) {
+  var proj = req.query.project || null;
+  if (proj == null || !proj.length) return400Error(res, 'Error: project must be provided');
+  return proj;
+}
+
+function getSwidParam(req) {
+  var swid = req.param.fileswid || req.query.fileswid;
+  swid = parseInt(qcId);
+  if (isNaN(swid)) return400Error(res, 'Error: swid is ' + swid + ' but must be an integer');
+  return swid;
+} 
+
+var return400Error(res, errorMessage) {
+  res.statusCode = 400;
+  return res.json({ errors: [errorMessage] });
 }
 
 function nullifyIfBlank(value) {
   if (value === null || typeof value == 'undefined' || value.length == 0) value = null;
   return value; 
+}
+
+function convertQcStatusToBoolean(value) {
+  var statusToBool = {
+    "pass": true,
+    "fail": false,
+    "pending": null
+  };
+  value = value.toLowerCase();
+  return statusToBool[value];
 }
