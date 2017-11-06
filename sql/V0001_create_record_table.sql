@@ -1,8 +1,9 @@
-DROP DATABASE IF EXISTS qcdb;
-CREATE DATABASE qcdb;
+-- Host: localhost        Database: qcdb
+
 
 \c qcdb;
 
+DROP TABLE IF EXISTS FileQc;
 CREATE TABLE FileQc (
   fileqcid SERIAL PRIMARY KEY,
   project varchar(10) NOT NULL,

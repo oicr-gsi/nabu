@@ -16,5 +16,16 @@ app.get('/', function(req, res) {
 app.get('/fileqcs', fileQcController.getAllFileQcs, function(req, res) { return res; });
 app.get('/fileqc/:identifier', fileQcController.getFileQc, function(req, res) { return res; });
 app.post('/fileqcs', fileQcController.addFileQc, function(req, res) { return res; });
+app.use(errorHandler);
 
 module.exports = app;
+
+function errorHandler(err, req, res, next) {
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  res.status(err.status || 500);
+  res.json({ 'errors': err.errors });
+  res.end();
+}
