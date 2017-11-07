@@ -5,7 +5,7 @@ module.exports = {
   getFileQc: getFileQcBySwid,
   getAllFileQcs: getAllFileQcs,
   addFileQc: addFileQc
-}
+};
 
 function getFileQcBySwid(req, res, next) {
   var swid = validateSwid(req.params.identifier, next);
@@ -36,12 +36,12 @@ function getAllFileQcs(req, res, next) {
   var sql = 'SELECT * FROM FileQC WHERE project = $1';
   db.any(sql, [proj])
     .then(function(data) {
-       // TODO: something in here about DTOifying the responses
-       res.status(200)
-         .json({ fileqcs: data, errors: [] });
-       next();
+      // TODO: something in here about DTOifying the responses
+      res.status(200)
+        .json({ fileqcs: data, errors: [] });
+      next();
     })
-    .catch(function(err) {
+    .catch(function() {
       //debug(err);
       return next(generateError(500, 'Error retrieving records'));
     });
@@ -72,8 +72,6 @@ function addFileQc(req, res, next) {
         createOrUpdate = create;
         fileQcAttributes.push(project);
       }
-      // TODO: remove
-      console.log(fileQcAttributes);
 
       db.none(createOrUpdate, fileQcAttributes)
         .then(function() {
@@ -106,7 +104,7 @@ function validateProject(param, next) {
 
 function validateSwid(param, next) {
   var swid = parseInt(param);
-  if (isNaN(swid)) return next(generateError(400, 'Error: swid is ' + param + ' but must be an integer'));
+  if (Number.isNaN(swid)) return next(generateError(400, 'Error: swid is ' + param + ' but must be an integer'));
   return swid;
 }
 
@@ -116,7 +114,7 @@ function validateUsername(param, next) {
   return user;
 }
 
-function validateComment(param, res) {
+function validateComment(param) {
   var comment = nullifyIfBlank(param);
   if (comment !== null) comment = decodeURIComponent(comment.replace(/\+/g,  ' '));
   return comment;
@@ -144,9 +142,9 @@ function nullifyIfBlank(value) {
 
 function convertQcStatusToBoolean(value) {
   var statusToBool = {
-    "pass": true,
-    "fail": false,
-    "pending": null
+    'pass': true,
+    'fail': false,
+    'pending': null
   };
   return statusToBool[value.toLowerCase()];
 }
