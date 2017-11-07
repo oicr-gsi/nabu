@@ -5,7 +5,7 @@ var bodyParser = require('body-parser');
 var app = express();
 app.use(bodyParser.json({ type: 'application/json' }));
 
-var fileQcController = require('./controllers/fileQcController');
+var fileQc= require('./controllers/fileQc');
 
 // home page
 app.get('/', function(req, res) {
@@ -13,9 +13,9 @@ app.get('/', function(req, res) {
 });
 
 // routes to fileQC records
-app.get('/fileqcs', fileQcController.getAllFileQcs, function(req, res) { return res; });
-app.get('/fileqc/:identifier', fileQcController.getFileQc, function(req, res) { return res; });
-app.post('/fileqcs', fileQcController.addFileQc, function(req, res) { return res; });
+app.get('/fileqcs', fileQc.getAllFileQcs, function(req, res) { if (!res.headersSent) return res; });
+app.get('/fileqc/:identifier', fileQc.getFileQc, function(req, res) { if (!res.headersSent) return res; });
+app.post('/fileqcs', fileQc.addFileQc, function(req, res) { if (!res.headersSent) return res;});
 app.use(errorHandler);
 
 module.exports = app;

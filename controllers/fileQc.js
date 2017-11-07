@@ -17,9 +17,9 @@ function getFileQcBySwid(req, res, next) {
         return next(generateError(404, 'No FileQC found for file with SWID ' + swid));
       }
       
-      res.statusCode = 200;
       // TODO: something about DTOifying the response?
-      res.json({ data: data, errors: [] });
+      res.status(200)
+        .json({ data: data, errors: [] });
       next();
     })
     .catch(function(err) {
@@ -37,7 +37,8 @@ function getAllFileQcs(req, res, next) {
   db.any(sql, [proj])
     .then(function(data) {
        // TODO: something in here about DTOifying the responses
-       res.json({ fileqcs: data, errors: [] });
+       res.status(200)
+         .json({ fileqcs: data, errors: [] });
        next();
     })
     .catch(function(err) {
@@ -54,19 +55,46 @@ function addFileQc(req, res, next) {
   var username = validateUsername(req.query.username, next);
   var comment = validateComment(req.query.comment, res);
   var qcPassed = convertQcStatusToBoolean(req.query.qcstatus);
-  if (qcPassed === null) return next(generateError(400, 'FileQC must be created with status "PASS" or "FAIL"'));
+  if (qcPassed === null) return next(generateError(400, 'FileQC must be saved with status "PASS" or "FAIL"'));
 
-  var sql = 'INSERT INTO FileQc (project, filepath, fileswid, qcpassed, username, comment) VALUES ($1, $2, $3, $4, $5, $6)';
-  db.none(sql, [project, filePath, fileSWID, qcPassed, username, comment])
-    .then(function() {
-      res.statusCode = 201;
-      res.json = ({ 'swid': fileSWID });
-      next();  
+  var select = 'SELECT * FROM FileQc WHERE fileswid = $1';
+  var create = 'INSERT INTO FileQc (filepath, qcpassed, username, comment, fileswid, project) VALUES ($1, $2, $3, $4, $5, $6)';
+  var update = 'UPDATE FileQc SET filepath = $1, qcpassed = $2, username = $3, comment = $4 WHERE fileswid = $5';
+  var createOrUpdate;
+  var fileQcAttributes = [filePath, qcPassed, username, comment, fileSWID];
+  // first, check if the record already exists
+  db.any(select, [fileSWID])
+    .then(function(data) {
+      // update if record exists; create if it does not
+      if (data.length) {
+        createOrUpdate = update;
+      } else {
+        createOrUpdate = create;
+        fileQcAttributes.push(project);
+      }
+      // TODO: remove
+      console.log(fileQcAttributes);
+
+      db.none(createOrUpdate, fileQcAttributes)
+        .then(function() {
+          res.status(201)
+            .json({ 'swid': fileSWID, 'errors': [] });
+          next();
+        })
+        .catch(function(err) {
+          //debug(err);
+          console.log(err); // TODO: fix this into proper logging and debugging
+          if (err.error.contains('duplicate key') && err.error.contains('filepath')) {
+            next(generateError(400, 'FileQC at path ' + filePath + ' is already associated with a different fileSWID'));
+          } else {
+            next(generateError(500, 'Failed to create FileQC record'));
+          }
+        });
     })
     .catch(function(err) {
       //debug(err);
       console.log(err); // TODO: fix this into proper logging and debugging
-      return next(generateError(500, 'Failed to create FileQC record'));
+      return next(generateError(500, 'Failed to check if FileQC record already exists'));
     });
 }
 
