@@ -20,6 +20,7 @@ app.get('/fileqc/:identifier', fileQc.getFileQc, function(req, res) { if (!res.h
 app.post('/fileqcs', fileQc.addFileQc, function(req, res) { if (!res.headersSent) return res; });
 app.post('/fileqcs/batch', fileQc.addManyFileQcs, function(req, res) { if (!res.headersSent) return res; });
 app.use(errorHandler);
+app.use(bodyParser.json());
 
 module.exports = app;
 
