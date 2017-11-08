@@ -69,26 +69,25 @@ function getAllFileQcs(req, res, next) {
 
 function addFileQc(req, res, next) {
   // TODO: fix this
-  let project, filePath, fileSWID, username, comment, qcPassed;
+  const fqc = {};
   try {
-    project = validateProject(req.query.project);
-    filePath = validateFilepath(req.query.filepath);
-    fileSWID = validateSwid(req.query.fileswid);
-    username = validateUsername(req.query.username);
-    comment = validateComment(req.query.comment);
-    qcPassed = convertQcStatusToBoolean(req.query.qcstatus);
-    if (qcPassed === null) throw new ValidationError('FileQC must be saved with status "PASS" or "FAIL"');
+    fqc.project = validateProject(req.query.project);
+    fqc.filepath = validateFilepath(req.query.filepath);
+    fqc.fileswid = validateSwid(req.query.fileswid);
+    fqc.username = validateUsername(req.query.username);
+    fqc.comment = validateComment(req.query.comment);
+    fqc.qcpassed = validateQcStatus(req.query.qcstatus);
   } catch (e) {
     if (e instanceof ValidationError) return next(generateError(400, e.message));
   }
 
   // update if exists, insert if not
-  const upsert = 'INSERT INTO FileQc as fqc (filepath, qcpassed, username, comment, fileswid, project) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (fileswid) DO UPDATE SET filepath = $1, qcpassed = $2, username = $3, comment = $4 WHERE fqc.fileswid = $5';
+  const upsert = 'INSERT INTO FileQc as fqc (filepath, qcpassed, username, comment, fileswid, project) VALUES (${filepath}, ${qcpassed}, ${username}, ${comment}, ${fileswid}, ${project}) ON CONFLICT (fileswid) DO UPDATE SET filepath = ${filepath}, qcpassed = ${qcpassed}, username = ${username}, comment = ${comment} WHERE fqc.fileswid = ${fileswid}';
 
-  db.none(upsert, [filePath, qcPassed, username, comment, fileSWID, project])
+  db.none(upsert, fqc)
     .then(() => {
       res.status(201)
-        .json({ fileswid: fileSWID, errors: [] });
+        .json({ fileswid: fqc.fileswid, errors: [] });
       next();
     })
     .catch(err => {
@@ -103,11 +102,13 @@ function addFileQc(req, res, next) {
 }
 
 function addManyFileQcs(req, res, next) {
-  if (!req.body) return next(generateError(400, 'Error: no FileQCs found in request body"\'));
+  if (!req.body) return next(generateError(400, 'Error: no FileQCs found in request body'));
+  
   const validationResults = validateObjectsFromUser(req.body.fileqcs, req.body.project);
-  if (valiationResults.errors.length) return next(generateError(400, validationResults.errors));
+  if (validationResults.errors.length) return next(generateError(400, validationResults.errors));
+  const toSave = validationResults.validated;
 
-  const upsert = 'INSERT INTO FileQc as fqc (filepath, qcpassed, username, comment, fileswid, project) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (fileswid) DO UPDATE SET filepath = $1, qcpassed = $2, username = $3, comment = $4 WHERE fqc.fileswid = $5';
+  const upsert = 'INSERT INTO FileQc as fqc (filepath, qcpassed, username, comment, fileswid, project) VALUES (${filepath}, ${qcpassed}, ${username}, ${comment}, ${fileswid}, ${project}) ON CONFLICT (fileswid) DO UPDATE SET filepath = ${filepath}, qcpassed = ${qcpassed}, username = ${username}, comment = ${comment} WHERE fqc.fileswid = ${fileswid}';
 
   db.tx('batch', t => {
 
@@ -152,6 +153,12 @@ function validateFilepath(param) {
   return fp;
 }
 
+function validateQcStatus(param) {
+  const qcPassed = nullifyIfBlank(convertQcStatusToBoolean(param));
+  if (qcPassed === null) throw new ValidationError('FileQC must be saved with status "PASS" or "FAIL"');
+  return qcPassed;
+}
+
 function generateError(statusCode, errorMessage) {
   const err = {
     statusCode: statusCode,
@@ -174,27 +181,29 @@ function convertQcStatusToBoolean(value) {
   return statusToBool[value.toLowerCase()];
 }
 
+/** returns an object { validated: {}, errors: [] } */
 function validateObjectsFromUser(unvalidatedObjects, unvalidatedProject) {
-  // returns an object { validated: [], errors: [] }
   let validationErrors = [];
-  let validatedObjects = unvalidatedObjects.map(validateFileQcObject);
-  return { validated: validatedObjects, errors: validationErrors };
+  let validatedParams = unvalidatedObjects.map(validateFileQcObject);
+  return { validated: validatedParams, errors: validationErrors };
   
   function validateFileQcObject(unvalidated) {
-    const validated = {};
+    // save it directly as an array so it can be inserted as SQL parameters.
+    // order: filepath, qcpassed, user, comment, fileswid, project
+    let validated = {};
     try {
-      validated.project = validateProject(unvalidatedProject);
       validated.filepath = validateFilepath(unvalidated.filepath);
-      validated.fileswid = validateSwid(unvalidated.fileswid);
+      validated.qcpassed = validateQcStatus(unvalidated.qcstatus);
       validated.username = validateUsername(unvalidated.username);
       validated.comment = validateComment(unvalidated.comment);
-      validated.qcpassed = validateQcPassed(unvalidated.qcstatus);
-      if (qcPassed === null) throw new ValidationError('FileQC must be saved with status "PASS" or "FAIL"');
+      validated.fileswid = validateSwid(unvalidated.fileswid);
+      validated.project = validateProject(unvalidatedProject);
     } catch (e) {
       if (e instanceof ValidationError) {
         validationErrors.push({ fileswid: unvalidated.fileswid, error: e.message });
         return null;
       }
     }
+    return validated;
   }
 }
