@@ -18,7 +18,7 @@ app.get('/', function(req, res) {
 app.get('/fileqcs', fileQc.getAllFileQcs, function(req, res) { if (!res.headersSent) return res; });
 app.get('/fileqc/:identifier', fileQc.getFileQc, function(req, res) { if (!res.headersSent) return res; });
 app.post('/fileqcs', fileQc.addFileQc, function(req, res) { if (!res.headersSent) return res; });
-// TODO: app.post('/fileqcs/batch', fileQc.addManyFileQcs, function(req, res) { if (!res.headersSent) return res; });
+app.post('/fileqcs/batch', fileQc.addManyFileQcs, function(req, res) { if (!res.headersSent) return res; });
 app.use(errorHandler);
 
 module.exports = app;

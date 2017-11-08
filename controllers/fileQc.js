@@ -6,7 +6,8 @@ const db = pgp(process.env.DB_CONNECTION);
 module.exports = {
   getFileQc: getFileQcBySwid,
   getAllFileQcs: getAllFileQcs,
-  addFileQc: addFileQc
+  addFileQc: addFileQc,
+  addManyFileQcs: addManyFileQcs
 };
 
 function getFileQcBySwid(req, res, next) {
@@ -21,7 +22,7 @@ function getFileQcBySwid(req, res, next) {
       
       // TODO: something about DTOifying the response?
       res.status(200)
-        .json({ data: data, errors: [] });
+        .json({ fileqc: data, errors: [] });
       next();
     })
     .catch(function(err) {
@@ -59,45 +60,31 @@ function addFileQc(req, res, next) {
   const qcPassed = convertQcStatusToBoolean(req.query.qcstatus);
   if (qcPassed === null) return next(generateError(400, 'FileQC must be saved with status "PASS" or "FAIL"'));
 
-  const select = 'SELECT * FROM FileQc WHERE fileswid = $1';
-  const create = 'INSERT INTO FileQc (filepath, qcpassed, username, comment, fileswid, project) VALUES ($1, $2, $3, $4, $5, $6)';
-  const update = 'UPDATE FileQc SET filepath = $1, qcpassed = $2, username = $3, comment = $4 WHERE fileswid = $5';
-  let createOrUpdate;
-  let fileQcAttributes = [filePath, qcPassed, username, comment, fileSWID];
-  // first, check if the record already exists
-  db.any(select, [fileSWID])
-    .then(function(data) {
-      // update if record exists; create if it does not
-      if (data.length) {
-        createOrUpdate = update;
-      } else {
-        createOrUpdate = create;
-        fileQcAttributes.push(project);
-      }
+  // update if exists, insert if not
+  const upsert = 'INSERT INTO FileQc as fqc (filepath, qcpassed, username, comment, fileswid, project) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (fileswid) DO UPDATE SET filepath = $1, qcpassed = $2, username = $3, comment = $4 WHERE fqc.fileswid = $5';
 
-      db.none(createOrUpdate, fileQcAttributes)
-        .then(function() {
-          res.status(201)
-            .json({ 'swid': fileSWID, 'errors': [] });
-          next();
-        })
-        .catch(function(err) {
-          //debug(err);
-          console.log(err); // TODO: fix this into proper logging and debugging
-          if (err.error.contains('duplicate key') && err.error.contains('filepath')) {
-            next(generateError(400, 'FileQC at path ' + filePath + ' is already associated with a different fileSWID'));
-          } else {
-            next(generateError(500, 'Failed to create FileQC record'));
-          }
-        });
+  db.none(upsert, [filePath, qcPassed, username, comment, fileSWID, project])
+    .then(function() {
+      res.status(201)
+        .json({ fileswid: fileSWID, errors: [] });
+      next();
     })
     .catch(function(err) {
       //debug(err);
       console.log(err); // TODO: fix this into proper logging and debugging
-      return next(generateError(500, 'Failed to check if FileQC record already exists'));
+      if (err.error.contains('duplicate key') && err.error.contains('filepath')) {
+        next(generateError(400, 'FileQC at path ' + filePath + ' is already associated with a different fileSWID'));
+      } else {
+        next(generateError(500, 'Failed to create FileQC record'));
+      }
     });
 }
 
+function addManyFileQcs(req, res, next) {
+
+}
+
+// validation functions
 function validateProject(param, next) {
   const proj = param || null;
   if (proj == null || !proj.length) return next(generateError(400, 'Error: project must be provided'));
