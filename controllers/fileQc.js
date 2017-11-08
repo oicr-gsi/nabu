@@ -15,7 +15,7 @@ function getFileQcBySwid(req, res, next) {
   
   const sql = 'SELECT * FROM FileQC WHERE fileswid = $1';
   db.any(sql, [swid])
-    .then(function(data) { 
+    .then(data => { 
       if (!data || data.length == 0) {
         return next(generateError(404, 'No FileQC found for file with SWID ' + swid));
       }
@@ -25,7 +25,7 @@ function getFileQcBySwid(req, res, next) {
         .json({ fileqc: data, errors: [] });
       next();
     })
-    .catch(function(err) {
+    .catch(err => {
       //debug(err);
       console.log(err);
       return next(generateError(500, 'Error retrieving record'));
@@ -38,14 +38,15 @@ function getAllFileQcs(req, res, next) {
 
   const sql = 'SELECT * FROM FileQC WHERE project = $1';
   db.any(sql, [proj])
-    .then(function(data) {
+    .then(data => {
       // TODO: something in here about DTOifying the responses
       res.status(200)
         .json({ fileqcs: data, errors: [] });
       next();
     })
-    .catch(function() {
+    .catch(err => {
       //debug(err);
+      console.log(err);
       return next(generateError(500, 'Error retrieving records'));
     });
 }
@@ -64,12 +65,12 @@ function addFileQc(req, res, next) {
   const upsert = 'INSERT INTO FileQc as fqc (filepath, qcpassed, username, comment, fileswid, project) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (fileswid) DO UPDATE SET filepath = $1, qcpassed = $2, username = $3, comment = $4 WHERE fqc.fileswid = $5';
 
   db.none(upsert, [filePath, qcPassed, username, comment, fileSWID, project])
-    .then(function() {
+    .then(() => {
       res.status(201)
         .json({ fileswid: fileSWID, errors: [] });
       next();
     })
-    .catch(function(err) {
+    .catch(err => {
       //debug(err);
       console.log(err); // TODO: fix this into proper logging and debugging
       if (err.error.contains('duplicate key') && err.error.contains('filepath')) {
