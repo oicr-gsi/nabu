@@ -1,11 +1,13 @@
-require('dotenv').config();
-var express = require('express');
-var bodyParser = require('body-parser');
+'use strict';
 
-var app = express();
+require('dotenv').config();
+const express = require('express');
+const bodyParser = require('body-parser');
+
+const app = express();
 app.use(bodyParser.json({ type: 'application/json' }));
 
-var fileQc= require('./controllers/fileQc');
+const fileQc = require('./controllers/fileQc');
 
 // home page
 app.get('/', function(req, res) {

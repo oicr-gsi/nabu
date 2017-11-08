@@ -1,5 +1,7 @@
-var pgp = require('pg-promise')();
-var db = pgp(process.env.DB_CONNECTION);
+'use strict';
+
+const pgp = require('pg-promise')();
+const db = pgp(process.env.DB_CONNECTION);
 
 module.exports = {
   getFileQc: getFileQcBySwid,
@@ -8,9 +10,9 @@ module.exports = {
 };
 
 function getFileQcBySwid(req, res, next) {
-  var swid = validateSwid(req.params.identifier, next);
+  const swid = validateSwid(req.params.identifier, next);
   
-  var sql = 'SELECT * FROM FileQC WHERE fileswid = $1';
+  const sql = 'SELECT * FROM FileQC WHERE fileswid = $1';
   db.any(sql, [swid])
     .then(function(data) { 
       if (!data || data.length == 0) {
@@ -31,9 +33,9 @@ function getFileQcBySwid(req, res, next) {
 
 function getAllFileQcs(req, res, next) {
   // access the project param
-  var proj = validateProject(req.query.project, next);
+  const proj = validateProject(req.query.project, next);
 
-  var sql = 'SELECT * FROM FileQC WHERE project = $1';
+  const sql = 'SELECT * FROM FileQC WHERE project = $1';
   db.any(sql, [proj])
     .then(function(data) {
       // TODO: something in here about DTOifying the responses
@@ -49,19 +51,19 @@ function getAllFileQcs(req, res, next) {
 
 function addFileQc(req, res, next) {
   // TODO: fix this
-  var project = validateProject(req.query.project, next);
-  var filePath = validateFilepath(req.query.filepath, next);
-  var fileSWID = validateSwid(req.query.fileswid, next);
-  var username = validateUsername(req.query.username, next);
-  var comment = validateComment(req.query.comment, res);
-  var qcPassed = convertQcStatusToBoolean(req.query.qcstatus);
+  const project = validateProject(req.query.project, next);
+  const filePath = validateFilepath(req.query.filepath, next);
+  const fileSWID = validateSwid(req.query.fileswid, next);
+  const username = validateUsername(req.query.username, next);
+  const comment = validateComment(req.query.comment, res);
+  const qcPassed = convertQcStatusToBoolean(req.query.qcstatus);
   if (qcPassed === null) return next(generateError(400, 'FileQC must be saved with status "PASS" or "FAIL"'));
 
-  var select = 'SELECT * FROM FileQc WHERE fileswid = $1';
-  var create = 'INSERT INTO FileQc (filepath, qcpassed, username, comment, fileswid, project) VALUES ($1, $2, $3, $4, $5, $6)';
-  var update = 'UPDATE FileQc SET filepath = $1, qcpassed = $2, username = $3, comment = $4 WHERE fileswid = $5';
-  var createOrUpdate;
-  var fileQcAttributes = [filePath, qcPassed, username, comment, fileSWID];
+  const select = 'SELECT * FROM FileQc WHERE fileswid = $1';
+  const create = 'INSERT INTO FileQc (filepath, qcpassed, username, comment, fileswid, project) VALUES ($1, $2, $3, $4, $5, $6)';
+  const update = 'UPDATE FileQc SET filepath = $1, qcpassed = $2, username = $3, comment = $4 WHERE fileswid = $5';
+  let createOrUpdate;
+  let fileQcAttributes = [filePath, qcPassed, username, comment, fileSWID];
   // first, check if the record already exists
   db.any(select, [fileSWID])
     .then(function(data) {
@@ -97,38 +99,38 @@ function addFileQc(req, res, next) {
 }
 
 function validateProject(param, next) {
-  var proj = param || null;
+  const proj = param || null;
   if (proj == null || !proj.length) return next(generateError(400, 'Error: project must be provided'));
   return proj;
 }
 
 function validateSwid(param, next) {
-  var swid = parseInt(param);
+  const swid = parseInt(param);
   if (Number.isNaN(swid)) return next(generateError(400, 'Error: swid is ' + param + ' but must be an integer'));
   return swid;
 }
 
 function validateUsername(param, next) {
-  var user = nullifyIfBlank(param);
+  const user = nullifyIfBlank(param);
   if (user == null || !user.length) return next(generateError(400, 'Error: username must be provided'));
   return user;
 }
 
 function validateComment(param) {
-  var comment = nullifyIfBlank(param);
+  let comment = nullifyIfBlank(param);
   if (comment !== null) comment = decodeURIComponent(comment.replace(/\+/g,  ' '));
   return comment;
 }
 
 function validateFilepath(param, next) {
-  var fp = nullifyIfBlank(param);
+  let fp = nullifyIfBlank(param);
   if (fp == null || !fp.length) return next(generateError(400, 'Error: filepath must be provided'));
   fp = decodeURIComponent(fp.replace(/\+/g, ' '));
   return fp;
 }
 
 function generateError(statusCode, errorMessage) {
-  var err = {
+  const err = {
     statusCode: statusCode,
     errors: [errorMessage]
   };
@@ -141,7 +143,7 @@ function nullifyIfBlank(value) {
 }
 
 function convertQcStatusToBoolean(value) {
-  var statusToBool = {
+  const statusToBool = {
     'pass': true,
     'fail': false,
     'pending': null
