@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "baseline": "flyway -X -configFile=flyway.conf baseline",
+    "migrate": "flyway -X -configFile=conf/flyway.conf migrate"
   },
   "repository": {
     "type": "git"
@@ -17,6 +19,7 @@
     "debug": "^3.1.0",
     "dotenv": "^4.0.0",
     "express": "^4.16.2",
+    "flywaydb-cli": "^0.5.0",
     "pg": "^7.3.0",
     "pg-promise": "^7.2.1"
   },
