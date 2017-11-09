@@ -10,7 +10,8 @@
     "globals": {
         "require": false,
         "module": false,
-        "exports": false
+        "exports": false,
+        "process": false
     },
     "rules": {
         "indent": [

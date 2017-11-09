@@ -3,9 +3,12 @@
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
+const morgan = require('morgan');
 
 const app = express();
 app.use(bodyParser.json({ type: 'application/json' }));
+const logLevel = process.env.LOG_LEVEL || 'dev';
+app.use(morgan(logLevel)); // TODO: expand this further to do produciton logging
 
 const fileQc = require('./controllers/fileQc');
 
