@@ -1,8 +1,6 @@
 -- Host: localhost        Database: qcdb
 
 
-\c qcdb;
-
 DROP TABLE IF EXISTS FileQc;
 CREATE TABLE FileQc (
   fileqcid SERIAL PRIMARY KEY,

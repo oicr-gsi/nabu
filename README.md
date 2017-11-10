@@ -8,11 +8,11 @@ Create a file in `conf/` called `flyway.conf` and add to it your database url, u
 
 When setting up the database initially, run the following:
 ```
-npm run baseline
+npm run rw-baseline
 ```
 Then run migrations as usual.
 
 In order to run migrations, run the following:
 ```
-npm run migrate
+npm run fw-migrate
 ```

@@ -4,10 +4,12 @@
   "description": "File QC DB",
   "main": "index.js",
   "scripts": {
+    "start": "node ./bin/www",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint .",
-    "baseline": "flyway -X -configFile=flyway.conf baseline",
-    "migrate": "flyway -X -configFile=conf/flyway.conf migrate"
+    "fw-baseline": "flyway -X -configFile=conf/flyway.conf baseline",
+    "fw-clean": "flyway -X -configFile=conf/flyway.conf clean",
+    "fw-migrate": "flyway -X -configFile=conf/flyway.conf migrate"
   },
   "repository": {
     "type": "git"
@@ -17,7 +19,6 @@
   "dependencies": {
     "body-parser": "^1.18.2",
     "debug": "^3.1.0",
-    "dotenv": "^4.0.0",
     "express": "^4.16.2",
     "flywaydb-cli": "^0.5.0",
     "morgan": "^1.9.0",
@@ -25,6 +26,7 @@
     "pg-promise": "^7.2.1"
   },
   "devDependencies": {
+    "dotenv": "^4.0.0",
     "eslint": "^4.10.0"
   }
 }

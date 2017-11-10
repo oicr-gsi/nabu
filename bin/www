@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 require('dotenv').config();
-const app = require('../index');
+const app = require('../app');
 const pg = require('../lib/postgres');
 
 // Your database configuration

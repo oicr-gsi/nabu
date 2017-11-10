@@ -10,7 +10,7 @@ app.use(bodyParser.json({ type: 'application/json' }));
 const logLevel = process.env.LOG_LEVEL || 'dev';
 app.use(morgan(logLevel)); // TODO: expand this further to do produciton logging
 
-const fileQc = require('./controllers/fileQc');
+const fileQc = require('./components/fileqcs/fileQcsController');
 
 // home page
 app.get('/', (req, res) => {
