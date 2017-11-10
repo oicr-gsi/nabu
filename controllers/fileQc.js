@@ -94,7 +94,7 @@ function addFileQc(req, res, next) {
       //debug(err);
       console.log(err); // TODO: fix this into proper logging and debugging
       if (err.error.contains('duplicate key') && err.error.contains('filepath')) {
-        next(generateError(400, 'FileQC at path ' + filePath + ' is already associated with a different fileSWID'));
+        next(generateError(400, 'FileQC at path ' + fqc.filepath + ' is already associated with a different fileSWID'));
       } else {
         next(generateError(500, 'Failed to create FileQC record'));
       }
@@ -102,8 +102,8 @@ function addFileQc(req, res, next) {
 }
 
 function addManyFileQcs(req, res, next) {
-  if (!req.body) return next(generateError(400, 'Error: no FileQCs found in request body'));
-  
+  if (!req.body.fileqcs) return next(generateError(400, 'Error: no FileQCs found in request body'));
+
   const validationResults = validateObjectsFromUser(req.body.fileqcs, req.body.project);
   if (validationResults.errors.length) return next(generateError(400, validationResults.errors));
   const toSave = validationResults.validated;
@@ -111,14 +111,22 @@ function addManyFileQcs(req, res, next) {
   const upsert = 'INSERT INTO FileQc as fqc (filepath, qcpassed, username, comment, fileswid, project) VALUES (${filepath}, ${qcpassed}, ${username}, ${comment}, ${fileswid}, ${project}) ON CONFLICT (fileswid) DO UPDATE SET filepath = ${filepath}, qcpassed = ${qcpassed}, username = ${username}, comment = ${comment} WHERE fqc.fileswid = ${fileswid}';
 
   db.tx('batch', t => {
-
+    const queries = [];
+    for (let i = 0; i < toSave.length; i++) {
+      queries.push(t.none(upsert, toSave[i]));
+    }
+    return t.batch(queries);
   })
-  .then(data => {
-
-  })
-  .catch(err => {
-
-  })
+    .then(()=> {
+      const returnInfo = toSave.map(fqc => { return { fileswid: fqc.fileswid, upstream: [] }; });
+      res.status(201)
+        .json({ errors: [], fileqcs: returnInfo });
+    })
+    .catch(err => {
+      //debug(err);
+      console.log(err); // TODO: fix this into proper logging and debugging
+      return next(generateError(500, err.error));
+    });
 }
 
 // validation functions
@@ -154,8 +162,9 @@ function validateFilepath(param) {
 }
 
 function validateQcStatus(param) {
-  const qcPassed = nullifyIfBlank(convertQcStatusToBoolean(param));
-  if (qcPassed === null) throw new ValidationError('FileQC must be saved with status "PASS" or "FAIL"');
+  let qcPassed = nullifyIfBlank(param);
+  if (qcPassed === null) throw new ValidationError('FileQC must be saved with qcstatus "PASS" or "FAIL"');
+  qcPassed = convertQcStatusToBoolean(qcPassed);
   return qcPassed;
 }
 
@@ -172,13 +181,16 @@ function nullifyIfBlank(value) {
   return value;
 }
 
+/** Must deal with null qcStatus check elsewhere */
 function convertQcStatusToBoolean(value) {
+  value = value.toLowerCase();
   const statusToBool = {
     'pass': true,
     'fail': false,
     'pending': null
   };
-  return statusToBool[value.toLowerCase()];
+  if (statusToBool[value] == null) throw new ValidationError('Unknown QC status ' + value);
+  return statusToBool[value];
 }
 
 /** returns an object { validated: {}, errors: [] } */
@@ -188,8 +200,8 @@ function validateObjectsFromUser(unvalidatedObjects, unvalidatedProject) {
   return { validated: validatedParams, errors: validationErrors };
   
   function validateFileQcObject(unvalidated) {
-    // save it directly as an array so it can be inserted as SQL parameters.
-    // order: filepath, qcpassed, user, comment, fileswid, project
+    // project may be passed in separately from the fileqcs, or as part of the fileqcs array
+    const proj = unvalidatedProject || unvalidated.project;
     let validated = {};
     try {
       validated.filepath = validateFilepath(unvalidated.filepath);
@@ -197,12 +209,15 @@ function validateObjectsFromUser(unvalidatedObjects, unvalidatedProject) {
       validated.username = validateUsername(unvalidated.username);
       validated.comment = validateComment(unvalidated.comment);
       validated.fileswid = validateSwid(unvalidated.fileswid);
-      validated.project = validateProject(unvalidatedProject);
+      validated.project = validateProject(proj);
     } catch (e) {
       if (e instanceof ValidationError) {
         validationErrors.push({ fileswid: unvalidated.fileswid, error: e.message });
         return null;
-      }
+      } else {
+        console.log(e.error);
+        throw e;
+      } 
     }
     return validated;
   }
