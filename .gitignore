@@ -5,6 +5,6 @@ conf/flyway.conf
 # node modules (they'll all be unpacked with npm install anyway)
 node_modules/
 # copy of latest file provenance report
-sql/seqware_files_report_latest.tsv.gz
+components/fpr/seqware_files_report_latest.tsv.gz
 # copy of latest small version of file provenance report
-sql/fpr.tsv
+components/fpr/fpr.tsv
