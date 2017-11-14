@@ -3,30 +3,57 @@
 
 # Getting started
 
+## Requirements
+Node 4.5.0 or higher
+PostgreSQL and pg_ctl utility
+
+Checking for node:
+```
+node -v
+```
+[Instructions for updating Linux](https://codewithintent.com/how-to-install-update-and-remove-node-js-from-linux-or-ubuntu/)
+
 ## Installing modules
 ```
-npm install
+issitoq$ npm install
 ```
 
 ## Setting environment variables
 Create a `.env` file and populate it. The `.env-example` file provides a template for this.
 
 ## Create a PostgreSQL database
-Use the same user and password as in yoru `.env` file
+Set up the same user and password as in your `.env` file
+```
+$ sudo -u postgres createdb ${DATABASE}
+$ sudo -u postgres psql
+# create user ${USER};
+# alter role ${USER} with password '${PASSWORD}';
+# grant all on database ${DATABASE} to ${USER};
+# \q
+```
 
 ## Migrating the database
-Create a file in `conf/` called `flyway.conf` and add to it your database url, user, and password. The `conf/example-flyway.conf` file provides a template for this.
+When setting up the database for the first time:
+  * Create a file in `conf/` called `flyway.conf` and add to it your database url, user, and password (similar to the `.env` file. The `conf/example-flyway.conf` file provides a template for this.
+  * Perform the initial migration using the following:
+    ```
+    $ npm run fw-baseline
+    ```
 
-When setting up the database initially, run the following:
+After that initial setup, migrations are run as necessary with the following command:
 ```
-npm run fw-baseline
-```
-Then run migrations as usual:
-```
-npm run fw-migrate
+$ npm run fw-migrate
 ```
 
 ## Running the application
 ```
-npm start
+$ pg_ctl start -l {LOG FILE LOCATION}
+$ npm start
 ```
+
+## Development
+Run the linter before committing changes:
+```
+$ npm run lint
+```
+Linter settings are in .eslintrc.json .
