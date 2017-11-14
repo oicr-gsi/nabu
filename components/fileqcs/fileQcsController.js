@@ -37,7 +37,6 @@ function getFileQcBySwid(req, res, next) {
       next();
     })
     .catch(err => {
-      //debug(err);
       console.log(err);
       return next(generateError(500, 'Error retrieving record'));
     });
@@ -61,7 +60,6 @@ function getAllFileQcs(req, res, next) {
       next();
     })
     .catch(err => {
-      //debug(err);
       console.log(err);
       return next(generateError(500, 'Error retrieving records'));
     });
@@ -91,7 +89,6 @@ function addFileQc(req, res, next) {
       next();
     })
     .catch(err => {
-      //debug(err);
       console.log(err); // TODO: fix this into proper logging and debugging
       if (err.error.contains('duplicate key') && err.error.contains('filepath')) {
         next(generateError(400, 'FileQC at path ' + fqc.filepath + ' is already associated with a different fileSWID'));
@@ -123,7 +120,6 @@ function addManyFileQcs(req, res, next) {
         .json({ errors: [], fileqcs: returnInfo });
     })
     .catch(err => {
-      //debug(err);
       console.log(err); // TODO: fix this into proper logging and debugging
       return next(generateError(500, err.error));
     });
