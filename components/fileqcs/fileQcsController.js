@@ -192,20 +192,18 @@ function convertQcStatusToBoolean(value) {
 /** returns an object { validated: {}, errors: [] } */
 function validateObjectsFromUser(unvalidatedObjects, unvalidatedProject) {
   let validationErrors = [];
-  let validatedParams = unvalidatedObjects.map(validateFileQcObject);
-  return { validated: validatedParams, errors: validationErrors };
-  
-  function validateFileQcObject(unvalidated) {
+  let validatedParams = unvalidatedObjects.map(unvalidated => {
     // project may be passed in separately from the fileqcs, or as part of the fileqcs array
     const proj = unvalidatedProject || unvalidated.project;
-    let validated = {};
     try {
-      validated.filepath = validateFilepath(unvalidated.filepath);
-      validated.qcpassed = validateQcStatus(unvalidated.qcstatus);
-      validated.username = validateUsername(unvalidated.username);
-      validated.comment = validateComment(unvalidated.comment);
-      validated.fileswid = validateSwid(unvalidated.fileswid);
-      validated.project = validateProject(proj);
+      return {
+        filepath: validateFilepath(unvalidated.filepath),
+        qcpassed: validateQcStatus(unvalidated.qcstatus),
+        username: validateUsername(unvalidated.username),
+        comment: validateComment(unvalidated.comment),
+        fileswid: validateSwid(unvalidated.fileswid),
+        project: validateProject(proj)
+      }
     } catch (e) {
       if (e instanceof ValidationError) {
         validationErrors.push({ fileswid: unvalidated.fileswid, error: e.message });
@@ -215,6 +213,7 @@ function validateObjectsFromUser(unvalidatedObjects, unvalidatedProject) {
         throw e;
       } 
     }
-    return validated;
-  }
+  });
+
+  return { validated: validatedParams, errors: validationErrors };
 }
