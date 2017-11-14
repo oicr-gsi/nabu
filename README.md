@@ -1,3 +1,6 @@
+
+> In Inuit mythology, Issitoq (also Isitoq) is a deity that punishes those who break taboos. He usually takes the form of a giant flying eye. (from [Wikipedia](https://en.wikipedia.org/wiki/Issitoq))
+
 # Getting started
 
 ## Setting environment variables
@@ -8,11 +11,14 @@ Create a file in `conf/` called `flyway.conf` and add to it your database url, u
 
 When setting up the database initially, run the following:
 ```
-npm run rw-baseline
+npm run fw-baseline
 ```
-Then run migrations as usual.
-
-In order to run migrations, run the following:
+Then run migrations as usual:
 ```
 npm run fw-migrate
+```
+
+## Running the application
+```
+npm start
 ```
