@@ -1,7 +1,7 @@
----------------------------------------
--- Up
----------------------------------------
+.open fpr.db
 
+BEGIN;
+DROP TABLE IF EXISTS fpr;
 CREATE TABLE fpr (
   fileswid BIGINT PRIMARY KEY,
   filepath TEXT NOT NULL,
@@ -10,5 +10,9 @@ CREATE TABLE fpr (
   project TEXT NOT NULL
 );
 
-.mode tsv
-.import fpr.tsv fpr
+.mode tabs
+.import fpr-latest.tsv fpr
+
+COMMIT;
+
+SELECT * from fpr limit 3;
