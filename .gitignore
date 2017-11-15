@@ -7,4 +7,4 @@ node_modules/
 # copy of latest file provenance report
 components/fpr/seqware_files_report_latest.tsv.gz
 # copy of latest small version of file provenance report
-components/fpr/*fpr.tsv
+components/fpr/sqlite-migrations/*fpr.tsv

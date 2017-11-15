@@ -1,7 +1,7 @@
 'use strict';
 
 const pgp = require('pg-promise')();
-const db = pgp(process.env.DB_CONNECTION);
+const pg = pgp(process.env.DB_CONNECTION);
 
 module.exports = {
   getFileQc: getFileQcBySwid,
@@ -25,7 +25,7 @@ function getFileQcBySwid(req, res, next) {
   }
 
   const sql = 'SELECT * FROM FileQC WHERE fileswid = $1';
-  db.any(sql, [swid])
+  pg.any(sql, [swid])
     .then(data => { 
       if (!data || data.length == 0) {
         return next(generateError(404, 'No FileQC found for file with SWID ' + swid));
@@ -52,7 +52,7 @@ function getAllFileQcs(req, res, next) {
   }
 
   const sql = 'SELECT * FROM FileQC WHERE project = $1';
-  db.any(sql, [proj])
+  pg.any(sql, [proj])
     .then(data => {
       // TODO: something in here about DTOifying the responses
       res.status(200)
@@ -82,7 +82,7 @@ function addFileQc(req, res, next) {
   // update if exists, insert if not
   const upsert = 'INSERT INTO FileQc as fqc (filepath, qcpassed, username, comment, fileswid, project) VALUES (${filepath}, ${qcpassed}, ${username}, ${comment}, ${fileswid}, ${project}) ON CONFLICT (fileswid) DO UPDATE SET filepath = ${filepath}, qcpassed = ${qcpassed}, username = ${username}, comment = ${comment} WHERE fqc.fileswid = ${fileswid}';
 
-  db.none(upsert, fqc)
+  pg.none(upsert, fqc)
     .then(() => {
       res.status(201)
         .json({ fileswid: fqc.fileswid, errors: [] });
@@ -107,7 +107,7 @@ function addManyFileQcs(req, res, next) {
 
   const upsert = 'INSERT INTO FileQc as fqc (filepath, qcpassed, username, comment, fileswid, project) VALUES (${filepath}, ${qcpassed}, ${username}, ${comment}, ${fileswid}, ${project}) ON CONFLICT (fileswid) DO UPDATE SET filepath = ${filepath}, qcpassed = ${qcpassed}, username = ${username}, comment = ${comment} WHERE fqc.fileswid = ${fileswid}';
 
-  db.tx('batch', t => {
+  pg.tx('batch', t => {
     const queries = [];
     for (let i = 0; i < toSave.length; i++) {
       queries.push(t.none(upsert, toSave[i]));
