@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger.json');
 const app = express();
+const prometheus = require('prom-client');
 
 app.use(bodyParser.json({ type: 'application/json' }));
 
@@ -17,6 +18,9 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/v1', express.Router());
 
 const fileQc = require('./components/fileqcs/fileQcsController');
+
+// Prometheus monitoring
+const collectDefaultMetrics = prometheus.collectDefaultMetrics;
 
 // home page
 app.get('/', (req, res) => {

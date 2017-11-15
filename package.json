@@ -23,6 +23,7 @@
     "morgan": "^1.9.0",
     "pg": "^7.3.0",
     "pg-promise": "^7.2.1",
+    "prom-client": "^10.2.2",
     "swagger-ui-express": "^2.0.9"
   },
   "devDependencies": {
