@@ -10,4 +10,4 @@ components/fpr/seqware_files_report_latest.tsv.gz
 components/fpr/backups/*fpr.tsv
 components/fpr/fpr-latest.tsv
 # sqlite database
-components/fpr/fpr.db
+components/fpr/fpr.db*

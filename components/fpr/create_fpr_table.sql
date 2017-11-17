@@ -6,13 +6,15 @@ CREATE TABLE fpr (
   fileswid BIGINT PRIMARY KEY,
   filepath TEXT NOT NULL,
   skip BOOLEAN NOT NULL,
-  status TEXT NOT NULL,
-  project TEXT NOT NULL
+  stalestatus TEXT NOT NULL,
+  project TEXT NOT NULL,
+  upstream INTEGER[]
 );
 
 .mode tabs
 .import fpr-latest.tsv fpr
 
-COMMIT;
+-- set empty strings to null
+UPDATE fpr SET upstream = NULL WHERE upstream = '';
 
-SELECT * from fpr limit 3;
+COMMIT;

@@ -11,7 +11,8 @@
         "require": false,
         "module": false,
         "exports": false,
-        "process": false
+        "process": false,
+        "__dirname": false
     },
     "rules": {
         "indent": [

@@ -7,9 +7,8 @@
     "start": "node ./bin/www",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint .",
-    "fw-baseline": "flyway -X -configFile=conf/flyway.conf baseline",
-    "fw-clean": "flyway -X -configFile=conf/flyway.conf clean",
-    "fw-migrate": "flyway -X -configFile=conf/flyway.conf migrate"
+    "fw:clean": "flyway -X -configFile=conf/flyway.conf clean",
+    "fw:migrate": "flyway -X -configFile=conf/flyway.conf -locations=filesystem:./sql/ migrate"
   },
   "repository": {
     "type": "git"

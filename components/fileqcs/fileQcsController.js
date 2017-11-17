@@ -2,10 +2,12 @@
 
 const pgp = require('pg-promise')();
 const pg = pgp(process.env.DB_CONNECTION);
-const sqlite3 = require('sqlite3');
+const sqlite3 = require('sqlite3').verbose(); // TODO: remove `verbose()` in production
 const path = require('path');
 const sqlite_path = path.resolve(__dirname, '../fpr/fpr.db');
-const fpr = new sqlite3.Database(sqlite_path);
+const fpr = new sqlite3.Database(sqlite_path, sqlite3.OPEN_READONLY);
+
+// configure SQLite connection so that reading from and writing to are non-blocking
 fpr.run('PRAGMA journal_mode = WAL;');
 
 module.exports = {

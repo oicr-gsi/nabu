@@ -4,8 +4,9 @@
 # Getting started
 
 ## Requirements
-Node 4.5.0 or higher
-PostgreSQL and pg_ctl utility
+  * Node 4.5.0 or higher
+  * PostgreSQL and pg_ctl utility
+  * SQLite3
 
 Checking for node:
 ```
@@ -37,10 +38,10 @@ When setting up the database for the first time:
   * Create a file in `conf/` called `flyway.conf` and add to it your database url, user, and password (similar to the `.env` file. The `conf/example-flyway.conf` file provides a template for this.
   * Perform the initial migration using the following:
     ```
-    $ npm run fw-baseline
+    $ npm run fw-migrate
     ```
 
-After that initial setup, migrations are run as necessary with the following command:
+After that initial setup, run migrations as necessary using:
 ```
 $ npm run fw-migrate
 ```
