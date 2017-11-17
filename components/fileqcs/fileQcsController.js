@@ -10,6 +10,8 @@ const fpr = new sqlite3.Database(sqlite_path, sqlite3.OPEN_READONLY);
 // configure SQLite connection so that reading from and writing to are non-blocking
 fpr.run('PRAGMA journal_mode = WAL;');
 
+const maxResults = 100;
+
 module.exports = {
   getFileQc: getFileQcBySwid,
   getAllFileQcs: getAllFileQcs,
@@ -31,22 +33,19 @@ function getFileQcBySwid(req, res, next) {
     if (e instanceof ValidationError) return next(generateError(400, e.message));
   }
 
-  const sql = 'SELECT * FROM FileQC WHERE fileswid = $1';
-  pg.any(sql, [swid])
-    .then(data => { 
-      if (!data || data.length == 0) {
-        return next(generateError(404, 'No FileQC found for file with SWID ' + swid));
+  // get the File Provenance record for this SWID, as well as our FileQC record
+  Promise.all([getSingleFprResult(swid), getSingleFqcResult(swid)])
+    .then((results) => {
+      // merge results from FPR and FQC queries (throws if we don't have either an FPR result or an FQC result)    
+      try {
+        const mergedFileQc = mergeOneFileResult(results[0], results[1].fileqc);
+        res.status(200).json({ fileqc: mergedFileQc, errors: results[1].errors });
+        next();
+      } catch (e) {
+        return next(generateError(500, e.message));
       }
-      
-      // TODO: something about DTOifying the response?
-      res.status(200)
-        .json({ fileqc: data, errors: [] });
-      next();
     })
-    .catch(err => {
-      console.log(err);
-      return next(generateError(500, 'Error retrieving record'));
-    });
+    .catch((err) => next(err));
 }
 
 function getAllFileQcs(req, res, next) {
@@ -57,19 +56,23 @@ function getAllFileQcs(req, res, next) {
   } catch (e) {
     if (e instanceof ValidationError) return next(generateError(400, e.message));
   }
+  // TODO: add in check if user has supplied SWIDs instead
 
-  const sql = 'SELECT * FROM FileQC WHERE project = $1';
-  pg.any(sql, [proj])
-    .then(data => {
-      // TODO: something in here about DTOifying the responses
-      res.status(200)
-        .json({ fileqcs: data, errors: [] });
-      next();
+  const numResults = getLimit(req.query.numresults);
+  // get the File Provenance and FileQC records for these FileQCs, and merge the results
+  Promise.all([getFprResultsByProject(proj, numResults), getFqcResultsByProject(proj, numResults)])
+    .then((results) => {
+      // merge the results
+      try {
+        const merged = mergeFileResults(results[0], results[1].fileqcs);
+        res.status(200).json({ fileqcs: merged, errors: results[1].errors });
+        next();
+      } catch (e) {
+        if (e instanceof ValidationError) return next(generateError(500, e.message));
+        return next(generateError(500, 'Error processing files'));
+      }
     })
-    .catch(err => {
-      console.log(err);
-      return next(generateError(500, 'Error retrieving records'));
-    });
+    .catch((err) => next(err));
 }
 
 function addFileQc(req, res, next) {
@@ -171,6 +174,16 @@ function validateQcStatus(param) {
   return qcPassed;
 }
 
+function getLimit(queryNumResults) {
+  // return the lesser of the query num or the maxResults.
+  queryNumResults = parseInt(queryNumResults);
+  if (queryNumResults && typeof queryNumResults == 'number' && queryNumResults > 0){
+    return Math.min(queryNumResults, maxResults);
+  } else {
+    return maxResults;
+  }
+}
+
 function generateError(statusCode, errorMessage) {
   const err = {
     statusCode: statusCode,
@@ -210,7 +223,7 @@ function validateObjectsFromUser(unvalidatedObjects, unvalidatedProject) {
         comment: validateComment(unvalidated.comment),
         fileswid: validateSwid(unvalidated.fileswid),
         project: validateProject(proj)
-      }
+      };
     } catch (e) {
       if (e instanceof ValidationError) {
         validationErrors.push({ fileswid: unvalidated.fileswid, error: e.message });
@@ -223,4 +236,125 @@ function validateObjectsFromUser(unvalidatedObjects, unvalidatedProject) {
   });
 
   return { validated: validatedParams, errors: validationErrors };
+}
+
+/** success returns a single File Provenance Report result */
+function getSingleFprResult(swid) {
+  return new Promise((resolve, reject) => {
+    fpr.get('SELECT * FROM fpr WHERE fileswid = ?', [swid], (err, data) => {
+      if (err) reject(generateError(500, err));
+      resolve((data ? data : {}));
+    });
+  });
+}
+
+/** success returns a single FileQC result */
+function getSingleFqcResult(swid) {
+  return new Promise((resolve, reject) => {
+    const sql = 'SELECT * FROM FileQc WHERE fileswid = $1';
+    pg.any(sql, [swid])
+      .then(data => { 
+        if (!data || data.length == 0) resolve({ fileqc: {}, errors: [] });
+        resolve({ fileqc: data[0], errors: [] });
+      })
+      .catch(err => {
+        console.log(err);
+        reject(generateError(500, 'Error retrieving record'));
+      });
+  });
+}
+
+/** success returns an array of File Provenance results */
+function getFprResultsByProject(project, numResults) {
+  return new Promise((resolve, reject) => {
+    fpr.all('SELECT * FROM fpr WHERE project = ? ORDER BY fileswid ASC LIMIT ?', [project, numResults], (err, data) => {
+      if (err) reject(generateError(500, err));
+      resolve(data ? data : []);
+    });
+  });
+}
+
+/** success returns an array of FileQCs */
+function getFqcResultsByProject(project, numResults) {
+  return new Promise((resolve, reject) => {
+    const sql = 'SELECT * FROM FileQC WHERE project = $1 ORDER BY fileswid ASC LIMIT $2';
+    pg.any(sql, [project, numResults])
+      .then(data => {
+        if (!data || data.length == 0) resolve({ fileqcs: [], errors: [] });
+        resolve({ fileqcs: data, errors: [] });
+      })
+      .catch(err => {
+        console.log(err);
+        reject(generateError(500, 'Error retrieving records'));
+      });
+  });
+}
+
+/** returns the union of the non-null fields of a File Provenance Report object and a FileQC object */
+function mergeOneFileResult(fpr, fqc) {
+  if (!fpr.fileswid && !fqc.fileswid) {
+    throw new Error('Cannot find any matching record in either file provenance or FileQC.');
+  } else if (fpr.fileswid && !fqc.fileswid) {
+    // file exists in file provenance but hasn't been QCed
+    return yesFprNoFqc(fpr);
+  } else if (!fpr.fileswid && fqc.fileswid) {
+    // this file is in the FileQC database but not in file provenance
+    return noFprYesFqc(fqc);
+  } else {
+    // we have both file provenance and FileQC data, so merge them
+    return yesFprYesFqc(fpr, fqc);
+  }
+}
+
+/** combines the results then merges them  // TODO: fix this description
+  * this only works if results are returned sorted by fileswid */
+function mergeFileResults(fprs, fqcs) {
+  const merged = [];
+  for (let i = 0, j = 0; (i < fprs.length || j < fqcs.length);) {
+    if ((j >= fqcs.length) || (fprs[i].fileswid < fqcs[i].fileswid)) {
+      // File Provenance record has no corresponding FileQC record
+      merged.push(yesFprNoFqc(fprs[i]));
+      i++;
+    } else if ((i >= fprs.length) || (fprs[i].fileswid > fqcs[i].fileswid)) {
+      //FileQC record has no corresponding File Provenance record
+      merged.push(noFprYesFqc(fqcs[j]));
+      j++;
+    } else if (fprs[i].fileswid == fqcs[i].fileswid) {
+      merged.push(yesFprYesFqc(fprs[i], fqcs[j]));
+      i++;
+      j++;
+    } else {
+      // panic
+      throw new ValidationError('Error merging file results');
+    }
+  }
+  return merged;
+}
+
+/** If a record is in the File Provenance Report database but not in the FileQC database, 
+ * then its QC status is 'PENDING' */
+function yesFprNoFqc(fpr) {
+  if (fpr.upstream == null) fpr.upstream = [];
+  fpr.qcstatus = 'PENDING';
+  return fpr;
+}
+
+/** If a record is in the FileQC database but not in the File Provenance Report database,
+ * something weird has happened. Return it and indicate that it's not in the FPR */
+function noFprYesFqc(fqc) {
+  fqc.stalestatus = 'NOT IN FILE PROVENANCE';
+  fqc.qcstatus = (fqc.qcpassed == true ? 'PASS' : 'FAIL');
+  return fqc;
+}
+
+/** If a record is in both the File Provenance Report and FileQC databases,
+ * merge the relevant info */
+function yesFprYesFqc(fpr, fqc) {
+  if (fpr.fileswid != fqc.fileswid) throw new Error('Cannot merge non-matching files');
+  const merged = Object.assign({}, fpr);
+  if (merged.upstream == null) merged.upstream = [];
+  merged.qcstatus = (fqc.qcpassed == true ? 'PASS' : 'FAIL');
+  merged.username = fqc.username;
+  if (fqc.comment != null) merged.comment = fqc.comment;
+  return merged;
 }
