@@ -2,14 +2,16 @@
   "name": "qcrecord-db",
   "version": "1.0.0",
   "description": "File QC DB",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
     "start": "node ./bin/www",
     "start:dev": "nodemon ./bin/www",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "SQLITE_LOCATION=${SQLITE_TEST_LOCATION} DB_CONNECTION=postgres://test:test@localhost/qcdb_test LOG_LEVEL=test mocha",
     "lint": "eslint .",
     "fw:clean": "flyway -X -configFile=conf/flyway.conf clean",
-    "fw:migrate": "flyway -X -configFile=conf/flyway.conf -locations=filesystem:./sql/ migrate"
+    "fw:migrate": "flyway -X -configFile=conf/flyway.conf -locations=filesystem:./sql/ migrate",
+    "fw:test-clean": "flyway -configFile=conf/flyway-test-db.conf clean",
+    "fw:test-migrate": "flyway -configFile=conf/flyway-test-db.conf -locations=filesystem:./sql/,filesystem:./test/migrations/ migrate"
   },
   "repository": {
     "type": "git"
@@ -28,8 +30,12 @@
     "swagger-ui-express": "^2.0.9"
   },
   "devDependencies": {
+    "chai": "^4.1.2",
+    "chai-http": "^3.0.0",
     "dotenv": "^4.0.0",
     "eslint": "^4.10.0",
+    "mocha": "^4.0.1",
+    "node-cmd": "^3.0.0",
     "nodemon": "^1.12.1"
   }
 }
