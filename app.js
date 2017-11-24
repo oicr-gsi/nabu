@@ -20,24 +20,20 @@ app.use('/api/v1', express.Router());
 const fileQc = require('./components/fileqcs/fileQcsController');
 
 // Prometheus monitoring
-const collectDefaultMetrics = prometheus.collectDefaultMetrics;
-
-// home page
-app.get('/', (req, res) => {
-  res.end();
+const collectDefaultMetrics = prometheus.collectDefaultMetrics();
+const httpRequestDurationMilliseconds = new prometheus.Histogram({
+  name: 'http_request_duration_ms',
+  help: 'Duration of HTTP requests in ms',
+  labelNames: ['route'],
+  buckets: [0.1, 5, 15, 50, 100, 200, 300, 400, 500]
+});
+const httpRequestCounter = new prometheus.Counter({
+  name: 'http_errors',
+  help: 'Number of requests for this endpoint',
+  labelNames: ['route', 'method', 'status']
 });
 
-// routes to fileQC records
-app.get('/fileqcs', fileQc.getAllFileQcs, (req, res) => { if (!res.headersSent) return res; });
-app.get('/fileqc/:identifier', fileQc.getFileQc, (req, res) => { if (!res.headersSent) return res; });
-app.post('/fileqcs', fileQc.addFileQc, (req, res) => { if (!res.headersSent) return res; });
-app.post('/fileqcs/batch', fileQc.addManyFileQcs, (req, res) => { if (!res.headersSent) return res; });
-app.use(errorHandler);
-app.use(bodyParser.json());
-
-module.exports = app;
-
-function errorHandler(err, req, res, next) {
+const errorHandler = (err, req, res, next) => {
   if (res.headersSent) {
     return next(err);
   }
@@ -45,3 +41,41 @@ function errorHandler(err, req, res, next) {
   res.json({ 'errors': err.errors });
   res.end();
 }
+
+// home page
+app.get('/', (req, res) => { res.end(); });
+
+// routes to fileQC records
+app.use(bodyParser.json());
+app.get('/fileqcs', fileQc.getAllFileQcs);
+app.get('/fileqc/:identifier', fileQc.getFileQc);
+app.post('/fileqcs', fileQc.addFileQc);
+app.post('/fileqcs/batch', fileQc.addManyFileQcs);
+app.get('/metrics', (req, res) => {
+  res.set('Content-Type', prometheus.register.contentType);
+  res.end(prometheus.register.metrics());
+});
+app.use(errorHandler);
+app.use((req, res, next) => {
+  const responseTimeInMs = Date.now() - Date.parse(req._startTime);
+  httpRequestDurationMilliseconds
+    .labels(req.path)
+    .observe(responseTimeInMs);
+  httpRequestCounter
+    .labels(req.path, req.method, res.statusCode)
+    .inc();
+  next();
+});
+
+
+module.exports = app;
+
+// Start server and listen on port
+app.set('port', process.env.PORT || 3000);
+const server = app.listen(app.get('port'), () => {
+  const host = server.address().address;
+  const port = server.address().port;
+
+  console.log('Listening at http://%s:%s', host, port);
+});
+
