@@ -4,8 +4,8 @@
   "description": "File QC DB",
   "main": "app.js",
   "scripts": {
-    "start": "node ./bin/www",
-    "start:dev": "nodemon ./bin/www",
+    "start": "node app.js",
+    "start:dev": "nodemon app.js",
     "test": "SQLITE_LOCATION=${SQLITE_TEST_LOCATION} DB_CONNECTION=postgres://test:test@localhost/qcdb_test LOG_LEVEL=test mocha",
     "lint": "eslint .",
     "fw:clean": "flyway -X -configFile=conf/flyway.conf clean",
@@ -23,17 +23,16 @@
     "express": "^4.16.2",
     "flywaydb-cli": "^0.5.0",
     "morgan": "^1.9.0",
-    "pg": "^7.3.0",
-    "pg-promise": "^7.2.1",
+    "pg-promise": "^7.3.2",
     "prom-client": "^10.2.2",
     "sqlite3": "^3.1.13",
-    "swagger-ui-express": "^2.0.9"
+    "swagger-ui-express": "^2.0.11"
   },
   "devDependencies": {
     "chai": "^4.1.2",
     "chai-http": "^3.0.0",
     "dotenv": "^4.0.0",
-    "eslint": "^4.10.0",
+    "eslint": "^4.11.0",
     "mocha": "^4.0.1",
     "node-cmd": "^3.0.0",
     "nodemon": "^1.12.1",

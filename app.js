@@ -8,16 +8,14 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger.json');
 const app = express();
 const prometheus = require('prom-client');
-
-app.use(bodyParser.json({ type: 'application/json' }));
+const fileQc = require('./components/fileqcs/fileQcsController');
 
 const logLevel = process.env.LOG_LEVEL || 'dev';
 app.use(morgan(logLevel)); // TODO: expand this further to do production logging
 
+app.use(bodyParser.json({ type: 'application/json' }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/v1', express.Router());
-
-const fileQc = require('./components/fileqcs/fileQcsController');
 
 // Prometheus monitoring
 prometheus.collectDefaultMetrics();

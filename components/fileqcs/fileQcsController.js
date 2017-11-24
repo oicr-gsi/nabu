@@ -1,6 +1,6 @@
 'use strict';
 
-const pgp = require('pg-promise')();
+const pgp = require('pg-promise')({});
 const pg = pgp(process.env.DB_CONNECTION);
 const sqlite3 = require('sqlite3').verbose(); // TODO: remove `verbose()` in production
 const fpr = new sqlite3.Database(process.env.SQLITE_LOCATION, sqlite3.OPEN_READWRITE);
