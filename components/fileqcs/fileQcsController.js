@@ -28,10 +28,7 @@ const getFileQcBySwid = async (req, res, next) => {
     res.status(200).json({ fileqc: mergedFileQc, errors: results[1].errors });
     next();
   } catch (e) { 
-    if (e instanceof ValidationError) return next(generateError(400, e.message));
-    if (e.status) return next(e);
-    console.log(e);
-    return next(generateError(500, 'Error getting record')); 
+    handleErrors(e, 'Error getting record', next);
   }
 };
 
@@ -61,10 +58,7 @@ const getAllFileQcs = async (req, res, next) => {
     res.status(200).json({ fileqcs: merged, errors: results[1].errors });
     next();
   } catch (e) {
-    if (e instanceof ValidationError) return next(generateError(400, e.message));
-    if (e.status) return next(e);
-    console.log(e);
-    next(generateError(500, 'Error getting files'));
+    handleErrors(e, 'Error getting records', next);
   }
 };
 
@@ -88,40 +82,31 @@ const addFileQc = async (req, res, next) => {
     res.status(201).json({ fileqc: merged, errors: results[1].errors });
     next();
   } catch (e) {
-    if (e instanceof ValidationError) return next(generateError(400, e.message));
-    if (e.status) return next(e);
-    console.log(e);
-    return next(generateError(500, 'Error adding FileQC'));
+    handleErrors(e, 'Error adding record', next);
   }
 };
 
 /**
  * Batch add FileQCs
  */
-function addManyFileQcs(req, res, next) {
+const addManyFileQcs = async (req, res, next) => {
   if (!req.body.fileqcs) return next(generateError(400, 'Error: no FileQCs found in request body'));
 
-  const validationResults = validateObjectsFromUser(req.body.fileqcs, req.body.project);
+  const validationResults = validateObjectsFromUser(req.body.fileqcs);
   if (validationResults.errors.length) return next(generateError(400, validationResults.errors));
   const toSave = validationResults.validated;
   const swids = toSave.map(record => record.fileswid);
 
-  Promise.all([getFprResultsBySwids(swids), upsertFqcs(toSave)])
-    .then((results) => {
-      // merge the results
-      try {
-        const merged = mergeFileResults(results[0], results[1].fileqcs);
-        res.status(200).json({ fileqcs: merged, errors: results[1].errors });
-        next();
-      } catch (e) {
-        if (e instanceof ValidationError) return next(generateError(500, e.message));
-        console.log(e.error);
-        return next(generateError(500, 'Error processing files'));
-      }
-    })
-    .catch((err) => next(err));
-
-}
+  try {
+    const results = await Promise.all([getFprResultsBySwids(swids), upsertFqcs(toSave)]);
+    // merge the results
+    const merged = mergeFileResults(results[0], results[1].fileqcs);
+    res.status(200).json({ fileqcs: merged, errors: results[1].errors });
+    next();
+  } catch (e) {
+    handleErrors(e, 'Error adding records', next);
+  }
+};
 
 // validation functions
 function validateProject(param) {
@@ -168,14 +153,6 @@ function validateQcStatus(param) {
   return qcPassed;
 }
 
-function generateError(statusCode, errorMessage) {
-  const err = {
-    status: statusCode,
-    errors: [errorMessage]
-  };
-  return err;
-}
-
 function nullifyIfBlank(value) {
   if (typeof value == 'undefined' || value === null || value.length == 0) value = null;
   return value;
@@ -193,12 +170,25 @@ function convertQcStatusToBoolean(value) {
   return statusToBool[value];
 }
 
+function generateError(statusCode, errorMessage) {
+  const err = {
+    status: statusCode,
+    errors: [errorMessage]
+  };
+  return err;
+}
+
+function handleErrors(e, defaultMessage, next) {
+  if (e instanceof ValidationError) return next(generateError(400, e.message));
+  if (e.status) return next(e); // generateError has already been called
+  console.log(e.error); // TODO: fix this into proper logging and debugging
+  next(generateError(500, defaultMessage));
+}
+
 /** returns an object { validated: {}, errors: [] } */
-function validateObjectsFromUser(unvalidatedObjects, unvalidatedProject) {
+function validateObjectsFromUser(unvalidatedObjects) {
   let validationErrors = [];
   let validatedParams = unvalidatedObjects.map(unvalidated => {
-    // project may be passed in separately from the fileqcs, or as part of the fileqcs array
-    const proj = unvalidatedProject || unvalidated.project;
     try {
       return {
         filepath: validateFilepath(unvalidated.filepath),
@@ -206,7 +196,7 @@ function validateObjectsFromUser(unvalidatedObjects, unvalidatedProject) {
         username: validateUsername(unvalidated.username),
         comment: validateComment(unvalidated.comment),
         fileswid: validateSwid(unvalidated.fileswid),
-        project: validateProject(proj)
+        project: validateProject(unvalidated.project)
       };
     } catch (e) {
       if (e instanceof ValidationError) {
@@ -309,14 +299,18 @@ function upsertSingleFqc(fqc) {
         resolve({ fileswid: fqc.fileswid, errors: [] });
       })
       .catch(err => {
-        console.log(err); // TODO: fix this into proper logging and debugging
         if (err.message.includes('duplicate key') && err.message.includes('filepath')) {
           reject(generateError(400, 'filepath ' + fqc.filepath + ' is already associated with another fileswid'));
         } else {
+          console.log(err); // TODO: fix this into proper logging and debugging
           reject(generateError(500, 'Failed to create FileQC record'));
         }
       });
   });
+}
+
+function getFilepathFromError (errorDetail) {
+  return errorDetail.split('(')[2].split(')')[0];
 }
 
 function upsertFqcs(fqcs) {
@@ -330,16 +324,21 @@ function upsertFqcs(fqcs) {
       }
       return t.batch(queries);
     })
-    .then(()=> {
-      const returnInfo = fqcs.sort((a, b) => {
-        return parseInt(a.fileswid) - parseInt(b.fileswid);
-      }).map(fqc => { return { fileswid: fqc.fileswid, qcstatus: fqc.qcstatus }; });
-      resolve({ fileqcs: returnInfo, errors: [] });
-    })
-    .catch(err => {
-      console.log(err); // TODO: fix this into proper logging and debugging
-      reject(generateError(500, err.error));
-    });
+      .then(() => {
+        const returnInfo = fqcs.sort((a, b) => {
+          return parseInt(a.fileswid) - parseInt(b.fileswid);
+        });
+        return resolve({ fileqcs: returnInfo, errors: [] });
+      })
+      .catch(err => {
+        if (err.message.includes('duplicate key') && err.message.includes('filepath')) {
+          const dupes = err.data.filter(tx => !tx.success).map(tx => getFilepathFromError(tx.result.detail));
+          reject(generateError(400, 'filepath(s) already associated with another fileswid: ' + dupes.join(', ')));
+        } else {
+          console.log(err.error); // TODO: fix this into proper logging and debugging
+          reject(generateError(500, 'Failed to create FileQC record'));
+        }
+      });
   });
 }
 
@@ -363,16 +362,16 @@ function mergeOneFileResult(fpr, fqc) {
   * this only works if results are returned sorted by fileswid */
 function mergeFileResults(fprs, fqcs) {
   const merged = [];
-  for (let i = 0, j = 0; (i < fprs.length || j < fqcs.length);) {
-    if ((j >= fqcs.length) || (i < fprs.length && fprs[i].fileswid < fqcs[i].fileswid)) {
+  for (let i = 0, j = 0; (i < fprs.length && j < fqcs.length);) {
+    if (i < fprs.length && (j >= fqcs.length ? true : fprs[i].fileswid < fqcs[j].fileswid)) {
       // File Provenance record has no corresponding FileQC record
       merged.push(yesFprNoFqc(fprs[i]));
       i++;
-    } else if ((i >= fprs.length) || (j < fqcs.length && fprs[i].fileswid > fqcs[i].fileswid)) {
+    } else if (j < fqcs.length && (i >= fprs.length ? true : fprs[i].fileswid > fqcs[j].fileswid)) {
       //FileQC record has no corresponding File Provenance record
       merged.push(noFprYesFqc(fqcs[j]));
       j++;
-    } else if (fprs[i].fileswid == fqcs[i].fileswid) {
+    } else if (fprs[i].fileswid == fqcs[j].fileswid) {
       merged.push(yesFprYesFqc(fprs[i], fqcs[j]));
       i++;
       j++;
@@ -397,6 +396,7 @@ function yesFprNoFqc(fpr) {
 function noFprYesFqc(fqc) {
   fqc.stalestatus = 'NOT IN FILE PROVENANCE';
   fqc.qcstatus = (fqc.qcpassed == true ? 'PASS' : 'FAIL');
+  delete fqc.qcpassed;
   fqc.fileswid = parseInt(fqc.fileswid);
   return fqc;
 }

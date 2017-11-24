@@ -20,7 +20,7 @@ app.use('/api/v1', express.Router());
 const fileQc = require('./components/fileqcs/fileQcsController');
 
 // Prometheus monitoring
-const collectDefaultMetrics = prometheus.collectDefaultMetrics();
+prometheus.collectDefaultMetrics();
 const httpRequestDurationMilliseconds = new prometheus.Histogram({
   name: 'http_request_duration_ms',
   help: 'Duration of HTTP requests in ms',

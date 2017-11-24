@@ -10,7 +10,166 @@ const cmd = require('node-cmd');
 const path = require('path');
 const test_migration = path.resolve(__dirname, './migrations/create_test_fpr.db');
 
+// mock out the databases in the controller to be able to unit test the private functions
+// this will throw a 'duplicate db connection' error when the class is first rewired,
+// but then we mock the databases so that it should never be an issue.
+const rewire = require('rewire');
+const controller = rewire('../components/fileqcs/fileQcsController');
+// __set__ returns a function which reverts the changes introduced by this particular __set__ call
+const revertPgDb = controller.__set__('pg', {});
+const revertFprDb = controller.__set__('fpr', {});
+
 chai.use(chaiHttp);
+
+describe('FileQcController', () => {
+  const fprs = {
+    12017: {
+      fileswid: 12017,
+      filepath: '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R1_001.fastq.gz',
+      skip: 'false',
+      stalestatus: 'OKAY',
+      project: 'IPSCellLineReprogramming',
+      upstream: []
+    }, 
+    12019: {
+      fileswid: 12019,
+      filepath: '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R2_001.fastq.gz',
+      skip: 'false',
+      stalestatus: 'OKAY',
+      project: 'IPSCellLineReprogramming',
+      upstream: []
+    },
+    12025: {
+      fileswid: 12025,
+      filepath: '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11714/11714_ACTTGA_L002_R1_001.fastq.gz',
+      skip: 'false',
+      stalestatus: 'OKAY',
+      project: 'IPSCellLineReprogramming',
+      upstream: []
+    }
+  };
+  const fqcs = {
+    12017: { 
+      fileswid: 12017,
+      filepath: '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R1_001.fastq.gz',
+      project: 'IPSCellLineReprogramming',
+      qcpassed: false,
+      username: 'test',
+      comment: 'failed for test' 
+    },
+    12018: {
+      fileswid: 12018,
+      project: 'IPSCellLineReprogramming',
+      filepath: '/oicr/deleted/items',
+      username: 'me',
+      comment: null,
+      qcpassed: false 
+    },
+    12025: {
+      fileswid: 12025,
+      project: 'IPSCellLineReprogramming',
+      filepath: '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11714/11714_ACTTGA_L002_R1_001.fastq.gz',
+      username: 'me',
+      comment: null,
+      qcpassed: true 
+    }
+  }; 
+  const mergeOne = controller.__get__('mergeOneFileResult');
+  const mergeFileResults = controller.__get__('mergeFileResults');
+
+  it('should merge file results when item is found in both FPR and FQC', (done) => {
+    const expected = {
+      fileswid: 12017,
+      filepath: '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R1_001.fastq.gz',
+      project: 'IPSCellLineReprogramming',
+      skip: 'false',
+      stalestatus: 'OKAY', 
+      upstream: [],
+      qcstatus: 'FAIL',
+      username: 'test',
+      comment: 'failed for test'
+    };
+    const actual = mergeOne(fprs['12017'], fqcs['12017']);
+    expect(actual).to.deep.equal(expected);
+    done();
+  });
+
+  it('should return FileQc results with "NOT IN PROVENANCE" when there is no FPR record', (done) => {
+    const expected = {
+      fileswid: 12017,
+      filepath: '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R1_001.fastq.gz',
+      project: 'IPSCellLineReprogramming',
+      stalestatus: 'NOT IN FILE PROVENANCE', 
+      qcstatus: 'FAIL',
+      username: 'test',
+      comment: 'failed for test'
+    };
+    const actual = mergeOne({}, fqcs['12017']);
+    expect(actual).to.deep.equal(expected);
+    done();
+  });
+
+  it('should return FPR result with qcstatus "PENDING" when there is no FQC record', (done) => {
+    const expected = {
+      fileswid: 12017,
+      filepath: '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R1_001.fastq.gz',
+      project: 'IPSCellLineReprogramming',
+      skip: 'false',
+      stalestatus: 'OKAY', 
+      qcstatus: 'PENDING',
+      upstream: []
+    };
+    const actual = mergeOne(fprs['12017'], {});
+    expect(actual).to.deep.equal(expected);
+    done();
+  });
+
+  it('should return all data when some inputs are present in FPR, others in FQC, and some in both', (done) => {
+    const expected = [
+      {
+        fileswid: 12017,
+        filepath: '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R1_001.fastq.gz',
+        project: 'IPSCellLineReprogramming',
+        qcstatus: 'FAIL',
+        username: 'test',
+        comment: 'failed for test',
+        upstream: [],
+        skip: 'false',
+        stalestatus: 'OKAY'
+      }, {
+        fileswid: 12018,
+        project: 'IPSCellLineReprogramming',
+        filepath: '/oicr/deleted/items',
+        username: 'me',
+        comment: null,
+        qcstatus: 'FAIL',
+        stalestatus: 'NOT IN FILE PROVENANCE'
+      }, {
+        fileswid: 12019,
+        filepath: '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R2_001.fastq.gz',
+        skip: 'false',
+        stalestatus: 'OKAY',
+        project: 'IPSCellLineReprogramming',
+        upstream: [],
+        qcstatus: 'PENDING'
+      }, { 
+        fileswid: 12025,
+        project: 'IPSCellLineReprogramming',
+        filepath: '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11714/11714_ACTTGA_L002_R1_001.fastq.gz',
+        username: 'me',
+        qcstatus: 'PASS',
+        upstream: [],
+        skip: 'false',
+        stalestatus: 'OKAY'
+      }
+    ];
+    const actual = mergeFileResults([fprs['12017'], fprs['12019'], fprs['12025']], [fqcs['12017'], fqcs['12018'], fqcs['12025']]);
+    expect(actual).to.deep.equal(expected);
+    done();
+  });
+  revertPgDb();
+  revertFprDb();
+});
 
 
 describe('FileQC', function() {
@@ -189,40 +348,8 @@ describe('FileQC', function() {
           expect(res.status).to.equal(200);
           expect(res.body.errors).to.be.empty;
           expect(res.body.fileqcs).to.have.lengthOf(2);
-        });
-        done();
-    });
-
-    it('it should fail to create any FileQCs when one FileQC fails to save', async (done) => {
-      const baddAdd = await new Promise((resolve, reject) => {
-        chai.request(server)
-          .post('/fileqcs/batch')
-          .set('content-type', 'application/json')
-          .send({ fileqcs: [
-          { 
-            fileswid: 12019, project: 'IPSCellLineReprogramming', qcstatus: 'PASS', username: 'me',
-            filepath: '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R2_001.fastq.gz'
-          }, {
-            fileswid: 12025, project: 'IPSCellLineReprogramming', qcstatus: 'PASS', username: 'me',
-            filepath: '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R1_001.fastq.gz' 
-          }
-        ]}) // filepath for 12025 is same as that for 12017 in FileQC db
-        .end((err, res) => {
-          console.log(err);
-          if (err) reject(err);
-          resolve(res);
-        });
-      });
-      expect(badAdd.status).to.equal(400);
-      expect(badAdd.body.errors).to.not.be.empty;
-
-      // confirm that the qcstatus for both of these FileQCs is still pending (ie. hasn't been added to db)
-      chai.request(server)
-        .get('/fileqcs?fileswids=12019,12025')
-        .end((err, res) => {
-          expect(res.body.fileqcs).to.have.lengthOf(2);
-          expect(res.body.fileqcs[0].qcstatus).to.equal('PENDING');
-          expect(res.body.fileqcs[1].qcstatus).to.equal('PENDING');
+          expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
+          expect(res.body.fileqcs[1].qcstatus).to.equal('PASS');
           done();
         });
     });
