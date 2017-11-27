@@ -3,7 +3,7 @@
 const pgp = require('pg-promise')({});
 const pg = pgp(process.env.DB_CONNECTION);
 const sqlite3 = require('sqlite3').verbose(); // TODO: remove `verbose()` in production
-const fpr = new sqlite3.Database(process.env.SQLITE_LOCATION, sqlite3.OPEN_READWRITE);
+const fpr = new sqlite3.Database(process.env.SQLITE_LOCATION + '/fpr.db', sqlite3.OPEN_READWRITE);
 
 // configure SQLite connection so that reading from and writing to are non-blocking
 fpr.run('PRAGMA journal_mode = WAL;');
@@ -106,6 +106,16 @@ const addManyFileQcs = async (req, res, next) => {
   } catch (e) {
     handleErrors(e, 'Error adding records', next);
   }
+};
+
+/** success returns the last time that the File Provenance Report was imported into SQLite */
+const getMostRecentFprImportTime = () => {
+  return new Promise((resolve, reject) => {
+    fpr.get('SELECT * FROM fpr_import_time ORDER BY lastimported DESC LIMIT 1', [], (err, data) => {
+      if (err) reject(err);
+      resolve(new Date(data.lastimported).getTime()); 
+    });
+  });
 };
 
 // validation functions
@@ -211,6 +221,7 @@ function validateObjectsFromUser(unvalidatedObjects) {
 
   return { validated: validatedParams, errors: validationErrors };
 }
+
 
 /** success returns a single File Provenance Report result */
 function getSingleFprResult(swid) {
@@ -417,7 +428,8 @@ module.exports = {
   getFileQc: getFileQcBySwid,
   getAllFileQcs: getAllFileQcs,
   addFileQc: addFileQc,
-  addManyFileQcs: addManyFileQcs
+  addManyFileQcs: addManyFileQcs,
+  getMostRecentFprImportTime: getMostRecentFprImportTime
 };
 
 

@@ -14,6 +14,12 @@ CREATE TABLE fpr (
 .mode tabs
 .import fpr-latest.tsv fpr
 
+CREATE TABLE IF NOT EXISTS fpr_import_time (
+  lastimported TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+INSERT INTO fpr_import_time (lastimported) VALUES (CURRENT_TIMESTAMP);
+
 -- set empty strings to null
 UPDATE fpr SET upstream = NULL WHERE upstream = '';
 

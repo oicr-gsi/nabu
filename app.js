@@ -30,6 +30,10 @@ const httpRequestCounter = new prometheus.Counter({
   help: 'Number of requests for this endpoint',
   labelNames: ['route', 'method', 'status']
 });
+const mostRecentFprImport = new prometheus.Gauge({
+  name: 'fpr_most_recent_import',
+  help: 'Time (in seconds) that the File Provenance Report was most recently imported'
+});
 
 const errorHandler = (err, req, res, next) => {
   if (res.headersSent) {
@@ -38,7 +42,7 @@ const errorHandler = (err, req, res, next) => {
   res.status(err.status || 500);
   res.json({ 'errors': err.errors });
   res.end();
-}
+};
 
 // home page
 app.get('/', (req, res) => { res.end(); });
@@ -49,7 +53,14 @@ app.get('/fileqcs', fileQc.getAllFileQcs);
 app.get('/fileqc/:identifier', fileQc.getFileQc);
 app.post('/fileqcs', fileQc.addFileQc);
 app.post('/fileqcs/batch', fileQc.addManyFileQcs);
-app.get('/metrics', (req, res) => {
+app.get('/metrics', async (req, res) => {
+  try {
+    const mostRecentImportTime = await fileQc.getMostRecentFprImportTime();
+    mostRecentFprImport.set(mostRecentImportTime);
+  } catch (e) {
+    console.log('Error getting most recent File Provenance Report import time');
+    console.log(e);
+  }
   res.set('Content-Type', prometheus.register.contentType);
   res.end(prometheus.register.metrics());
 });
