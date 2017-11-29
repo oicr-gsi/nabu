@@ -36,29 +36,66 @@ const getFileQcBySwid = async (req, res, next) => {
  * Get all FileQCs restricted by Project or File SWIDs
  */
 const getAllFileQcs = async (req, res, next) => {
-  let proj, swids;
-  try {
-    proj = nullifyIfBlank(req.query.project);
-    swids = validateSwids(req.query.fileswids);
-  
-    let getFprByProjOrSwids, getFqcByProjOrSwids;
-    if (proj != null) {
-      getFprByProjOrSwids = () => getFprResultsByProject(proj);
-      getFqcByProjOrSwids = () => getFqcResultsByProject(proj);
-    } else if (swids != null) {
-      getFprByProjOrSwids = () => getFprResultsBySwids(swids);
-      getFqcByProjOrSwids = () => getFqcResultsBySwids(swids);
-    } else {
-      return next(generateError(400, 'Must supply project or fileswid(s)'));
-    }
+  let proj, swids, qcStatus;
+  proj = nullifyIfBlank(req.query.project);
+  swids = validateSwids(req.query.fileswids);
+  qcStatus = req.query.qcstatus; 
 
-    const results = await Promise.all([getFprByProjOrSwids(), getFqcByProjOrSwids()]);
-    // merge the results from the File Provenance report and the FileQC database
-    const merged = mergeFileResults(results[0], results[1].fileqcs);
-    res.status(200).json({ fileqcs: merged, errors: results[1].errors });
+  let results;
+  try {
+    if (qcStatus === null || typeof qcStatus == 'undefined') {
+      results = await getByProjOrSwids(proj, swids, next);
+    } else {
+      results = await getByProjAndQcStatus(proj, qcStatus, next);
+    }
+    res.status(200).json({ fileqcs: results, errors: [] });
     next();
   } catch (e) {
+    console.log(e);
     handleErrors(e, 'Error getting records', next);
+  }
+};
+
+const getByProjOrSwids = async (proj, swids, next) => {
+  let getFprByProjOrSwids, getFqcByProjOrSwids;
+  if (proj != null) {
+    getFprByProjOrSwids = () => getFprResultsByProject(proj);
+    getFqcByProjOrSwids = () => getFqcResultsByProject(proj);
+  } else if (swids != null) {
+    getFprByProjOrSwids = () => getFprResultsBySwids(swids);
+    getFqcByProjOrSwids = () => getFqcResultsBySwids(swids);
+  } else {
+    return next(generateError(400, 'Must supply project or fileswid(s)'));
+  }
+
+  try {
+    const results = await Promise.all([getFprByProjOrSwids(), getFqcByProjOrSwids()]);
+    // merge the results from the File Provenance report and the FileQC database
+    return mergeFileResults(results[0], results[1].fileqcs);
+  } catch (e) {
+    throw e;
+  }
+
+};
+
+const getByProjAndQcStatus = async (proj, qcStatus) => {
+  try {
+    const qcpassed = validateQcStatus(qcStatus, false);
+    if (qcpassed === null) {
+      // get only items from FPR that are not in FileQC
+      let fileQcSwids = await getAllFileQcSwids();
+      fileQcSwids = fileQcSwids.map(o => parseInt(o.fileswid));
+      const pendingFprs = await getFprsNotInFileQc(proj, fileQcSwids);
+      return mergeFileResults(pendingFprs, []);
+    } else {
+      // get only the items which are listed as either PASS or FAIL in FileQC
+      const fqcs = await getFqcResultsByProjAndQcStatus(proj, qcpassed);
+      const swids = fqcs.map(record => record.fileswid);
+      const fprs = await getFprResultsBySwids(swids);
+      return mergeFileResults(fprs, fqcs);
+    }
+  } catch (e) {
+    throw e;
   }
 };
 
@@ -73,7 +110,7 @@ const addFileQc = async (req, res, next) => {
       fileswid: validateSwid(req.query.fileswid),
       username: validateUsername(req.query.username),
       comment: validateComment(req.query.comment),
-      qcpassed: validateQcStatus(req.query.qcstatus)
+      qcpassed: validateQcStatus(req.query.qcstatus, true)
     };
 
     const results = await Promise.all([getSingleFprResult(fqc.fileswid), upsertSingleFqc(fqc)]);
@@ -156,9 +193,9 @@ function validateFilepath(param) {
   return fp;
 }
 
-function validateQcStatus(param) {
+function validateQcStatus(param, throwIfNull) {
   let qcPassed = nullifyIfBlank(param);
-  if (qcPassed === null) throw new ValidationError('FileQC must be saved with qcstatus "PASS" or "FAIL"');
+  if (qcPassed === null && throwIfNull) throw new ValidationError('FileQC must be saved with qcstatus "PASS" or "FAIL"');
   qcPassed = convertQcStatusToBoolean(qcPassed);
   return qcPassed;
 }
@@ -176,7 +213,7 @@ function convertQcStatusToBoolean(value) {
     'fail': false,
     'pending': null
   };
-  if (statusToBool[value] == null) throw new ValidationError('Unknown QC status ' + value);
+  if (typeof statusToBool[value] == 'undefined') throw new ValidationError('Unknown QC status ' + value);
   return statusToBool[value];
 }
 
@@ -202,7 +239,7 @@ function validateObjectsFromUser(unvalidatedObjects) {
     try {
       return {
         filepath: validateFilepath(unvalidated.filepath),
-        qcpassed: validateQcStatus(unvalidated.qcstatus),
+        qcpassed: validateQcStatus(unvalidated.qcstatus, true),
         username: validateUsername(unvalidated.username),
         comment: validateComment(unvalidated.comment),
         fileswid: validateSwid(unvalidated.fileswid),
@@ -353,6 +390,32 @@ function upsertFqcs(fqcs) {
   });
 }
 
+const getAllFileQcSwids = () => {
+  return new Promise((resolve, reject) => {
+    pg.any('SELECT fileswid FROM fileqc', [])
+      .then(data => resolve(data))
+      .catch(err => reject(err)); 
+  });
+};
+
+const getFqcResultsByProjAndQcStatus = (proj, qcpassed) => {
+  return new Promise((resolve, reject) => {
+    pg.any('SELECT * FROM fileqc WHERE project = $1 AND qcpassed = $2 ORDER BY fileswid ASC', [proj, qcpassed])
+      .then(data => resolve(data))
+      .catch(err => reject(err));
+  });
+};
+
+const getFprsNotInFileQc = (proj, fileQcSwids) => {
+  return new Promise((resolve, reject) => {
+    fpr.all('SELECT * FROM fpr WHERE fileswid NOT IN (' + fileQcSwids.join() + ') AND project = ? ORDER BY fileswid ASC', [proj], (err, data) => {
+      if (err) reject(err);
+      resolve(data);
+    });
+  });
+};
+
+
 /** returns the union of the non-null fields of a File Provenance Report object and a FileQC object */
 function mergeOneFileResult(fpr, fqc) {
   if (!fpr.fileswid && !fqc.fileswid) {
@@ -373,15 +436,18 @@ function mergeOneFileResult(fpr, fqc) {
   * this only works if results are returned sorted by fileswid */
 function mergeFileResults(fprs, fqcs) {
   const merged = [];
-  for (let i = 0, j = 0; (i < fprs.length && j < fqcs.length);) {
-    if (i < fprs.length && (j >= fqcs.length ? true : fprs[i].fileswid < fqcs[j].fileswid)) {
+  for (let i = 0, j = 0; (i <= fprs.length && j <= fqcs.length);) {
+    if (i < fprs.length && (j >= fqcs.length || fprs[i].fileswid < fqcs[j].fileswid)) {
       // File Provenance record has no corresponding FileQC record
       merged.push(yesFprNoFqc(fprs[i]));
       i++;
-    } else if (j < fqcs.length && (i >= fprs.length ? true : fprs[i].fileswid > fqcs[j].fileswid)) {
-      //FileQC record has no corresponding File Provenance record
+    } else if (j < fqcs.length && (i >= fprs.length || fprs[i].fileswid > fqcs[j].fileswid)) {
+      // FileQC record has no corresponding File Provenance record
       merged.push(noFprYesFqc(fqcs[j]));
       j++;
+    } else if (i == fprs.length && j == fqcs.length) {
+      // regrettable that we need to check for this
+      break;
     } else if (fprs[i].fileswid == fqcs[j].fileswid) {
       merged.push(yesFprYesFqc(fprs[i], fqcs[j]));
       i++;
@@ -397,7 +463,7 @@ function mergeFileResults(fprs, fqcs) {
 /** If a record is in the File Provenance Report database but not in the FileQC database, 
  * then its QC status is 'PENDING' */
 function yesFprNoFqc(fpr) {
-  if (fpr.upstream == null) fpr.upstream = [];
+  fpr.upstream = parseUpstream(fpr.upstream);
   fpr.qcstatus = 'PENDING';
   return fpr;
 }
@@ -417,11 +483,24 @@ function noFprYesFqc(fqc) {
 function yesFprYesFqc(fpr, fqc) {
   if (fpr.fileswid != fqc.fileswid) throw new Error('Cannot merge non-matching files');
   const merged = Object.assign({}, fpr);
-  if (merged.upstream == null) merged.upstream = [];
+  merged.upstream = parseUpstream(merged.upstream);
   merged.qcstatus = (fqc.qcpassed == true ? 'PASS' : 'FAIL');
   merged.username = fqc.username;
   if (fqc.comment != null) merged.comment = fqc.comment;
   return merged;
+}
+
+/** comes out of the db as "123;124" */
+function parseUpstream (upstream) {
+  if (typeof upstream == 'undefined' || upstream == null) {
+    return [];
+  } else if (typeof upstream == 'number') {
+    return [upstream];
+  } else if (Array.isArray(upstream)) {
+    return upstream;
+  } else {
+    return upstream.split(';').map(us => parseInt(us));
+  }
 }
 
 module.exports = {
