@@ -6,34 +6,14 @@ const bodyParser = require('body-parser');
 const morgan = require('morgan');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger.json');
-const app = express();
-const prometheus = require('prom-client');
+const prom = require('./utils/prometheus');
 const fileQc = require('./components/fileqcs/fileQcsController');
+const logger = require('./utils/logger');
 
+const app = express();
 const logLevel = process.env.LOG_LEVEL || 'dev';
 app.use(morgan(logLevel)); // TODO: expand this further to do production logging
 
-app.use(bodyParser.json({ type: 'application/json' }));
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.use('/api/v1', express.Router());
-
-// Prometheus monitoring
-prometheus.collectDefaultMetrics();
-const httpRequestDurationMilliseconds = new prometheus.Histogram({
-  name: 'http_request_duration_ms',
-  help: 'Duration of HTTP requests in ms',
-  labelNames: ['route'],
-  buckets: [0.1, 5, 15, 50, 100, 200, 300, 400, 500]
-});
-const httpRequestCounter = new prometheus.Counter({
-  name: 'http_errors',
-  help: 'Number of requests for this endpoint',
-  labelNames: ['route', 'method', 'status']
-});
-const mostRecentFprImport = new prometheus.Gauge({
-  name: 'fpr_most_recent_import',
-  help: 'Time (in seconds) that the File Provenance Report was most recently imported'
-});
 
 const errorHandler = (err, req, res, next) => {
   if (res.headersSent) {
@@ -43,6 +23,12 @@ const errorHandler = (err, req, res, next) => {
   res.json({ 'errors': err.errors });
   res.end();
 };
+
+
+
+app.use(bodyParser.json({ type: 'application/json' }));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api/v1', express.Router());
 
 // home page
 app.get('/', (req, res) => { res.end(); });
@@ -56,21 +42,22 @@ app.post('/fileqcs/batch', fileQc.addManyFileQcs);
 app.get('/metrics', async (req, res) => {
   try {
     const mostRecentImportTime = await fileQc.getMostRecentFprImportTime();
-    mostRecentFprImport.set(mostRecentImportTime);
+    prom.mostRecentFprImport.set(mostRecentImportTime);
   } catch (e) {
-    console.log('Error getting most recent File Provenance Report import time');
-    console.log(e);
+    logger.error('Error getting most recent File Provenance Report import time');
+    logger.error(e);
   }
-  res.set('Content-Type', prometheus.register.contentType);
-  res.end(prometheus.register.metrics());
+  res.set('Content-Type', prom.prometheus.register.contentType);
+  res.end(prom.prometheus.register.metrics());
 });
 app.use(errorHandler);
 app.use((req, res, next) => {
+  // log metrics after every request
   const responseTimeInMs = Date.now() - Date.parse(req._startTime);
-  httpRequestDurationMilliseconds
+  prom.httpRequestDurationMilliseconds
     .labels(req.path)
     .observe(responseTimeInMs);
-  httpRequestCounter
+  prom.httpRequestCounter
     .labels(req.path, req.method, res.statusCode)
     .inc();
   next();
@@ -85,6 +72,6 @@ const server = app.listen(app.get('port'), () => {
   const host = server.address().address;
   const port = server.address().port;
 
-  console.log('Listening at http://%s:%s', host, port);
+  logger.info('Listening at http://%s:%s', host, port);
 });
 

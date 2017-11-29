@@ -4,6 +4,7 @@ const pgp = require('pg-promise')({});
 const pg = pgp(process.env.DB_CONNECTION);
 const sqlite3 = require('sqlite3').verbose(); // TODO: remove `verbose()` in production
 const fpr = new sqlite3.Database(process.env.SQLITE_LOCATION + '/fpr.db', sqlite3.OPEN_READWRITE);
+const logger = require('winston');
 
 // configure SQLite connection so that reading from and writing to are non-blocking
 fpr.run('PRAGMA journal_mode = WAL;');
@@ -51,7 +52,6 @@ const getAllFileQcs = async (req, res, next) => {
     res.status(200).json({ fileqcs: results, errors: [] });
     next();
   } catch (e) {
-    console.log(e);
     handleErrors(e, 'Error getting records', next);
   }
 };
@@ -65,7 +65,7 @@ const getByProjOrSwids = async (proj, swids, next) => {
     getFprByProjOrSwids = () => getFprResultsBySwids(swids);
     getFqcByProjOrSwids = () => getFqcResultsBySwids(swids);
   } else {
-    return next(generateError(400, 'Must supply project or fileswid(s)'));
+    throw new ValidationError('Must supply project or fileswid(s)');
   }
 
   try {
@@ -156,57 +156,57 @@ const getMostRecentFprImportTime = () => {
 };
 
 // validation functions
-function validateProject(param) {
+function validateProject (param) {
   const proj = param || null;
   if (proj == null || !proj.length) throw new ValidationError('Project must be provided');
   return proj;
 }
 
-function validateSwid(param) {
+function validateSwid (param) {
   const swid = parseInt(param);
   if (Number.isNaN(swid)) throw new ValidationError('FileSWID is ' + param + ' but must be an integer');
   return swid;
 }
 
 /** Expects a comma-separated list of File SWIDs and returns the valid numbers within */
-function validateSwids(param) {
+function validateSwids (param) {
   if (nullifyIfBlank(param) == null) return null;
   return param.split(',').map(num => parseInt(num)).filter(num => !Number.isNaN(num));
 }
 
-function validateUsername(param) {
+function validateUsername (param) {
   const user = nullifyIfBlank(param);
   if (user == null || !user.length) throw new ValidationError('Username must be provided');
   return user;
 }
 
-function validateComment(param) {
+function validateComment (param) {
   let comment = nullifyIfBlank(param);
   if (comment !== null) comment = decodeURIComponent(comment.replace(/\+/g,  ' '));
   return comment;
 }
 
-function validateFilepath(param) {
+function validateFilepath (param) {
   let fp = nullifyIfBlank(param);
   if (fp == null || !fp.length) throw new ValidationError('Filepath must be provided');
   fp = decodeURIComponent(fp.replace(/\+/g, ' '));
   return fp;
 }
 
-function validateQcStatus(param, throwIfNull) {
+function validateQcStatus (param, throwIfNull) {
   let qcPassed = nullifyIfBlank(param);
   if (qcPassed === null && throwIfNull) throw new ValidationError('FileQC must be saved with qcstatus "PASS" or "FAIL"');
   qcPassed = convertQcStatusToBoolean(qcPassed);
   return qcPassed;
 }
 
-function nullifyIfBlank(value) {
+function nullifyIfBlank (value) {
   if (typeof value == 'undefined' || value === null || value.length == 0) value = null;
   return value;
 }
 
 /** Must deal with null qcStatus check elsewhere */
-function convertQcStatusToBoolean(value) {
+function convertQcStatusToBoolean (value) {
   value = value.toLowerCase();
   const statusToBool = {
     'pass': true,
@@ -217,7 +217,7 @@ function convertQcStatusToBoolean(value) {
   return statusToBool[value];
 }
 
-function generateError(statusCode, errorMessage) {
+function generateError (statusCode, errorMessage) {
   const err = {
     status: statusCode,
     errors: [errorMessage]
@@ -225,15 +225,21 @@ function generateError(statusCode, errorMessage) {
   return err;
 }
 
-function handleErrors(e, defaultMessage, next) {
-  if (e instanceof ValidationError) return next(generateError(400, e.message));
-  if (e.status) return next(e); // generateError has already been called
-  console.log(e.error); // TODO: fix this into proper logging and debugging
-  next(generateError(500, defaultMessage));
+function handleErrors (e, defaultMessage, next) {
+  if (e instanceof ValidationError) {
+    logger.info(e.message);
+    next(generateError(400, e.message));
+  } else if (e.status) {
+    logger.info(e.message);
+    return next(e); // generateError has already been called, usually because it's a user error
+  } else {
+    logger.error(e);
+    next(generateError(500, defaultMessage));
+  }
 }
 
 /** returns an object { validated: {}, errors: [] } */
-function validateObjectsFromUser(unvalidatedObjects) {
+function validateObjectsFromUser (unvalidatedObjects) {
   let validationErrors = [];
   let validatedParams = unvalidatedObjects.map(unvalidated => {
     try {
@@ -250,7 +256,6 @@ function validateObjectsFromUser(unvalidatedObjects) {
         validationErrors.push({ fileswid: unvalidated.fileswid, error: e.message });
         return null;
       } else {
-        console.log(e.error);
         throw e;
       } 
     }
@@ -261,7 +266,7 @@ function validateObjectsFromUser(unvalidatedObjects) {
 
 
 /** success returns a single File Provenance Report result */
-function getSingleFprResult(swid) {
+function getSingleFprResult (swid) {
   return new Promise((resolve, reject) => {
     fpr.get('SELECT * FROM fpr WHERE fileswid = ?', [swid], (err, data) => {
       if (err) reject(generateError(500, err));
@@ -271,7 +276,7 @@ function getSingleFprResult(swid) {
 }
 
 /** success returns a single FileQC result */
-function getSingleFqcResult(swid) {
+function getSingleFqcResult (swid) {
   return new Promise((resolve, reject) => {
     const sql = 'SELECT * FROM FileQc WHERE fileswid = $1';
     pg.any(sql, [swid])
@@ -280,14 +285,14 @@ function getSingleFqcResult(swid) {
         resolve({ fileqc: data[0], errors: [] });
       })
       .catch(err => {
-        console.log(err);
+        logger.error(err);
         reject(generateError(500, 'Error retrieving record'));
       });
   });
 }
 
 /** success returns an array of File Provenance results filtered by the given project */
-function getFprResultsByProject(project) {
+function getFprResultsByProject (project) {
   return new Promise((resolve, reject) => {
     fpr.all('SELECT * FROM fpr WHERE project = ? ORDER BY fileswid ASC', [project], (err, data) => {
       if (err) reject(generateError(500, err));
@@ -297,7 +302,7 @@ function getFprResultsByProject(project) {
 }
 
 /** success returns an array of File Provenance results filtered by the given file SWIDs */
-function getFprResultsBySwids(swids) {
+function getFprResultsBySwids (swids) {
   return new Promise((resolve, reject) => {
     fpr.all('SELECT * FROM fpr WHERE fileswid IN (' + swids.join() + ') ORDER BY fileswid ASC', (err, data) => {
       if (err) reject(generateError(500, err));
@@ -307,7 +312,7 @@ function getFprResultsBySwids(swids) {
 }
 
 /** success returns an array of FileQCs filtered by the given project */
-function getFqcResultsByProject(project) {
+function getFqcResultsByProject (project) {
   return new Promise((resolve, reject) => {
     const sql = 'SELECT * FROM FileQC WHERE project = $1 ORDER BY fileswid ASC';
     pg.any(sql, [project])
@@ -315,14 +320,14 @@ function getFqcResultsByProject(project) {
         resolve({ fileqcs: (data ? data : []), errors: [] });
       })
       .catch(err => {
-        console.log(err);
+        logger.error(err);
         reject(generateError(500, 'Error retrieving records'));
       });
   });
 }
 
 /** success returns an array of FileQCs filtered by the given file SWIDs */
-function getFqcResultsBySwids(swids) {
+function getFqcResultsBySwids (swids) {
   return new Promise((resolve, reject) => {
     const sql = 'SELECT * FROM FileQC WHERE fileswid in (' + swids.join() + ') ORDER BY fileswid ASC';
     pg.any(sql)
@@ -330,14 +335,14 @@ function getFqcResultsBySwids(swids) {
         resolve({ fileqcs: (data ? data : []), errors: [] });
       })
       .catch(err => {
-        console.log(err);
+        logger.error(err);
         reject(generateError(500, 'Error retrieving records'));
       });
   });
 }
 
 /** success returns an object containing the fileswid and an array of errors */
-function upsertSingleFqc(fqc) {
+function upsertSingleFqc (fqc) {
   return new Promise((resolve, reject) => {
     // update if exists, insert if not
     const upsert = 'INSERT INTO FileQc as fqc (filepath, qcpassed, username, comment, fileswid, project) VALUES (${filepath}, ${qcpassed}, ${username}, ${comment}, ${fileswid}, ${project}) ON CONFLICT (fileswid) DO UPDATE SET filepath = ${filepath}, qcpassed = ${qcpassed}, username = ${username}, comment = ${comment} WHERE fqc.fileswid = ${fileswid}';
@@ -350,7 +355,7 @@ function upsertSingleFqc(fqc) {
         if (err.message.includes('duplicate key') && err.message.includes('filepath')) {
           reject(generateError(400, 'filepath ' + fqc.filepath + ' is already associated with another fileswid'));
         } else {
-          console.log(err); // TODO: fix this into proper logging and debugging
+          logger.error(err);
           reject(generateError(500, 'Failed to create FileQC record'));
         }
       });
@@ -361,7 +366,7 @@ function getFilepathFromError (errorDetail) {
   return errorDetail.split('(')[2].split(')')[0];
 }
 
-function upsertFqcs(fqcs) {
+function upsertFqcs (fqcs) {
   return new Promise((resolve, reject) => {
     const upsert = 'INSERT INTO FileQc as fqc (filepath, qcpassed, username, comment, fileswid, project) VALUES (${filepath}, ${qcpassed}, ${username}, ${comment}, ${fileswid}, ${project}) ON CONFLICT (fileswid) DO UPDATE SET filepath = ${filepath}, qcpassed = ${qcpassed}, username = ${username}, comment = ${comment} WHERE fqc.fileswid = ${fileswid}';
 
@@ -383,7 +388,7 @@ function upsertFqcs(fqcs) {
           const dupes = err.data.filter(tx => !tx.success).map(tx => getFilepathFromError(tx.result.detail));
           reject(generateError(400, 'filepath(s) already associated with another fileswid: ' + dupes.join(', ')));
         } else {
-          console.log(err.error); // TODO: fix this into proper logging and debugging
+          logger.error(err.error);
           reject(generateError(500, 'Failed to create FileQC record'));
         }
       });
@@ -417,7 +422,7 @@ const getFprsNotInFileQc = (proj, fileQcSwids) => {
 
 
 /** returns the union of the non-null fields of a File Provenance Report object and a FileQC object */
-function mergeOneFileResult(fpr, fqc) {
+function mergeOneFileResult (fpr, fqc) {
   if (!fpr.fileswid && !fqc.fileswid) {
     throw new ValidationError('Cannot find any matching record in either file provenance or FileQC.');
   } else if (fpr.fileswid && !fqc.fileswid) {
@@ -434,7 +439,7 @@ function mergeOneFileResult(fpr, fqc) {
 
 /** combines the results then merges them  // TODO: fix this description
   * this only works if results are returned sorted by fileswid */
-function mergeFileResults(fprs, fqcs) {
+function mergeFileResults (fprs, fqcs) {
   const merged = [];
   for (let i = 0, j = 0; (i <= fprs.length && j <= fqcs.length);) {
     if (i < fprs.length && (j >= fqcs.length || fprs[i].fileswid < fqcs[j].fileswid)) {
@@ -462,7 +467,7 @@ function mergeFileResults(fprs, fqcs) {
 
 /** If a record is in the File Provenance Report database but not in the FileQC database, 
  * then its QC status is 'PENDING' */
-function yesFprNoFqc(fpr) {
+function yesFprNoFqc (fpr) {
   fpr.upstream = parseUpstream(fpr.upstream);
   fpr.qcstatus = 'PENDING';
   return fpr;
@@ -470,7 +475,7 @@ function yesFprNoFqc(fpr) {
 
 /** If a record is in the FileQC database but not in the File Provenance Report database,
  * something weird has happened. Return it and indicate that it's not in the FPR */
-function noFprYesFqc(fqc) {
+function noFprYesFqc (fqc) {
   fqc.stalestatus = 'NOT IN FILE PROVENANCE';
   fqc.qcstatus = (fqc.qcpassed == true ? 'PASS' : 'FAIL');
   delete fqc.qcpassed;
@@ -480,7 +485,7 @@ function noFprYesFqc(fqc) {
 
 /** If a record is in both the File Provenance Report and FileQC databases,
  * merge the relevant info */
-function yesFprYesFqc(fpr, fqc) {
+function yesFprYesFqc (fpr, fqc) {
   if (fpr.fileswid != fqc.fileswid) throw new Error('Cannot merge non-matching files');
   const merged = Object.assign({}, fpr);
   merged.upstream = parseUpstream(merged.upstream);
