@@ -55,10 +55,10 @@ app.use((req, res, next) => {
   // log metrics after every request
   const responseTimeInMs = Date.now() - Date.parse(req._startTime);
   prom.httpRequestDurationMilliseconds
-    .labels(req.path)
+    .labels(req.route.path)
     .observe(responseTimeInMs);
   prom.httpRequestCounter
-    .labels(req.path, req.method, res.statusCode)
+    .labels(req.route.path, req.method, res.statusCode)
     .inc();
   next();
 });

@@ -12,7 +12,7 @@ const httpRequestDurationMilliseconds = new prometheus.Histogram({
 });
 
 const httpRequestCounter = new prometheus.Counter({
-  name: 'http_errors',
+  name: 'http_request_counter',
   help: 'Number of requests for this endpoint',
   labelNames: ['route', 'method', 'status']
 });

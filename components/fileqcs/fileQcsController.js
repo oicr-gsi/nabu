@@ -2,7 +2,8 @@
 
 const pgp = require('pg-promise')({});
 const pg = pgp(process.env.DB_CONNECTION);
-const sqlite3 = require('sqlite3').verbose(); // TODO: remove `verbose()` in production
+const basesqlite3 = require('sqlite3');
+const sqlite3 = ((process.env.DEBUG || 'false') === 'true') ? basesqlite3.verbose() : basesqlite3;
 const fpr = new sqlite3.Database(process.env.SQLITE_LOCATION + '/fpr.db', sqlite3.OPEN_READWRITE);
 const logger = require('winston');
 
@@ -264,6 +265,14 @@ function validateObjectsFromUser (unvalidatedObjects) {
   return { validated: validatedParams, errors: validationErrors };
 }
 
+/**
+ * A note on punctuation in this file:
+ * - SQLite queries use `?` for parameter substitution
+ * - Postgres queries use `$1` for parameter substitution with two or fewer parameters,
+ *     and array of item(s) is passed in to the SQL call
+ * - Postgres queries use `${namedProp}` for parameter substitution with three or more 
+ *     parameters, and an object with those properties is passed in to the SQL call
+ */
 
 /** success returns a single File Provenance Report result */
 function getSingleFprResult (swid) {
