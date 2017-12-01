@@ -1,4 +1,4 @@
-.open fpr_test.db
+.open fpr.db
 
 BEGIN;
 DROP TABLE IF EXISTS fpr;

@@ -8,7 +8,7 @@ const chaiHttp = require('chai-http');
 const server = require('../app');
 const cmd = require('node-cmd');
 const path = require('path');
-const test_migration = path.resolve(__dirname, './migrations/create_test_fpr.db');
+const test_migration = path.resolve(__dirname, './migrations/V9000__test_data.sql');
 
 // mock out the databases in the controller to be able to unit test the private functions
 // this will throw a 'duplicate db connection' error when the class is first rewired,

@@ -11,5 +11,6 @@ components/fpr/backups/*fpr.tsv
 components/fpr/fpr-latest.tsv
 # sqlite database
 components/fpr/fpr.db*
+test/fpr.db-*
 # logs
 logs/*.log
