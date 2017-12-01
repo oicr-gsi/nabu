@@ -1,7 +1,6 @@
 'use strict';
 
 const winston = require('winston');
-const fs = require('fs');
 const logLocation = ('logs');
 
 const logger = new (winston.Logger)({

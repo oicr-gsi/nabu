@@ -46,9 +46,9 @@ const getAllFileQcs = async (req, res, next) => {
   let results;
   try {
     if (qcStatus === null || typeof qcStatus == 'undefined') {
-      results = await getByProjOrSwids(proj, swids, next);
+      results = await getByProjOrSwids(proj, swids);
     } else {
-      results = await getByProjAndQcStatus(proj, qcStatus, next);
+      results = await getByProjAndQcStatus(proj, qcStatus);
     }
     res.status(200).json({ fileqcs: results, errors: [] });
     next();
@@ -57,7 +57,7 @@ const getAllFileQcs = async (req, res, next) => {
   }
 };
 
-const getByProjOrSwids = async (proj, swids, next) => {
+const getByProjOrSwids = async (proj, swids) => {
   let getFprByProjOrSwids, getFqcByProjOrSwids;
   if (proj != null) {
     getFprByProjOrSwids = () => getFprResultsByProject(proj);
