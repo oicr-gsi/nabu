@@ -9,6 +9,7 @@ const swaggerSpec = require('./swagger.json');
 const prom = require('./utils/prometheus');
 const fileQc = require('./components/fileqcs/fileQcsController');
 const logger = require('./utils/logger');
+const uid = require('gen-uid');
 
 const app = express();
 const logLevel = process.env.LOG_LEVEL || 'dev';
@@ -29,12 +30,18 @@ const errorHandler = (err, req, res, next) => {
 app.use(bodyParser.json({ type: 'application/json' }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/v1', express.Router());
+app.use((req, res, next) => {
+  // generate a unique identifier for each request, if one hasn't already been set
+  if (!req.uid) req.uid = uid.token();
+  res.uid = req.uid;
+  logger.info(`${req.method} ${req.path}: ${req.uid}`);
+  next();
+});
 
 // home page
 app.get('/', (req, res) => { res.end(); });
 
 // routes to fileQC records
-app.use(bodyParser.json());
 app.get('/fileqcs', fileQc.getAllFileQcs);
 app.get('/fileqc/:identifier', fileQc.getFileQc);
 app.post('/fileqcs', fileQc.addFileQc);
