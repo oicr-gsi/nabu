@@ -1,20 +1,19 @@
 'use strict';
 
 require('dotenv').config();
-const express = require('express');
-const bodyParser = require('body-parser');
-const morgan = require('morgan');
-const swaggerUi = require('swagger-ui-express');
-const swaggerSpec = require('./swagger.json');
-const prom = require('./utils/prometheus');
-const fileQc = require('./components/fileqcs/fileQcsController');
-const logger = require('./utils/logger');
-const uid = require('gen-uid');
+const express = require('express'); // Express server
+const bodyParser = require('body-parser'); // parses request bodies
+const morgan = require('morgan'); // request logging
+const swaggerUi = require('swagger-ui-express'); // Swagger documentation package
+const swaggerSpec = require('./swagger.json'); // Swagger documentation contents
+const prom = require('./utils/prometheus'); // Prometheus exporting
+const fileQc = require('./components/fileqcs/fileQcsController'); // controller for FileQC endpoints
+const logger = require('./utils/logger'); // logging
+const uid = require('gen-uid'); // generates a unique ID for each request
 
 const app = express();
 const logLevel = process.env.LOG_LEVEL || 'dev';
 app.use(morgan(logLevel)); // TODO: expand this further to do production logging
-
 
 const errorHandler = (err, req, res, next) => {
   if (res.headersSent) {
@@ -24,8 +23,6 @@ const errorHandler = (err, req, res, next) => {
   res.json({ 'errors': err.errors });
   res.end();
 };
-
-
 
 app.use(bodyParser.json({ type: 'application/json' }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
