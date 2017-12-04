@@ -20,10 +20,10 @@ ValidationError.prototype = Error.prototype;
  * Get a single FileQC by File SWID
  */
 const getFileQcBySwid = async (req, res, next) => {
-  let swid;
-  swid = validateSwid(req.params.identifier, next);
-
   try {
+    let swid;
+    swid = validateSwid(req.params.identifier, next);
+
     const results = await Promise.all([getSingleFprResult(swid), getSingleFqcResult(swid)]);
     // merge results from FPR and FQC queries (throws if we don't have either an FPR result or an FQC result)
     const mergedFileQc = mergeOneFileResult(results[0], results[1].fileqc);
@@ -38,13 +38,13 @@ const getFileQcBySwid = async (req, res, next) => {
  * Get all FileQCs restricted by Project or File SWIDs
  */
 const getAllFileQcs = async (req, res, next) => {
-  let proj, swids, qcStatus;
-  proj = nullifyIfBlank(req.query.project);
-  swids = validateSwids(req.query.fileswids);
-  qcStatus = req.query.qcstatus; 
-
-  let results;
   try {
+    let proj, swids, qcStatus;
+    proj = nullifyIfBlank(req.query.project);
+    swids = validateSwids(req.query.fileswids);
+    qcStatus = req.query.qcstatus; 
+
+    let results;
     if (qcStatus === null || typeof qcStatus == 'undefined') {
       results = await getByProjOrSwids(proj, swids);
     } else {
