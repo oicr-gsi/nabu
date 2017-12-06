@@ -106,21 +106,42 @@ const getByProjAndQcStatus = async (proj, qcStatus) => {
 const addFileQc = async (req, res, next) => {
   try {
     const fqc = {
-      project: validateProject(req.query.project),
-      filepath: validateFilepath(req.query.filepath),
       fileswid: validateSwid(req.query.fileswid),
       username: validateUsername(req.query.username),
       comment: validateComment(req.query.comment),
       qcpassed: validateQcStatus(req.query.qcstatus, true)
     };
 
-    const results = await Promise.all([getSingleFprResult(fqc.fileswid), upsertSingleFqc(fqc)]);
+    const fpr = await getSingleFprResult(fqc.fileswid);
+    const hydratedFqc = hydrateOneFqcPreSave(fpr, fqc);
+    const fqcInsert = await upsertSingleFqc(hydratedFqc);
     // merge the results
-    const merged = mergeOneFileResult(results[0], { fileswid: fqc.fileswid, qcpassed: fqc.qcpassed });
-    res.status(201).json({ fileqc: merged, errors: results[1].errors });
+    const merged = mergeOneFileResult(fpr, hydratedFqc);
+    res.status(201).json({ fileqc: merged, errors: fqcInsert.errors });
     next();
   } catch (e) {
     handleErrors(e, 'Error adding record', next);
+  }
+};
+
+const hydrateOneFqcPreSave = (fpr, fqc) => {
+  fqc.project = fpr.project || 'NotInFileProvenance';
+  fqc.filepath = fpr.filepath || '';
+  return fqc;
+};
+
+const hydrateFqcsPreSave = (fprs, fqcs, req) => {
+  if (fprs.length > fqcs.length) {
+    logger.error(`[${req.uid}]: Batch add FileQCs: ended up with more FPR records than FQCs submitted. Very mysterious.`);
+    throw new Error('Error getting File Provenance records');
+  } else {
+    // fprHash: { fileswid: indexInFprArray }
+    const fprHash = {};
+    fprs.map((fpr, index) => fprHash[fpr.fileswid] = index );
+    return fqcs.map((fqc) => {
+      const correspondingFpr = fprs[fprHash[fqc.fileswid]] || {};
+      return hydrateOneFqcPreSave(correspondingFpr, fqc);
+    });
   }
 };
 
@@ -128,18 +149,20 @@ const addFileQc = async (req, res, next) => {
  * Batch add FileQCs
  */
 const addManyFileQcs = async (req, res, next) => {
-  if (!req.body.fileqcs) return next(generateError(400, 'Error: no FileQCs found in request body'));
-
-  const validationResults = validateObjectsFromUser(req.body.fileqcs);
-  if (validationResults.errors.length) return next(generateError(400, validationResults.errors));
-  const toSave = validationResults.validated;
-  const swids = toSave.map(record => record.fileswid);
-
   try {
-    const results = await Promise.all([getFprResultsBySwids(swids), upsertFqcs(toSave)]);
+    if (!req.body.fileqcs) throw generateError(400, 'Error: no FileQCs found in request body');
+
+    const validationResults = validateObjectsFromUser(req.body.fileqcs);
+    if (validationResults.errors.length) return next(generateError(400, validationResults.errors));
+    const toSave = validationResults.validated;
+    const swids = toSave.map(record => record.fileswid);
+    const fprs = await getFprResultsBySwids(swids);
+    const hydratedFqcs = hydrateFqcsPreSave(fprs, toSave, req);
+
+    const fqcInserts = await upsertFqcs(hydratedFqcs);
     // merge the results
-    const merged = mergeFileResults(results[0], results[1].fileqcs);
-    res.status(200).json({ fileqcs: merged, errors: results[1].errors });
+    const merged = mergeFileResults(fprs, fqcInserts.fileqcs);
+    res.status(200).json({ fileqcs: merged, errors: fqcInserts.errors });
     next();
   } catch (e) {
     handleErrors(e, 'Error adding records', next);
@@ -157,11 +180,6 @@ const getMostRecentFprImportTime = () => {
 };
 
 // validation functions
-function validateProject (param) {
-  const proj = param || null;
-  if (proj == null || !proj.length) throw new ValidationError('Project must be provided');
-  return proj;
-}
 
 function validateSwid (param) {
   const swid = parseInt(param);
@@ -185,13 +203,6 @@ function validateComment (param) {
   let comment = nullifyIfBlank(param);
   if (comment !== null) comment = decodeURIComponent(comment.replace(/\+/g,  ' '));
   return comment;
-}
-
-function validateFilepath (param) {
-  let fp = nullifyIfBlank(param);
-  if (fp == null || !fp.length) throw new ValidationError('Filepath must be provided');
-  fp = decodeURIComponent(fp.replace(/\+/g, ' '));
-  return fp;
 }
 
 function validateQcStatus (param, throwIfNull) {
@@ -228,7 +239,7 @@ function generateError (statusCode, errorMessage) {
 
 function handleErrors (e, defaultMessage, next) {
   if (e instanceof ValidationError) {
-    logger.info(e.message);
+    logger.info(e);
     next(generateError(400, e.message));
   } else if (e.status) {
     logger.info(e.message);
@@ -245,12 +256,10 @@ function validateObjectsFromUser (unvalidatedObjects) {
   let validatedParams = unvalidatedObjects.map(unvalidated => {
     try {
       return {
-        filepath: validateFilepath(unvalidated.filepath),
         qcpassed: validateQcStatus(unvalidated.qcstatus, true),
         username: validateUsername(unvalidated.username),
         comment: validateComment(unvalidated.comment),
-        fileswid: validateSwid(unvalidated.fileswid),
-        project: validateProject(unvalidated.project)
+        fileswid: validateSwid(unvalidated.fileswid)
       };
     } catch (e) {
       if (e instanceof ValidationError) {
@@ -490,6 +499,7 @@ function noFprYesFqc (fqc) {
   fqc.stalestatus = 'NOT IN FILE PROVENANCE';
   fqc.qcstatus = (fqc.qcpassed == true ? 'PASS' : 'FAIL');
   delete fqc.qcpassed;
+  if (!fqc.comment) delete fqc.comment;
   fqc.fileswid = parseInt(fqc.fileswid);
   return fqc;
 }
@@ -502,7 +512,7 @@ function yesFprYesFqc (fpr, fqc) {
   merged.upstream = parseUpstream(merged.upstream);
   merged.qcstatus = (fqc.qcpassed == true ? 'PASS' : 'FAIL');
   merged.username = fqc.username;
-  if (fqc.comment != null) merged.comment = fqc.comment;
+  if (fqc.comment) merged.comment = fqc.comment;
   return merged;
 }
 
