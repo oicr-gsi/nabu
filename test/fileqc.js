@@ -141,7 +141,6 @@ describe('FileQcController', () => {
         project: 'IPSCellLineReprogramming',
         filepath: '/oicr/deleted/items',
         username: 'me',
-        comment: null,
         qcstatus: 'FAIL',
         stalestatus: 'NOT IN FILE PROVENANCE'
       }, {
@@ -172,10 +171,10 @@ describe('FileQcController', () => {
 });
 
 
-describe('FileQC', function() {
+describe('FileQC', () => {
   // empty and repopulate the SQLite db and Postgres db
   beforeEach(async () => {
-    await cmd.run('sqlite3 < ' + test_migration);
+    await cmd.run('sqlite3 ' + process.env.SQLITE_LOCATION + '/fpr.db < ' + test_migration);
     await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
   });
 

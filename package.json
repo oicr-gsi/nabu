@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node app.js",
     "start:dev": "nodemon app.js",
-    "test": "SQLITE_LOCATION=${SQLITE_TEST_LOCATION} DB_CONNECTION=postgres://test:test@localhost/qcdb_test LOG_LEVEL=test mocha",
+    "test": "PORT=3001 SQLITE_LOCATION=${ISSITOQ}/test DB_CONNECTION=postgres://test:test@localhost/qcdb_test LOG_LEVEL=test mocha",
     "lint": "eslint .",
     "fw:clean": "flyway -X -configFile=conf/flyway.conf clean",
     "fw:migrate": "flyway -X -configFile=conf/flyway.conf -locations=filesystem:./sql/ migrate",

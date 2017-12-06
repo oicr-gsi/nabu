@@ -11,7 +11,7 @@ const logger = require('winston');
 fpr.run('PRAGMA journal_mode = WAL;');
 
 /** set up custom error if bad params are given */
-function ValidationError(message) {
+function ValidationError (message) {
   this.message = message;
 }
 ValidationError.prototype = Error.prototype;
@@ -362,6 +362,7 @@ function upsertSingleFqc (fqc) {
       })
       .catch(err => {
         if (err.message.includes('duplicate key') && err.message.includes('filepath')) {
+          logger.error(err);
           reject(generateError(400, 'filepath ' + fqc.filepath + ' is already associated with another fileswid'));
         } else {
           logger.error(err);
@@ -395,6 +396,7 @@ function upsertFqcs (fqcs) {
       .catch(err => {
         if (err.message.includes('duplicate key') && err.message.includes('filepath')) {
           const dupes = err.data.filter(tx => !tx.success).map(tx => getFilepathFromError(tx.result.detail));
+          logger.error(err);
           reject(generateError(400, 'filepath(s) already associated with another fileswid: ' + dupes.join(', ')));
         } else {
           logger.error(err.error);

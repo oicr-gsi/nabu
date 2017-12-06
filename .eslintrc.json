@@ -32,7 +32,14 @@
             "error",
             "always"
         ],
-	"no-console": "warn",
+        "space-before-function-paren": [
+            "error",
+            "always"
+        ],
+        "keyword-spacing": [
+            "error"
+        ],
+      	"no-console": "warn",
         "no-var": "error"
     }
 }
