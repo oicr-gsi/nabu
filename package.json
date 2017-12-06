@@ -1,15 +1,17 @@
 {
-  "name": "qcrecord-db",
+  "name": "issitoq",
   "version": "1.0.0",
   "description": "File QC DB",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "start": "node ./bin/www",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js",
+    "start:dev": "nodemon app.js",
+    "test": "PORT=3001 SQLITE_LOCATION=${ISSITOQ}/test DB_CONNECTION=postgres://test:test@localhost/qcdb_test LOG_LEVEL=test mocha --exit",
     "lint": "eslint .",
-    "fw-baseline": "flyway -X -configFile=conf/flyway.conf baseline",
-    "fw-clean": "flyway -X -configFile=conf/flyway.conf clean",
-    "fw-migrate": "flyway -X -configFile=conf/flyway.conf migrate"
+    "fw:clean": "flyway -X -configFile=conf/flyway.conf clean",
+    "fw:migrate": "flyway -X -configFile=conf/flyway.conf -locations=filesystem:./sql/ migrate",
+    "fw:test-clean": "flyway -configFile=conf/flyway-test-db.conf clean",
+    "fw:test-migrate": "flyway -configFile=conf/flyway-test-db.conf -locations=filesystem:./sql/,filesystem:./test/migrations/ migrate"
   },
   "repository": {
     "type": "git"
@@ -18,15 +20,24 @@
   "license": "MIT",
   "dependencies": {
     "body-parser": "^1.18.2",
+    "dotenv": "^4.0.0",
     "express": "^4.16.2",
     "flywaydb-cli": "^0.5.0",
+    "gen-uid": "0.0.2",
     "morgan": "^1.9.0",
-    "pg": "^7.3.0",
-    "pg-promise": "^7.2.1",
-    "swagger-ui-express": "^2.0.9"
+    "pg-promise": "^7.3.2",
+    "prom-client": "^10.2.2",
+    "sqlite3": "^3.1.13",
+    "swagger-ui-express": "^2.0.11",
+    "winston": "^2.4.0"
   },
   "devDependencies": {
-    "dotenv": "^4.0.0",
-    "eslint": "^4.10.0"
+    "chai": "^4.1.2",
+    "chai-http": "^3.0.0",
+    "eslint": "^4.12.1",
+    "mocha": "^4.0.1",
+    "node-cmd": "^3.0.0",
+    "nodemon": "^1.12.1",
+    "rewire": "^3.0.2"
   }
 }

@@ -1,0 +1,14 @@
+language: node_js
+node_js:
+  - "node"
+env:
+  global:
+  - ISSITOQ=$(pwd)
+  - NODE_ENV=TEST
+
+script: 
+  - npm run lint
+
+cache:
+  directories:
+    - "node_modules"

@@ -4,8 +4,9 @@
 # Getting started
 
 ## Requirements
-Node 4.5.0 or higher
-PostgreSQL and pg_ctl utility
+  * Node 4.5.0 or higher
+  * PostgreSQL and pg_ctl utility
+  * SQLite3
 
 Checking for node:
 ```
@@ -18,8 +19,15 @@ node -v
 issitoq$ npm install
 ```
 
+SQLite3 may need to be built from source in order to comply with the version of Node on your system, as well as the system's architecture. If running `node app.js` or `nodejs app.js` shows errors with SQLite, run the following:
+```
+$ npm uninstall sqlite3
+$ npm install sqlite3 --local --build-from-source
+```
+
 ## Setting environment variables
 Create a `.env` file and populate it. The `.env-example` file provides a template for this.
+If a variable in this file is also set on the system, the file variable _will not_ overwrite the system variable.
 
 ## Create a PostgreSQL database
 Set up the same user and password as in your `.env` file
@@ -37,18 +45,22 @@ When setting up the database for the first time:
   * Create a file in `conf/` called `flyway.conf` and add to it your database url, user, and password (similar to the `.env` file. The `conf/example-flyway.conf` file provides a template for this.
   * Perform the initial migration using the following:
     ```
-    $ npm run fw-baseline
+    $ npm run fw-migrate
     ```
 
-After that initial setup, migrations are run as necessary with the following command:
+After that initial setup, run migrations as necessary using:
 ```
 $ npm run fw-migrate
 ```
 
 ## Running the application
 ```
-$ pg_ctl start -l {LOG FILE LOCATION}
+$ pg_ctl start -l {DB LOG FILE LOCATION}
 $ npm start
+```
+If not using npm:
+```
+$ node app.js
 ```
 
 ## Development
