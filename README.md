@@ -4,8 +4,8 @@
 # Getting started
 
 ## Requirements
-  * Node 4.5.0 or higher
-  * PostgreSQL and pg_ctl utility
+  * Node 4.5.0 or higher (developed on Node 8/9)
+  * PostgreSQL 9.5 or higher
   * SQLite3
 
 Checking for node:
