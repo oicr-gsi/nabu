@@ -8,10 +8,10 @@
     "start:dev": "nodemon app.js",
     "test": "PORT=3001 SQLITE_LOCATION=${ISSITOQ}/test DB_CONNECTION=postgres://test:test@localhost/qcdb_test LOG_LEVEL=test mocha --exit",
     "lint": "eslint .",
-    "fw:clean": "flyway -X -configFile=conf/flyway.conf clean",
-    "fw:migrate": "flyway -X -configFile=conf/flyway.conf -locations=filesystem:./sql/ migrate",
-    "fw:test-clean": "flyway -configFile=conf/flyway-test-db.conf clean",
-    "fw:test-migrate": "flyway -configFile=conf/flyway-test-db.conf -locations=filesystem:./sql/,filesystem:./test/migrations/ migrate"
+    "fw:clean": "node_modules/flywaydb-cli/lib/flyway-4.2.0/flyway -X -configFile=conf/flyway.conf clean",
+    "fw:migrate": "node_modules/flywaydb-cli/lib/flyway-4.2.0/flyway -X -configFile=conf/flyway.conf -locations=filesystem:./sql/ migrate",
+    "fw:test-clean": "node_modules/flywaydb-cli/lib/flyway-4.2.0/flyway -configFile=conf/flyway-test-db.conf clean",
+    "fw:test-migrate": "node_modules/flywaydb-cli/lib/flyway-4.2.0/flyway -configFile=conf/flyway-test-db.conf -locations=filesystem:./sql/,filesystem:./test/migrations/ migrate"
   },
   "repository": {
     "type": "git"
