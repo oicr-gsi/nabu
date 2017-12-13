@@ -2,6 +2,9 @@
 
 set -eux
 
+# get variables from .env file (note that $ISSITOQ must be defined at this point)
+source "${ISSITOQ}"/.env
+
 # rsync the latest file provenance report to local machine
 rsync -vPL "${FPR_FULL}" "${SQLITE_LOCATION}"
 
