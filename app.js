@@ -22,6 +22,7 @@ const errorHandler = (err, req, res, next) => {
   res.status(err.status || 500);
   res.json({ 'errors': err.errors });
   res.end();
+  next();
 };
 
 app.use(bodyParser.json({ type: 'application/json' }));
@@ -53,6 +54,11 @@ app.get('/metrics', async (req, res) => {
   }
   res.set('Content-Type', prom.prometheus.register.contentType);
   res.end(prom.prometheus.register.metrics());
+});
+app.get('/favicon.ico', (req, res) => {
+  // end the response as there's no favicon to be gotten. Don't log this to Prometheus
+  res.status(404);
+  res.end();
 });
 app.use(errorHandler);
 app.use((req, res, next) => {
