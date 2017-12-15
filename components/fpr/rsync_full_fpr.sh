@@ -23,10 +23,14 @@ zcat "${SQLITE_LOCATION}"/*.tsv.gz | awk -F'\t' '!seen[$45] && NR>1 { print $45"
 # symlink the latest one into the folder which contains the database file
 ln -sf "${FPR_SMALL_DEST}"/"${now}"-fpr.tsv "${SQLITE_LOCATION}"/fpr-latest.tsv
 
-
 # reload the db
 echo "Reloading the db"
 pushd "${SQLITE_LOCATION}"
 sqlite3 < "${ISSITOQ}"/components/fpr/create_fpr_table.sql
 popd
+
+# remove any older file provenance report copies
+cd "${FPR_SMALL_DEST}"
+find . -type f ! -name "${now}-fpr.tsv" -exec rm -rf {} \;
+
 exit 0
