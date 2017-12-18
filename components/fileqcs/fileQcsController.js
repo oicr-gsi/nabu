@@ -125,7 +125,7 @@ const addFileQc = async (req, res, next) => {
 };
 
 const hydrateOneFqcPreSave = (fpr, fqc) => {
-  fqc.project = fpr.project || 'NotInFileProvenance';
+  fqc.project = fpr.project || '';
   fqc.filepath = fpr.filepath || '';
   return fqc;
 };
@@ -513,6 +513,7 @@ function yesFprYesFqc (fpr, fqc) {
   merged.qcstatus = (fqc.qcpassed == true ? 'PASS' : 'FAIL');
   merged.username = fqc.username;
   if (fqc.comment) merged.comment = fqc.comment;
+  merged.qcdate = fqc.qcdate;
   return merged;
 }
 

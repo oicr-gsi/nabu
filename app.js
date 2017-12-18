@@ -64,11 +64,12 @@ app.use(errorHandler);
 app.use((req, res, next) => {
   // log metrics after every request
   const responseTimeInMs = Date.now() - Date.parse(req._startTime);
+  const path = req.route ? req.route.path : req.originalUrl;
   prom.httpRequestDurationMilliseconds
-    .labels(req.route.path)
+    .labels(path)
     .observe(responseTimeInMs);
   prom.httpRequestCounter
-    .labels(req.route.path, req.method, res.statusCode)
+    .labels(path, req.method, res.statusCode)
     .inc();
   next();
 });
