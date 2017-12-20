@@ -2,8 +2,11 @@
 
 set -eux
 
+# get variables from .env file (note that $ISSITOQ must be defined at this point)
+source "${ISSITOQ}"/.env
+
 # rsync the latest file provenance report to local machine
-rsync -vPL "${FPR_FULL}" "${LOCAL_FPR_FULL_DEST}"
+rsync -vPL "${FPR_FULL}" "${SQLITE_LOCATION}"
 
 now=$(date +"%y%m%d-%H%M%S")
 
@@ -15,15 +18,19 @@ now=$(date +"%y%m%d-%H%M%S")
 # 53. Status [OKAY|STALE|ERROR]
 # 2. Study Title
 # 39. Workflow Run Input File SWAs
-zcat "${LOCAL_FPR_FULL_DEST}"/*.tsv.gz | awk -F'\t' '!seen[$45] && NR>1 { print $45"\t"$47"\t"$52"\t"$53"\t"$2"\t"$39; seen[$45] = 1; }' | sort -g -t$'\t' -k1 > "${FPR_SMALL_DEST}"/"${now}"-fpr.tsv
+zcat "${SQLITE_LOCATION}"/*.tsv.gz | awk -F'\t' '!seen[$45] && NR>1 { print $45"\t"$47"\t"$52"\t"$53"\t"$2"\t"$39; seen[$45] = 1; }' | sort -g -t$'\t' -k1 > "${FPR_SMALL_DEST}"/"${now}"-fpr.tsv
 
 # symlink the latest one into the folder which contains the database file
-ln -sf "${FPR_SMALL_DEST}"/"${now}"-fpr.tsv "${LOCAL_FPR_FULL_DEST}"/fpr-latest.tsv
-
+ln -sf "${FPR_SMALL_DEST}"/"${now}"-fpr.tsv "${SQLITE_LOCATION}"/fpr-latest.tsv
 
 # reload the db
 echo "Reloading the db"
 pushd "${SQLITE_LOCATION}"
 sqlite3 < "${ISSITOQ}"/components/fpr/create_fpr_table.sql
 popd
+
+# remove any older file provenance report copies
+cd "${FPR_SMALL_DEST}"
+find . -type f ! -name "${now}-fpr.tsv" -exec rm -rf {} \;
+
 exit 0

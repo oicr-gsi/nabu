@@ -4,6 +4,7 @@ process.env.NODE_ENV = 'test';
 
 const chai = require('chai');
 const expect = chai.expect;
+const chaiExclude = require('chai-exclude');
 const chaiHttp = require('chai-http');
 const server = require('../app');
 const cmd = require('node-cmd');
@@ -20,6 +21,7 @@ const revertPgDb = controller.__set__('pg', {});
 const revertFprDb = controller.__set__('fpr', {});
 
 chai.use(chaiHttp);
+chai.use(chaiExclude);
 
 describe('FileQcController', () => {
   const fprs = {
@@ -90,7 +92,7 @@ describe('FileQcController', () => {
       comment: 'failed for test'
     };
     const actual = mergeOne(fprs['12017'], fqcs['12017']);
-    expect(actual).to.deep.equal(expected);
+    expect(actual).excluding('qcdate').to.deep.equal(expected);
     done();
   });
 
@@ -105,7 +107,7 @@ describe('FileQcController', () => {
       comment: 'failed for test'
     };
     const actual = mergeOne({}, fqcs['12017']);
-    expect(actual).to.deep.equal(expected);
+    expect(actual).excluding('qcdate').to.deep.equal(expected);
     done();
   });
 
@@ -120,7 +122,7 @@ describe('FileQcController', () => {
       upstream: []
     };
     const actual = mergeOne(fprs['12017'], {});
-    expect(actual).to.deep.equal(expected);
+    expect(actual).excluding('qcdate').to.deep.equal(expected);
     done();
   });
 
@@ -163,7 +165,7 @@ describe('FileQcController', () => {
       }
     ];
     const actual = mergeFileResults([fprs['12017'], fprs['12019'], fprs['12025']], [fqcs['12017'], fqcs['12018'], fqcs['12025']]);
-    expect(actual).to.deep.equal(expected);
+    actual.forEach((item, index) => expect(item).excluding('qcdate').to.deep.equal(expected[index]));
     done();
   });
   revertPgDb();

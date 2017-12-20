@@ -1,5 +1,5 @@
 {
-  "name": "qcrecord-db",
+  "name": "issitoq",
   "version": "1.0.0",
   "lockfileVersion": 1,
   "requires": true,
@@ -569,6 +569,12 @@
         "pathval": "1.1.0",
         "type-detect": "4.0.5"
       }
+    },
+    "chai-exclude": {
+      "version": "1.0.3",
+      "resolved": "https://registry.npmjs.org/chai-exclude/-/chai-exclude-1.0.3.tgz",
+      "integrity": "sha1-9oAZt/4w2UCdAB5CNshc/laQlEk=",
+      "dev": true
     },
     "chai-http": {
       "version": "3.0.0",
