@@ -32,7 +32,7 @@ app.use((req, res, next) => {
   // generate a unique identifier for each request, if one hasn't already been set
   if (!req.uid) req.uid = uid.token();
   res.uid = req.uid;
-  logger.info(`[${req.uid}] ${req.method} ${req.originalUrl}`);
+  logger.info(`[${req.uid}] ${req.method} ${req.originalUrl} . request origin: ${req.connection.remoteAddress}`);
   next();
 });
 
