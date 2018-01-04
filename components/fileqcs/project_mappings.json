@@ -1,0 +1,10 @@
+{
+  "ATACSeqValidation": "ATSV",
+  "C4GeneDiscovery": "C4GD",
+  "CPC-GENE": "CPCG",
+  "EACdysplasia": "DYS",
+  "EsophagealAdenocarcinoma": "EAC",
+  "ExomeSequencingProject": "EXSP",
+  "FaiyazNottaSequencing": "FNS",
+  "SingleCellRNAMedulloblastoma": "SCRM"
+}
