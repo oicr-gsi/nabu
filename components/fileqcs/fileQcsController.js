@@ -7,6 +7,10 @@ const sqlite3 = ((process.env.DEBUG || 'false') === 'true') ? basesqlite3.verbos
 const fpr = new sqlite3.Database(process.env.SQLITE_LOCATION + '/fpr.db', sqlite3.OPEN_READWRITE);
 const logger = require('winston');
 
+/* some projects are represented with two different names. This contains only the duplicates,
+ * and maps the long name to the short name */
+const project_mappings = require('./project_mappings');
+
 // configure SQLite connection so that reading from and writing to are non-blocking
 fpr.run('PRAGMA journal_mode = WAL;');
 
@@ -40,7 +44,7 @@ const getFileQcBySwid = async (req, res, next) => {
 const getAllFileQcs = async (req, res, next) => {
   try {
     let proj, swids, qcStatus;
-    proj = nullifyIfBlank(req.query.project);
+    proj = nullifyIfBlank(validateProject(req.query.project));
     swids = validateSwids(req.query.fileswids);
     qcStatus = req.query.qcstatus; 
 
@@ -82,6 +86,7 @@ const getByProjOrSwids = async (proj, swids) => {
 const getByProjAndQcStatus = async (proj, qcStatus) => {
   try {
     const qcpassed = validateQcStatus(qcStatus, false);
+    proj = validateProject(proj);
     if (qcpassed === null) {
       // get only items from FPR that are not in FileQC
       let fileQcSwids = await getAllFileQcSwids();
@@ -106,6 +111,7 @@ const getByProjAndQcStatus = async (proj, qcStatus) => {
 const addFileQc = async (req, res, next) => {
   try {
     const fqc = {
+      project: validateProject(req.query.project),
       fileswid: validateSwid(req.query.fileswid),
       username: validateUsername(req.query.username),
       comment: validateComment(req.query.comment),
@@ -180,6 +186,16 @@ const getMostRecentFprImportTime = () => {
 };
 
 // validation functions
+function validateProject (param) {
+  if (nullifyIfBlank(param) == null) return null;
+  param = param.trim();
+  if (param.match(/[^a-zA-Z0-9-_']+/)) {
+    throw new ValidationError('Project contains invalid characters');
+  }
+  // regrettably, `Catherine_O'Brien_Bug` is an existing project
+  param = param.replace(/'/, '\'');
+  return param;
+}
 
 function validateSwid (param) {
   const swid = parseInt(param);
@@ -256,6 +272,7 @@ function validateObjectsFromUser (unvalidatedObjects) {
   let validatedParams = unvalidatedObjects.map(unvalidated => {
     try {
       return {
+        project: validateProject(unvalidated.project),
         qcpassed: validateQcStatus(unvalidated.qcstatus, true),
         username: validateUsername(unvalidated.username),
         comment: validateComment(unvalidated.comment),
@@ -275,7 +292,7 @@ function validateObjectsFromUser (unvalidatedObjects) {
 }
 
 /**
- * A note on punctuation in this file:
+ * A note on punctuation in this section:
  * - SQLite queries use `?` for parameter substitution
  * - Postgres queries use `$1` for parameter substitution with two or fewer parameters,
  *     and array of item(s) is passed in to the SQL call
@@ -309,10 +326,27 @@ function getSingleFqcResult (swid) {
   });
 }
 
+function getAllProjectNames (proj) {
+  const ary = [proj];
+  if (Object.keys(project_mappings).indexOf(proj) != -1) ary.push(project_mappings[proj]);
+  return ary;
+}
+
+function getQuestionMarkPlaceholders (projectNames) {
+  return projectNames.map(() => '?').join(', ');
+}
+
+function getIndexedPlaceholders (projectNames) {
+  return projectNames.map((item, index) => '$' + (index + 1)).join(', ');
+}
+
 /** success returns an array of File Provenance results filtered by the given project */
 function getFprResultsByProject (project) {
+  // if project is represented with both long and short names in FPR, need to search by both names
+  const projectNames = getAllProjectNames(project);
+  const select = 'SELECT * FROM fpr WHERE project IN (' + getQuestionMarkPlaceholders(projectNames) + ') ORDER BY fileswid ASC';
   return new Promise((resolve, reject) => {
-    fpr.all('SELECT * FROM fpr WHERE project = ? ORDER BY fileswid ASC', [project], (err, data) => {
+    fpr.all(select, projectNames, (err, data) => {
       if (err) reject(generateError(500, err));
       resolve(data ? data : []);
     });
@@ -331,9 +365,11 @@ function getFprResultsBySwids (swids) {
 
 /** success returns an array of FileQCs filtered by the given project */
 function getFqcResultsByProject (project) {
+  // if project is represented with both long and short names in FPR, need to search by both names
+  const projectNames = getAllProjectNames(project);
+  const select = 'SELECT * FROM FileQC WHERE project IN (' + getIndexedPlaceholders(projectNames) + ') ORDER BY fileswid ASC';
   return new Promise((resolve, reject) => {
-    const sql = 'SELECT * FROM FileQC WHERE project = $1 ORDER BY fileswid ASC';
-    pg.any(sql, [project])
+    pg.any(select, projectNames)
       .then(data => {
         resolve({ fileqcs: (data ? data : []), errors: [] });
       })
@@ -424,16 +460,25 @@ const getAllFileQcSwids = () => {
 };
 
 const getFqcResultsByProjAndQcStatus = (proj, qcpassed) => {
+  // if project is represented with both long and short names, need to search by both names
+  const params = getAllProjectNames(proj);
+  let select = 'SELECT * FROM FileQC WHERE project IN (' + getIndexedPlaceholders(params) + ')' +
+    ' AND qcpassed = $' + (params.length + 1) + ' ORDER BY fileswid ASC';
+  params.push(qcpassed);
   return new Promise((resolve, reject) => {
-    pg.any('SELECT * FROM fileqc WHERE project = $1 AND qcpassed = $2 ORDER BY fileswid ASC', [proj, qcpassed])
+    pg.any(select, params)
       .then(data => resolve(data))
       .catch(err => reject(err));
   });
 };
 
 const getFprsNotInFileQc = (proj, fileQcSwids) => {
+  // if project is represented with both long and short names, need to search by both names
+  const projectNames = getAllProjectNames(proj);
+  const select = 'SELECT * FROM fpr WHERE fileswid NOT IN (' + fileQcSwids.join() + ')' +
+    ' AND project IN (' + getQuestionMarkPlaceholders(projectNames) + ') ORDER BY fileswid ASC';
   return new Promise((resolve, reject) => {
-    fpr.all('SELECT * FROM fpr WHERE fileswid NOT IN (' + fileQcSwids.join() + ') AND project = ? ORDER BY fileswid ASC', [proj], (err, data) => {
+    fpr.all(select, projectNames, (err, data) => {
       if (err) reject(err);
       resolve(data);
     });

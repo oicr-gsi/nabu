@@ -14,6 +14,7 @@ const uid = require('gen-uid'); // generates a unique ID for each request
 const app = express();
 const logLevel = process.env.LOG_LEVEL || 'dev';
 app.use(morgan(logLevel)); // TODO: expand this further to do production logging
+const ignoreFrom = process.env.IGNORE_ADDRESS || ''; // to skip logging of requests from IT's security tests
 
 const errorHandler = (err, req, res, next) => {
   if (res.headersSent) {
@@ -32,7 +33,9 @@ app.use((req, res, next) => {
   // generate a unique identifier for each request, if one hasn't already been set
   if (!req.uid) req.uid = uid.token();
   res.uid = req.uid;
-  logger.info(`[${req.uid}] ${req.method} ${req.originalUrl}`);
+  if (req.connection.remoteAddress != ignoreFrom) {
+    logger.info({uid: req.uid, method: req.method, url: req.originalUrl, origin: req.connection.remoteAddress});
+  }
   next();
 });
 
@@ -63,14 +66,16 @@ app.get('/favicon.ico', (req, res) => {
 app.use(errorHandler);
 app.use((req, res, next) => {
   // log metrics after every request
-  const responseTimeInMs = Date.now() - Date.parse(req._startTime);
-  const path = req.route ? req.route.path : req.originalUrl;
-  prom.httpRequestDurationMilliseconds
-    .labels(path)
-    .observe(responseTimeInMs);
-  prom.httpRequestCounter
-    .labels(path, req.method, res.statusCode)
-    .inc();
+  if (req.connection.remoteAddress != ignoreFrom) {
+    const responseTimeInMs = Date.now() - Date.parse(req._startTime);
+    const path = req.route ? req.route.path : req.originalUrl;
+    prom.httpRequestDurationMilliseconds
+      .labels(path)
+      .observe(responseTimeInMs);
+    prom.httpRequestCounter
+      .labels(path, req.method, res.statusCode)
+      .inc();
+  }
   next();
 });
 

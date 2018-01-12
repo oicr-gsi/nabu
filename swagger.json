@@ -49,24 +49,10 @@
         "description": "Adds a single FileQC",
         "parameters": [
           {
-            "name": "project",
-            "description": "Project",
-            "in": "query",
-            "type": "string",
-            "required": true
-          },
-          {
             "name": "fileswid",
             "in": "query",
             "description": "File SWID",
             "type": "integer",
-            "required": true
-          },
-          {
-            "name": "filepath",
-            "in": "query",
-            "description": "URL-escaped file path on disk, according to file provenance report",
-            "type": "string",
             "required": true
           },
           {
@@ -86,7 +72,7 @@
           {
             "name": "comment",
             "in": "query",
-            "description": "URL-escaped reason why FileQC is PASS or FAIL",
+            "description": "URL-escaped reason why FileQC is PASS or FAIL (optional)",
             "type": "string",
             "required": false
           }
@@ -205,6 +191,14 @@
           "description": "Project",
           "type": "string"
         },
+        "qcdate": {
+          "description": "QC Date (only returned if a FileQC record is found)",
+          "type": "string"
+        },
+        "stalestatus": {
+          "description": "Stale status (OK, STALE, NOT IN FILE PROVENANCE)",
+          "type": "string"
+        },
         "upstream": {
           "description": "List of input File SWAs (only returned if a File Provenance Report record is found)",
           "type": "array",
@@ -213,7 +207,7 @@
           }
         },
         "skip": {
-          "description": "Whether file is skipped in analysis",
+          "description": "Whether file is skipped in analysis (only returned if a File Provenance Reprot record is found)",
           "type": "boolean"
         },
         "stalestatus": {
@@ -282,17 +276,9 @@
     "FileQC-request": {
       "type": "object",
       "properties": {
-        "project": {
-          "description": "Project",
-          "type": "string"
-        },
         "fileswid": {
           "description": "File SWID",
           "type": "integer"
-        },
-        "filepath": {
-          "description": "URL-escaped file path on disk, according to file provenance report",
-          "type": "string"
         },
         "qcstatus": {
           "description": "PASS or FAIL (PENDING not permitted)",
