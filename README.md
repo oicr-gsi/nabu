@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/oicr-gsi/issitoq.svg)](https://travis-ci.org/oicr-gsi/issitoq)
 
-> In Inuit mythology, Issitoq (also Isitoq) is a deity that punishes those who break taboos. He usually takes the form of a giant flying eye. (from [Wikipedia](https://en.wikipedia.org/wiki/Issitoq))
+> Nabu was the Babylonian and Assyrian god of scribes, literacy, and wisdom.
 
 # Getting started
 
@@ -18,7 +18,7 @@ node -v
 
 ## Installing modules
 ```
-issitoq$ npm install
+nabu$ npm install
 ```
 
 SQLite3 may need to be built from source in order to comply with the version of Node on your system, as well as the system's architecture. If running `node app.js` or `nodejs app.js` shows errors with SQLite, run the following:

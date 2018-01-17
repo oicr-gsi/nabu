@@ -3,7 +3,7 @@ node_js:
   - "node"
 env:
   global:
-  - ISSITOQ=$(pwd)
+  - NABU=$(pwd)
   - NODE_ENV=TEST
 
 script: 

@@ -2,8 +2,8 @@
 
 set -eux
 
-# get variables from .env file (note that $ISSITOQ must be defined at this point)
-source "${ISSITOQ}"/.env
+# get variables from .env file (note that $NABU must be defined at this point)
+source "${NABU}"/.env
 
 # rsync the latest file provenance report to local machine
 rsync -vPL "${FPR_FULL}" "${SQLITE_LOCATION}"
@@ -26,7 +26,7 @@ ln -sf "${FPR_SMALL_DEST}"/"${now}"-fpr.tsv "${SQLITE_LOCATION}"/fpr-latest.tsv
 # reload the db
 echo "Reloading the db"
 pushd "${SQLITE_LOCATION}"
-sqlite3 < "${ISSITOQ}"/components/fpr/create_fpr_table.sql
+sqlite3 < "${NABU}"/components/fpr/create_fpr_table.sql
 popd
 
 # remove any older file provenance report copies
