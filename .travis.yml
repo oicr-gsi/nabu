@@ -1,13 +1,27 @@
 language: node_js
 node_js:
   - "node"
+
+addons:
+  postgresql: "9.5"
+
+services:
+  - postgresql
+
 env:
   global:
   - NABU=$(pwd)
   - NODE_ENV=TEST
 
+before_script:
+  - psql -c "create database qcdb_test;" -U postgres
+  - psql qcdb_test -U postgres < test/migrations/create_test_fileqc.sql
+  - npm run fw:test-migrate
+  - cd test && sqlite3 fpr.db < migrations/create_test_fpr.sql
+
 script: 
   - npm run lint
+  - npm run test
 
 cache:
   directories:
