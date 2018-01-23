@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/oicr-gsi/issitoq.svg)](https://travis-ci.org/oicr-gsi/issitoq)
+[![Build Status](https://travis-ci.org/oicr-gsi/nabu.svg)](https://travis-ci.org/oicr-gsi/nabu)
 
 > Nabu was the Babylonian and Assyrian god of scribes, literacy, and wisdom.
 
