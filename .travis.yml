@@ -13,13 +13,18 @@ env:
   - NABU=$(pwd)
   - NODE_ENV=TEST
 
+install:
+  - npm install
+  - npm install -g snyk
+
 before_script:
   - psql -c "create database qcdb_test;" -U postgres
   - psql qcdb_test -U postgres < test/migrations/create_test_fileqc.sql
   - npm run fw:test-migrate
-  - cd test && sqlite3 fpr.db < migrations/create_test_fpr.sql
+  - cd test && sqlite3 fpr.db < migrations/create_test_fpr.sql && cd ..
 
 script: 
+  - snyk test
   - npm run lint
   - npm run test
 
