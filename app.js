@@ -3,17 +3,16 @@
 require('dotenv').config();
 const express = require('express'); // Express server
 const bodyParser = require('body-parser'); // parses request bodies
-const morgan = require('morgan'); // request logging
 const swaggerUi = require('swagger-ui-express'); // Swagger documentation package
 const swaggerSpec = require('./swagger.json'); // Swagger documentation contents
 const prom = require('./utils/prometheus'); // Prometheus exporting
 const fileQc = require('./components/fileqcs/fileQcsController'); // controller for FileQC endpoints
 const logger = require('./utils/logger'); // logging
 const uid = require('gen-uid'); // generates a unique ID for each request
+const helmet = require('helmet');
+const cors = require('cors');
 
 const app = express();
-const logLevel = process.env.LOG_LEVEL || 'dev';
-app.use(morgan(logLevel)); // TODO: expand this further to do production logging
 const ignoreFrom = process.env.IGNORE_ADDRESS || ''; // to skip logging of requests from IT's security tests
 
 const errorHandler = (err, req, res, next) => {
@@ -26,6 +25,8 @@ const errorHandler = (err, req, res, next) => {
   next();
 };
 
+app.use(helmet());
+app.use(cors());
 app.use(bodyParser.json({ type: 'application/json' }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/v1', express.Router());
