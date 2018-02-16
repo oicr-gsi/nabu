@@ -1,4 +1,55 @@
 # Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
-version: v1.7.1
-ignore: {}
+version: v1.10.1
+# ignores vulnerabilities until expiry date; change duration by modifying expiry date
+ignore:
+  'npm:hoek:20180212':
+    - sqlite3 > node-pre-gyp > hawk > hoek:
+        reason: Low-risk vulnerability for app on intranet
+        expires: '2018-03-18T19:47:23.823Z'
+    - sqlite3 > node-pre-gyp > request > hawk > hoek:
+        reason: See above
+        expires: '2018-03-18T19:41:12.170Z'
+      sqlite3 > node-pre-gyp > hawk > boom > hoek:
+        reason: Low-risk vulnerability for app on intranet
+        expires: '2018-03-18T19:47:23.823Z'
+    - sqlite3 > node-pre-gyp > hawk > boom > hoek:
+        reason: See above
+        expires: '2018-03-18T19:41:12.170Z'
+      sqlite3 > node-pre-gyp > hawk > sntp > hoek:
+        reason: Low-risk vulnerability for app on intranet
+        expires: '2018-03-18T19:47:23.823Z'
+    - sqlite3 > node-pre-gyp > request > hawk > boom > hoek:
+        reason: See above
+        expires: '2018-03-18T19:41:12.170Z'
+      sqlite3 > node-pre-gyp > hawk > cryptiles > boom > hoek:
+        reason: Low-risk vulnerability for app on intranet
+        expires: '2018-03-18T19:47:23.823Z'
+    - sqlite3 > node-pre-gyp > hawk > cryptiles > boom > hoek:
+        reason: See above
+        expires: '2018-03-18T19:41:12.170Z'
+      sqlite3 > node-pre-gyp > request > hawk > hoek:
+        reason: Low-risk vulnerability for app on intranet
+        expires: '2018-03-18T19:47:23.823Z'
+    - sqlite3 > node-pre-gyp > request > hawk > cryptiles > boom > hoek:
+        reason: See above
+        expires: '2018-03-18T19:41:12.170Z'
+      sqlite3 > node-pre-gyp > request > hawk > boom > hoek:
+        reason: Low-risk vulnerability for app on intranet
+        expires: '2018-03-18T19:47:23.823Z'
+    - sqlite3 > node-pre-gyp > hawk > sntp > hoek:
+        reason: See above
+        expires: '2018-03-18T19:41:12.170Z'
+      sqlite3 > node-pre-gyp > request > hawk > sntp > hoek:
+        reason: Low-risk vulnerability for app on intranet
+        expires: '2018-03-18T19:47:23.823Z'
+    - sqlite3 > node-pre-gyp > request > hawk > sntp > hoek:
+        reason: See above
+        expires: '2018-03-18T19:41:12.171Z'
+      sqlite3 > node-pre-gyp > request > hawk > cryptiles > boom > hoek:
+        reason: None given
+        expires: '2018-03-18T19:47:23.823Z'
+  'npm:lodash:20180130':
+    - flywaydb-cli > request-promise > request-promise-core > lodash:
+        reason: Low-risk vulnerability for app on intranet
+        expires: '2018-03-18T19:47:23.823Z'
 patch: {}

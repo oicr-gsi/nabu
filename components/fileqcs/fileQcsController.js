@@ -39,20 +39,21 @@ const getFileQcBySwid = async (req, res, next) => {
 };
 
 /**
- * Get all FileQCs restricted by Project or File SWIDs
+ * Get all FileQCs restricted by Project, QC Status, and/or Workflow, or File SWIDs
  */
 const getAllFileQcs = async (req, res, next) => {
   try {
-    let proj, swids, qcStatus;
+    let proj, swids, workflow, qcStatus;
     proj = nullifyIfBlank(validateProject(req.query.project));
     swids = validateSwids(req.query.fileswids);
+    workflow = nullifyIfBlank(req.query.workflows);
     qcStatus = req.query.qcstatus; 
 
     let results;
     if (qcStatus === null || typeof qcStatus == 'undefined') {
-      results = await getByProjOrSwids(proj, swids);
+      results = await getByProjOrSwids(proj, workflow, swids);
     } else {
-      results = await getByProjAndQcStatus(proj, qcStatus);
+      results = await getByProjAndQcStatus(proj, workflow, qcStatus);
     }
     res.status(200).json({ fileqcs: results, errors: [] });
     next();
@@ -61,10 +62,10 @@ const getAllFileQcs = async (req, res, next) => {
   }
 };
 
-const getByProjOrSwids = async (proj, swids) => {
+const getByProjOrSwids = async (proj, workflow, swids) => {
   let getFprByProjOrSwids, getFqcByProjOrSwids;
   if (proj != null) {
-    getFprByProjOrSwids = () => getFprResultsByProject(proj);
+    getFprByProjOrSwids = () => getFprResultsByProject(proj, workflow);
     getFqcByProjOrSwids = () => getFqcResultsByProject(proj);
   } else if (swids != null) {
     getFprByProjOrSwids = () => getFprResultsBySwids(swids);
@@ -83,7 +84,7 @@ const getByProjOrSwids = async (proj, swids) => {
 
 };
 
-const getByProjAndQcStatus = async (proj, qcStatus) => {
+const getByProjAndQcStatus = async (proj, workflow, qcStatus) => {
   try {
     const qcpassed = validateQcStatus(qcStatus, false);
     proj = validateProject(proj);
@@ -91,7 +92,7 @@ const getByProjAndQcStatus = async (proj, qcStatus) => {
       // get only items from FPR that are not in FileQC
       let fileQcSwids = await getAllFileQcSwids();
       fileQcSwids = fileQcSwids.map(o => parseInt(o.fileswid));
-      const pendingFprs = await getFprsNotInFileQc(proj, fileQcSwids);
+      const pendingFprs = await getFprsNotInFileQc(proj, workflow, fileQcSwids);
       return mergeFileResults(pendingFprs, []);
     } else {
       // get only the items which are listed as either PASS or FAIL in FileQC
@@ -340,11 +341,20 @@ function getIndexedPlaceholders (projectNames) {
   return projectNames.map((item, index) => '$' + (index + 1)).join(', ');
 }
 
+function getQuotedPlaceholders (workflowNames) {
+  return workflowNames.split(',')
+    .map((wf) => '\'' + wf + '\', ')
+    .join('')
+    .slice(0, -2); // slice off the final ", "
+}
+
 /** success returns an array of File Provenance results filtered by the given project */
-function getFprResultsByProject (project) {
+function getFprResultsByProject (project, workflows) {
   // if project is represented with both long and short names in FPR, need to search by both names
   const projectNames = getAllProjectNames(project);
-  const select = 'SELECT * FROM fpr WHERE project IN (' + getQuestionMarkPlaceholders(projectNames) + ') ORDER BY fileswid ASC';
+  const select = 'SELECT * FROM fpr WHERE project IN (' + getQuestionMarkPlaceholders(projectNames) + ')'
+    + (workflows == null ? '' : ' AND workflow IN (' + getQuotedPlaceholders(workflows) + ')')
+    + ' ORDER BY fileswid ASC';
   return new Promise((resolve, reject) => {
     fpr.all(select, projectNames, (err, data) => {
       if (err) reject(generateError(500, err));
@@ -355,8 +365,10 @@ function getFprResultsByProject (project) {
 
 /** success returns an array of File Provenance results filtered by the given file SWIDs */
 function getFprResultsBySwids (swids) {
+  const select = 'SELECT * FROM fpr WHERE fileswid IN (' + swids.join() + ')'
+    + ' ORDER BY fileswid ASC';
   return new Promise((resolve, reject) => {
-    fpr.all('SELECT * FROM fpr WHERE fileswid IN (' + swids.join() + ') ORDER BY fileswid ASC', (err, data) => {
+    fpr.all(select, (err, data) => {
       if (err) reject(generateError(500, err));
       resolve(data ? data : []);
     });
@@ -367,7 +379,8 @@ function getFprResultsBySwids (swids) {
 function getFqcResultsByProject (project) {
   // if project is represented with both long and short names in FPR, need to search by both names
   const projectNames = getAllProjectNames(project);
-  const select = 'SELECT * FROM FileQC WHERE project IN (' + getIndexedPlaceholders(projectNames) + ') ORDER BY fileswid ASC';
+  const select = 'SELECT * FROM FileQC WHERE project IN (' + getIndexedPlaceholders(projectNames) + ')'
+    + ' ORDER BY fileswid ASC';
   return new Promise((resolve, reject) => {
     pg.any(select, projectNames)
       .then(data => {
@@ -383,7 +396,8 @@ function getFqcResultsByProject (project) {
 /** success returns an array of FileQCs filtered by the given file SWIDs */
 function getFqcResultsBySwids (swids) {
   return new Promise((resolve, reject) => {
-    const sql = 'SELECT * FROM FileQC WHERE fileswid in (' + swids.join() + ') ORDER BY fileswid ASC';
+    const sql = 'SELECT * FROM FileQC WHERE fileswid in (' + swids.join() + ')'
+      + ' ORDER BY fileswid ASC';
     pg.any(sql)
       .then(data => {
         resolve({ fileqcs: (data ? data : []), errors: [] });
@@ -462,8 +476,9 @@ const getAllFileQcSwids = () => {
 const getFqcResultsByProjAndQcStatus = (proj, qcpassed) => {
   // if project is represented with both long and short names, need to search by both names
   const params = getAllProjectNames(proj);
-  let select = 'SELECT * FROM FileQC WHERE project IN (' + getIndexedPlaceholders(params) + ')' +
-    ' AND qcpassed = $' + (params.length + 1) + ' ORDER BY fileswid ASC';
+  let select = 'SELECT * FROM FileQC WHERE project IN (' + getIndexedPlaceholders(params) + ')'
+    + ' AND qcpassed = $' + (params.length + 1)
+    + ' ORDER BY fileswid ASC';
   params.push(qcpassed);
   return new Promise((resolve, reject) => {
     pg.any(select, params)
@@ -472,11 +487,13 @@ const getFqcResultsByProjAndQcStatus = (proj, qcpassed) => {
   });
 };
 
-const getFprsNotInFileQc = (proj, fileQcSwids) => {
+const getFprsNotInFileQc = (proj, workflow, fileQcSwids) => {
   // if project is represented with both long and short names, need to search by both names
   const projectNames = getAllProjectNames(proj);
-  const select = 'SELECT * FROM fpr WHERE fileswid NOT IN (' + fileQcSwids.join() + ')' +
-    ' AND project IN (' + getQuestionMarkPlaceholders(projectNames) + ') ORDER BY fileswid ASC';
+  const select = 'SELECT * FROM fpr WHERE fileswid NOT IN (' + fileQcSwids.join() + ')'
+    + ' AND project IN (' + getQuestionMarkPlaceholders(projectNames) + ')'
+    + (workflow == null ? '' : ' AND workflow IN (' + getQuotedPlaceholders(workflow) + ')')
+    + ' ORDER BY fileswid ASC';
   return new Promise((resolve, reject) => {
     fpr.all(select, projectNames, (err, data) => {
       if (err) reject(err);

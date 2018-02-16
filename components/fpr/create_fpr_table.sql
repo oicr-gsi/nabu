@@ -8,7 +8,8 @@ CREATE TABLE fpr (
   skip BOOLEAN NOT NULL,
   stalestatus TEXT NOT NULL,
   project TEXT NOT NULL,
-  upstream INTEGER[]
+  upstream INTEGER[],
+  workflow TEXT NOT NULL
 );
 
 .mode tabs
