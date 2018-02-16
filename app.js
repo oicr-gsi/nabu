@@ -34,7 +34,7 @@ app.use((req, res, next) => {
   // generate a unique identifier for each request, if one hasn't already been set
   if (!req.uid) req.uid = uid.token();
   res.uid = req.uid;
-  if (req.connection.remoteAddress != ignoreFrom) {
+  if (req.connection.remoteAddress != ignoreFrom && req.originalUrl != '/metrics') {
     logger.info({uid: req.uid, method: req.method, url: req.originalUrl, origin: req.connection.remoteAddress});
   }
   next();
