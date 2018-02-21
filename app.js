@@ -48,7 +48,10 @@ app.use((req, res, next) => {
 });
 
 // home page
-app.get('/', (req, res) => { res.end(); });
+app.get('/', (req, res) => {
+  res.status(400).json({error: 'Use path /fileqcs?[project=?? OR fileswids=??]'});
+  res.end();
+});
 
 // routes to fileQC records
 app.get('/fileqcs', fileQc.getAllFileQcs);
