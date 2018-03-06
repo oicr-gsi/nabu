@@ -8,7 +8,7 @@ const swaggerSpec = require('./swagger.json'); // Swagger documentation contents
 const prom = require('./utils/prometheus'); // Prometheus exporting
 const fileQc = require('./components/fileqcs/fileQcsController'); // controller for FileQC endpoints
 const logger = require('./utils/logger'); // logging
-const uid = require('gen-uid'); // generates a unique ID for each request
+const uid = require('uid'); // generates a unique ID for each request
 const helmet = require('helmet');
 const cors = require('cors');
 
@@ -39,7 +39,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/v1', express.Router());
 app.use((req, res, next) => {
   // generate a unique identifier for each request, if one hasn't already been set
-  if (!req.uid) req.uid = uid.token();
+  if (!req.uid) req.uid = uid();
   res.uid = req.uid;
   if (req.connection.remoteAddress != ignoreFrom && req.originalUrl != '/metrics') {
     logger.info({uid: req.uid, method: req.method, url: req.originalUrl, origin: req.connection.remoteAddress});
