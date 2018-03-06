@@ -21,12 +21,12 @@ const errorHandler = (err, req, res, next) => {
   }
   if (!err.status) {
     // unexpected error, so log it
-    logger.error({uid: req.uid, message: err.message });
+    logger.error({ uid: req.uid, message: err.message });
     res.status(500);
-    res.json({ 'errors': ['An unexpected error has occurred.']});
+    res.json({ errors: ['An unexpected error has occurred.'] });
   } else {
     res.status(err.status);
-    res.json({ 'errors': err.errors });
+    res.json({ errors: err.errors });
   }
   res.end();
   next();
@@ -38,18 +38,30 @@ app.use(bodyParser.json({ type: 'application/json' }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/v1', express.Router());
 app.use((req, res, next) => {
+  // have to manually set this because there's no guarantee it'll be called this in future versions of Express
+  req._startTime = new Date();
   // generate a unique identifier for each request, if one hasn't already been set
   if (!req.uid) req.uid = uid();
   res.uid = req.uid;
-  if (req.connection.remoteAddress != ignoreFrom && req.originalUrl != '/metrics') {
-    logger.info({uid: req.uid, method: req.method, url: req.originalUrl, origin: req.connection.remoteAddress});
+  if (
+    req.connection.remoteAddress != ignoreFrom &&
+    req.originalUrl != '/metrics'
+  ) {
+    logger.info({
+      uid: req.uid,
+      method: req.method,
+      url: req.originalUrl,
+      origin: req.connection.remoteAddress
+    });
   }
   next();
 });
 
 // home page
 app.get('/', (req, res) => {
-  res.status(400).json({error: 'Use path /fileqcs?[project=?? OR fileswids=??]'});
+  res
+    .status(400)
+    .json({ error: 'Use path /fileqcs?[project=?? OR fileswids=??]' });
   res.end();
 });
 
@@ -63,7 +75,9 @@ app.get('/metrics', async (req, res) => {
     const mostRecentImportTime = await fileQc.getMostRecentFprImportTime();
     prom.mostRecentFprImport.set(mostRecentImportTime);
   } catch (e) {
-    logger.error('Error getting most recent File Provenance Report import time');
+    logger.error(
+      'Error getting most recent File Provenance Report import time'
+    );
     logger.error(e);
   }
   res.set('Content-Type', prom.prometheus.register.contentType);
@@ -80,16 +94,11 @@ app.use((req, res, next) => {
   if (req.connection.remoteAddress != ignoreFrom) {
     const responseTimeInMs = Date.now() - Date.parse(req._startTime);
     const path = req.route ? req.route.path : req.originalUrl;
-    prom.httpRequestDurationMilliseconds
-      .labels(path)
-      .observe(responseTimeInMs);
-    prom.httpRequestCounter
-      .labels(path, req.method, res.statusCode)
-      .inc();
+    prom.httpRequestDurationMilliseconds.labels(path).observe(responseTimeInMs);
+    prom.httpRequestCounter.labels(path, req.method, res.statusCode).inc();
   }
   next();
 });
-
 
 module.exports = app;
 
@@ -101,4 +110,3 @@ const server = app.listen(app.get('port'), () => {
 
   logger.info('Listening at http://%s:%s', host, port);
 });
-
