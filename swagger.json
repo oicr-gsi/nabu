@@ -23,6 +23,12 @@
             "type": "string"
           },
           {
+            "name": "workflows",
+            "in": "query",
+            "description": "Filter by workflow name(s). Comma-separated list, can only be used with `project` query",
+            "type": "string"
+          },
+          {
             "name": "fileswids",
             "in": "query",
             "description": "Filter by file SWIDs (comma-separated) (one of project or fileswid list is required)",
