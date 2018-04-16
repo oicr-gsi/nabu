@@ -34,7 +34,7 @@ const errorHandler = (err, req, res, next) => {
 
 app.use(helmet());
 app.use(cors());
-app.use(bodyParser.json({ type: 'application/json' }));
+app.use(bodyParser.json({ type: 'application/json', limit: '50mb' }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/v1', express.Router());
 app.use((req, res, next) => {
