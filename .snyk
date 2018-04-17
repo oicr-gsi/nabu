@@ -4,50 +4,29 @@ version: v1.10.1
 ignore:
   'npm:hoek:20180212':
     - sqlite3 > node-pre-gyp > hawk > hoek:
-        reason: Low severity
-        expires: '2018-04-05T17:17:25.277Z'
+        reason: hoping they'll release a fixed version soon
+        expires: '2018-05-17T13:49:10.539Z'
     - sqlite3 > node-pre-gyp > request > hawk > hoek:
         reason: See above
         expires: '2018-03-18T19:41:12.170Z'
-      sqlite3 > node-pre-gyp > hawk > boom > hoek:
-        reason: Low severity
-        expires: '2018-04-05T17:17:25.277Z'
     - sqlite3 > node-pre-gyp > hawk > boom > hoek:
         reason: See above
         expires: '2018-03-18T19:41:12.170Z'
-      sqlite3 > node-pre-gyp > hawk > sntp > hoek:
-        reason: Low severity
-        expires: '2018-04-05T17:17:25.277Z'
     - sqlite3 > node-pre-gyp > request > hawk > boom > hoek:
         reason: See above
         expires: '2018-03-18T19:41:12.170Z'
-      sqlite3 > node-pre-gyp > hawk > cryptiles > boom > hoek:
-        reason: Low severity
-        expires: '2018-04-05T17:17:25.277Z'
     - sqlite3 > node-pre-gyp > hawk > cryptiles > boom > hoek:
         reason: See above
         expires: '2018-03-18T19:41:12.170Z'
-      sqlite3 > node-pre-gyp > request > hawk > hoek:
-        reason: Low severity
-        expires: '2018-04-05T17:17:25.277Z'
     - sqlite3 > node-pre-gyp > request > hawk > cryptiles > boom > hoek:
         reason: See above
         expires: '2018-03-18T19:41:12.170Z'
-      sqlite3 > node-pre-gyp > request > hawk > boom > hoek:
-        reason: Low severity
-        expires: '2018-04-05T17:17:25.277Z'
     - sqlite3 > node-pre-gyp > hawk > sntp > hoek:
         reason: See above
         expires: '2018-03-18T19:41:12.170Z'
-      sqlite3 > node-pre-gyp > request > hawk > sntp > hoek:
-        reason: Low severity
-        expires: '2018-04-05T17:17:25.277Z'
     - sqlite3 > node-pre-gyp > request > hawk > sntp > hoek:
         reason: See above
         expires: '2018-03-18T19:41:12.171Z'
-      sqlite3 > node-pre-gyp > request > hawk > cryptiles > boom > hoek:
-        reason: Low severity
-        expires: '2018-04-05T17:17:25.278Z'
     - sqlite3 > node-pre-gyp > hawk > boom > hoek:
         reason: Low-risk vulnerability for app on intranet
         expires: '2018-03-18T19:47:23.823Z'
@@ -69,12 +48,61 @@ ignore:
     - sqlite3 > node-pre-gyp > request > hawk > cryptiles > boom > hoek:
         reason: None given
         expires: '2018-03-18T19:47:23.823Z'
+    - sqlite3 > node-pre-gyp > hawk > boom > hoek:
+        reason: Low severity
+        expires: '2018-04-05T17:17:25.277Z'
+    - sqlite3 > node-pre-gyp > hawk > sntp > hoek:
+        reason: Low severity
+        expires: '2018-04-05T17:17:25.277Z'
+    - sqlite3 > node-pre-gyp > hawk > cryptiles > boom > hoek:
+        reason: Low severity
+        expires: '2018-04-05T17:17:25.277Z'
+    - sqlite3 > node-pre-gyp > request > hawk > hoek:
+        reason: Low severity
+        expires: '2018-04-05T17:17:25.277Z'
+    - sqlite3 > node-pre-gyp > request > hawk > boom > hoek:
+        reason: Low severity
+        expires: '2018-04-05T17:17:25.277Z'
+    - sqlite3 > node-pre-gyp > request > hawk > sntp > hoek:
+        reason: Low severity
+        expires: '2018-04-05T17:17:25.277Z'
+    - sqlite3 > node-pre-gyp > request > hawk > cryptiles > boom > hoek:
+        reason: Low severity
+        expires: '2018-04-05T17:17:25.278Z'
+    - sqlite3 > node-pre-gyp > hawk > boom > hoek:
+        reason: hoping they'll release a fixed version soon
+        expires: '2018-05-17T13:49:10.543Z'
+    - sqlite3 > node-pre-gyp > hawk > sntp > hoek:
+        reason: hoping they'll release a fixed version soon
+        expires: '2018-05-17T13:49:10.544Z'
+    - sqlite3 > node-pre-gyp > hawk > cryptiles > boom > hoek:
+        reason: hoping they'll release a fixed verson soon
+        expires: '2018-05-17T13:49:10.544Z'
+    - sqlite3 > node-pre-gyp > request > hawk > hoek:
+        reason: hoping they'll release a fixed version soon
+        expires: '2018-05-17T13:49:10.544Z'
+    - sqlite3 > node-pre-gyp > request > hawk > boom > hoek:
+        reason: see above
+        expires: '2018-05-17T13:49:10.544Z'
+    - sqlite3 > node-pre-gyp > request > hawk > sntp > hoek:
+        reason: see above
+        expires: '2018-05-17T13:49:10.544Z'
+    - sqlite3 > node-pre-gyp > request > hawk > cryptiles > boom > hoek:
+        reason: see above
+        expires: '2018-05-17T13:49:10.544Z'
   'npm:lodash:20180130':
     - flywaydb-cli > request-promise > request-promise-core > lodash:
-        reason: no fix available
-        expires: '2018-04-05T17:17:25.277Z'
+        reason: sshpk update is also vulnerable
+        expires: '2018-05-17T13:53:17.923Z'
   'npm:cookie-signature:20180111':
     - express > cookie-signature:
         reason: 'Nabu does not use cookies, so is not vulnerable'
         expires: '2018-04-05T17:17:25.277Z'
+  'npm:sshpk:20180409':
+    - sqlite3 > node-pre-gyp > request > http-signature > sshpk:
+        reason: see above
+        expires: '2018-05-17T13:49:10.544Z'
+      flywaydb-cli > request > http-signature > sshpk:
+        reason: sshpk update is also vulnerable
+        expires: '2018-05-17T13:53:17.923Z'
 patch: {}
