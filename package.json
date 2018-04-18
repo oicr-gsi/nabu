@@ -10,10 +10,10 @@
     "test": "PORT=3001 SQLITE_LOCATION=$(pwd)/test DB_CONNECTION=postgres://test:test@localhost/qcdb_test LOG_LEVEL=test mocha --exit",
     "lint": "eslint .",
     "precommit": "lint-staged",
-    "fw:clean": "node_modules/flywaydb-cli/lib/flyway-4.2.0/flyway -X -configFile=conf/flyway.conf clean",
-    "fw:migrate": "node_modules/flywaydb-cli/lib/flyway-4.2.0/flyway -X -configFile=conf/flyway.conf -locations=filesystem:./sql/ migrate",
-    "fw:test-clean": "node_modules/flywaydb-cli/lib/flyway-4.2.0/flyway -configFile=conf/flyway-test-db.conf clean",
-    "fw:test-migrate": "flyway -configFile=conf/flyway-test-db.conf -locations=filesystem:./sql/,filesystem:./test/migrations/ migrate"
+    "fw:clean": "flyway -X -configFiles=conf/flyway.conf clean",
+    "fw:migrate": "flyway -X -configFiles=conf/flyway.conf -locations=filesystem:./sql/ migrate",
+    "fw:test-clean": "flyway -configFiles=conf/flyway-test-db.conf clean",
+    "fw:test-migrate": "flyway -configFiles=conf/flyway-test-db.conf -locations=filesystem:./sql/,filesystem:./test/migrations/ migrate"
   },
   "lint-staged": {
     "*.js": [
