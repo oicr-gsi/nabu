@@ -32,7 +32,6 @@
     "cors": "2.8.4",
     "dotenv": "4.0.0",
     "express": "4.16.2",
-    "flywaydb-cli": "^0.5.0",
     "helmet": "3.10.0",
     "pg-promise": "7.3.2",
     "prom-client": "10.2.2",
