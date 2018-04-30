@@ -44,7 +44,7 @@ app.use((req, res, next) => {
   if (!req.uid) req.uid = uid();
   res.uid = req.uid;
   if (
-    req.connection.remoteAddress != ignoreFrom &&
+    !req.connection.remoteAddress.includes(ignoreFrom) &&
     req.originalUrl != '/metrics'
   ) {
     logger.info({
