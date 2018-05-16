@@ -3,8 +3,14 @@
 const pgp = require('pg-promise')({});
 const pg = pgp(process.env.DB_CONNECTION);
 const basesqlite3 = require('sqlite3');
-const sqlite3 = ((process.env.DEBUG || 'false') === 'true') ? basesqlite3.verbose() : basesqlite3;
-const fpr = new sqlite3.Database(process.env.SQLITE_LOCATION + '/fpr.db', sqlite3.OPEN_READWRITE);
+const sqlite3 =
+  (process.env.DEBUG || 'false') === 'true'
+    ? basesqlite3.verbose()
+    : basesqlite3;
+const fpr = new sqlite3.Database(
+  process.env.SQLITE_LOCATION + '/fpr.db',
+  sqlite3.OPEN_READWRITE
+);
 const logger = require('winston');
 
 /* some projects are represented with two different names. This contains only the duplicates,
@@ -28,12 +34,15 @@ const getFileQcBySwid = async (req, res, next) => {
     let swid;
     swid = validateSwid(req.params.identifier, next);
 
-    const results = await Promise.all([getSingleFprResult(swid), getSingleFqcResult(swid)]);
+    const results = await Promise.all([
+      getSingleFprResult(swid),
+      getSingleFqcResult(swid)
+    ]);
     // merge results from FPR and FQC queries (throws if we don't have either an FPR result or an FQC result)
     const mergedFileQc = mergeOneFileResult(results[0], results[1].fileqc);
     res.status(200).json({ fileqc: mergedFileQc, errors: results[1].errors });
     next();
-  } catch (e) { 
+  } catch (e) {
     handleErrors(e, 'Error getting record', next);
   }
 };
@@ -46,8 +55,8 @@ const getAllFileQcs = async (req, res, next) => {
     let proj, swids, workflow, qcStatus;
     proj = nullifyIfBlank(validateProject(req.query.project));
     swids = validateSwids(req.query.fileswids);
-    workflow = nullifyIfBlank(req.query.workflows);
-    qcStatus = req.query.qcstatus; 
+    workflow = nullifyIfBlank(req.query.workflow);
+    qcStatus = req.query.qcstatus;
 
     let results;
     if (qcStatus === null || typeof qcStatus == 'undefined') {
@@ -75,13 +84,15 @@ const getByProjOrSwids = async (proj, workflow, swids) => {
   }
 
   try {
-    const results = await Promise.all([getFprByProjOrSwids(), getFqcByProjOrSwids()]);
+    const results = await Promise.all([
+      getFprByProjOrSwids(),
+      getFqcByProjOrSwids()
+    ]);
     // merge the results from the File Provenance report and the FileQC database
     return mergeFileResults(results[0], results[1].fileqcs);
   } catch (e) {
     throw e;
   }
-
 };
 
 const getByProjAndQcStatus = async (proj, workflow, qcStatus) => {
@@ -139,13 +150,17 @@ const hydrateOneFqcPreSave = (fpr, fqc) => {
 
 const hydrateFqcsPreSave = (fprs, fqcs, req) => {
   if (fprs.length > fqcs.length) {
-    logger.error(`[${req.uid}]: Batch add FileQCs: ended up with more FPR records than FQCs submitted. Very mysterious.`);
+    logger.error(
+      `[${
+        req.uid
+      }]: Batch add FileQCs: ended up with more FPR records than FQCs submitted. Very mysterious.`
+    );
     throw new Error('Error getting File Provenance records');
   } else {
     // fprHash: { fileswid: indexInFprArray }
     const fprHash = {};
-    fprs.map((fpr, index) => fprHash[fpr.fileswid] = index );
-    return fqcs.map((fqc) => {
+    fprs.map((fpr, index) => (fprHash[fpr.fileswid] = index));
+    return fqcs.map(fqc => {
       const correspondingFpr = fprs[fprHash[fqc.fileswid]] || {};
       return hydrateOneFqcPreSave(correspondingFpr, fqc);
     });
@@ -157,10 +172,12 @@ const hydrateFqcsPreSave = (fprs, fqcs, req) => {
  */
 const addManyFileQcs = async (req, res, next) => {
   try {
-    if (!req.body.fileqcs) throw generateError(400, 'Error: no FileQCs found in request body');
+    if (!req.body.fileqcs)
+      throw generateError(400, 'Error: no FileQCs found in request body');
 
     const validationResults = validateObjectsFromUser(req.body.fileqcs);
-    if (validationResults.errors.length) return next(generateError(400, validationResults.errors));
+    if (validationResults.errors.length)
+      return next(generateError(400, validationResults.errors));
     const toSave = validationResults.validated;
     const swids = toSave.map(record => record.fileswid);
     const fprs = await getFprResultsBySwids(swids);
@@ -179,10 +196,14 @@ const addManyFileQcs = async (req, res, next) => {
 /** success returns the last time that the File Provenance Report was imported into SQLite */
 const getMostRecentFprImportTime = () => {
   return new Promise((resolve, reject) => {
-    fpr.get('SELECT * FROM fpr_import_time ORDER BY lastimported DESC LIMIT 1', [], (err, data) => {
-      if (err) reject(err);
-      resolve(new Date(data.lastimported).getTime()); 
-    });
+    fpr.get(
+      'SELECT * FROM fpr_import_time ORDER BY lastimported DESC LIMIT 1',
+      [],
+      (err, data) => {
+        if (err) reject(err);
+        resolve(new Date(data.lastimported).getTime());
+      }
+    );
   });
 };
 
@@ -200,37 +221,49 @@ function validateProject (param) {
 
 function validateSwid (param) {
   const swid = parseInt(param);
-  if (Number.isNaN(swid)) throw new ValidationError('FileSWID is ' + param + ' but must be an integer');
+  if (Number.isNaN(swid))
+    throw new ValidationError(
+      'FileSWID is ' + param + ' but must be an integer'
+    );
   return swid;
 }
 
 /** Expects a comma-separated list of File SWIDs and returns the valid numbers within */
 function validateSwids (param) {
   if (nullifyIfBlank(param) == null) return null;
-  return param.split(',').map(num => parseInt(num)).filter(num => !Number.isNaN(num));
+  return param
+    .split(',')
+    .map(num => parseInt(num))
+    .filter(num => !Number.isNaN(num));
 }
 
 function validateUsername (param) {
   const user = nullifyIfBlank(param);
-  if (user == null || !user.length) throw new ValidationError('Username must be provided');
+  if (user == null || !user.length)
+    throw new ValidationError('Username must be provided');
   return user;
 }
 
 function validateComment (param) {
   let comment = nullifyIfBlank(param);
-  if (comment !== null) comment = decodeURIComponent(comment.replace(/\+/g,  ' '));
+  if (comment !== null)
+    comment = decodeURIComponent(comment.replace(/\+/g, ' '));
   return comment;
 }
 
 function validateQcStatus (param, throwIfNull) {
   let qcPassed = nullifyIfBlank(param);
-  if (qcPassed === null && throwIfNull) throw new ValidationError('FileQC must be saved with qcstatus "PASS" or "FAIL"');
+  if (qcPassed === null && throwIfNull)
+    throw new ValidationError(
+      'FileQC must be saved with qcstatus "PASS" or "FAIL"'
+    );
   qcPassed = convertQcStatusToBoolean(qcPassed);
   return qcPassed;
 }
 
 function nullifyIfBlank (value) {
-  if (typeof value == 'undefined' || value === null || value.length == 0) value = null;
+  if (typeof value == 'undefined' || value === null || value.length == 0)
+    value = null;
   return value;
 }
 
@@ -238,11 +271,12 @@ function nullifyIfBlank (value) {
 function convertQcStatusToBoolean (value) {
   value = value.toLowerCase();
   const statusToBool = {
-    'pass': true,
-    'fail': false,
-    'pending': null
+    pass: true,
+    fail: false,
+    pending: null
   };
-  if (typeof statusToBool[value] == 'undefined') throw new ValidationError('Unknown QC status ' + value);
+  if (typeof statusToBool[value] == 'undefined')
+    throw new ValidationError('Unknown QC status ' + value);
   return statusToBool[value];
 }
 
@@ -281,11 +315,14 @@ function validateObjectsFromUser (unvalidatedObjects) {
       };
     } catch (e) {
       if (e instanceof ValidationError) {
-        validationErrors.push({ fileswid: unvalidated.fileswid, error: e.message });
+        validationErrors.push({
+          fileswid: unvalidated.fileswid,
+          error: e.message
+        });
         return null;
       } else {
         throw e;
-      } 
+      }
     }
   });
 
@@ -297,7 +334,7 @@ function validateObjectsFromUser (unvalidatedObjects) {
  * - SQLite queries use `?` for parameter substitution
  * - Postgres queries use `$1` for parameter substitution with two or fewer parameters,
  *     and array of item(s) is passed in to the SQL call
- * - Postgres queries use `${namedProp}` for parameter substitution with three or more 
+ * - Postgres queries use `${namedProp}` for parameter substitution with three or more
  *     parameters, and an object with those properties is passed in to the SQL call
  */
 
@@ -306,7 +343,7 @@ function getSingleFprResult (swid) {
   return new Promise((resolve, reject) => {
     fpr.get('SELECT * FROM fpr WHERE fileswid = ?', [swid], (err, data) => {
       if (err) reject(generateError(500, err));
-      resolve((data ? data : {}));
+      resolve(data ? data : {});
     });
   });
 }
@@ -315,8 +352,9 @@ function getSingleFprResult (swid) {
 function getSingleFqcResult (swid) {
   return new Promise((resolve, reject) => {
     const sql = 'SELECT * FROM FileQc WHERE fileswid = $1';
-    pg.any(sql, [swid])
-      .then(data => { 
+    pg
+      .any(sql, [swid])
+      .then(data => {
         if (!data || data.length == 0) resolve({ fileqc: {}, errors: [] });
         resolve({ fileqc: data[0], errors: [] });
       })
@@ -329,7 +367,8 @@ function getSingleFqcResult (swid) {
 
 function getAllProjectNames (proj) {
   const ary = [proj];
-  if (Object.keys(project_mappings).indexOf(proj) != -1) ary.push(project_mappings[proj]);
+  if (Object.keys(project_mappings).indexOf(proj) != -1)
+    ary.push(project_mappings[proj]);
   return ary;
 }
 
@@ -342,8 +381,9 @@ function getIndexedPlaceholders (projectNames) {
 }
 
 function getQuotedPlaceholders (workflowNames) {
-  return workflowNames.split(',')
-    .map((wf) => '\'' + wf + '\', ')
+  return workflowNames
+    .split(',')
+    .map(wf => '\'' + wf + '\', ')
     .join('')
     .slice(0, -2); // slice off the final ", "
 }
@@ -352,9 +392,14 @@ function getQuotedPlaceholders (workflowNames) {
 function getFprResultsByProject (project, workflows) {
   // if project is represented with both long and short names in FPR, need to search by both names
   const projectNames = getAllProjectNames(project);
-  const select = 'SELECT * FROM fpr WHERE project IN (' + getQuestionMarkPlaceholders(projectNames) + ')'
-    + (workflows == null ? '' : ' AND workflow IN (' + getQuotedPlaceholders(workflows) + ')')
-    + ' ORDER BY fileswid ASC';
+  const select =
+    'SELECT * FROM fpr WHERE project IN (' +
+    getQuestionMarkPlaceholders(projectNames) +
+    ')' +
+    (workflows == null
+      ? ''
+      : ' AND workflow IN (' + getQuotedPlaceholders(workflows) + ')') +
+    ' ORDER BY fileswid ASC';
   return new Promise((resolve, reject) => {
     fpr.all(select, projectNames, (err, data) => {
       if (err) reject(generateError(500, err));
@@ -365,8 +410,11 @@ function getFprResultsByProject (project, workflows) {
 
 /** success returns an array of File Provenance results filtered by the given file SWIDs */
 function getFprResultsBySwids (swids) {
-  const select = 'SELECT * FROM fpr WHERE fileswid IN (' + swids.join() + ')'
-    + ' ORDER BY fileswid ASC';
+  const select =
+    'SELECT * FROM fpr WHERE fileswid IN (' +
+    swids.join() +
+    ')' +
+    ' ORDER BY fileswid ASC';
   return new Promise((resolve, reject) => {
     fpr.all(select, (err, data) => {
       if (err) reject(generateError(500, err));
@@ -379,12 +427,16 @@ function getFprResultsBySwids (swids) {
 function getFqcResultsByProject (project) {
   // if project is represented with both long and short names in FPR, need to search by both names
   const projectNames = getAllProjectNames(project);
-  const select = 'SELECT * FROM FileQC WHERE project IN (' + getIndexedPlaceholders(projectNames) + ')'
-    + ' ORDER BY fileswid ASC';
+  const select =
+    'SELECT * FROM FileQC WHERE project IN (' +
+    getIndexedPlaceholders(projectNames) +
+    ')' +
+    ' ORDER BY fileswid ASC';
   return new Promise((resolve, reject) => {
-    pg.any(select, projectNames)
+    pg
+      .any(select, projectNames)
       .then(data => {
-        resolve({ fileqcs: (data ? data : []), errors: [] });
+        resolve({ fileqcs: data ? data : [], errors: [] });
       })
       .catch(err => {
         logger.error(err);
@@ -396,11 +448,15 @@ function getFqcResultsByProject (project) {
 /** success returns an array of FileQCs filtered by the given file SWIDs */
 function getFqcResultsBySwids (swids) {
   return new Promise((resolve, reject) => {
-    const sql = 'SELECT * FROM FileQC WHERE fileswid in (' + swids.join() + ')'
-      + ' ORDER BY fileswid ASC';
-    pg.any(sql)
+    const sql =
+      'SELECT * FROM FileQC WHERE fileswid in (' +
+      swids.join() +
+      ')' +
+      ' ORDER BY fileswid ASC';
+    pg
+      .any(sql)
       .then(data => {
-        resolve({ fileqcs: (data ? data : []), errors: [] });
+        resolve({ fileqcs: data ? data : [], errors: [] });
       })
       .catch(err => {
         logger.error(err);
@@ -413,16 +469,28 @@ function getFqcResultsBySwids (swids) {
 function upsertSingleFqc (fqc) {
   return new Promise((resolve, reject) => {
     // update if exists, insert if not
-    const upsert = 'INSERT INTO FileQc as fqc (filepath, qcpassed, username, comment, fileswid, project) VALUES (${filepath}, ${qcpassed}, ${username}, ${comment}, ${fileswid}, ${project}) ON CONFLICT (fileswid) DO UPDATE SET filepath = ${filepath}, qcpassed = ${qcpassed}, username = ${username}, comment = ${comment} WHERE fqc.fileswid = ${fileswid}';
+    const upsert =
+      'INSERT INTO FileQc as fqc (filepath, qcpassed, username, comment, fileswid, project) VALUES (${filepath}, ${qcpassed}, ${username}, ${comment}, ${fileswid}, ${project}) ON CONFLICT (fileswid) DO UPDATE SET filepath = ${filepath}, qcpassed = ${qcpassed}, username = ${username}, comment = ${comment} WHERE fqc.fileswid = ${fileswid}';
 
-    pg.none(upsert, fqc)
+    pg
+      .none(upsert, fqc)
       .then(() => {
         resolve({ fileswid: fqc.fileswid, errors: [] });
       })
       .catch(err => {
-        if (err.message.includes('duplicate key') && err.message.includes('filepath')) {
+        if (
+          err.message.includes('duplicate key') &&
+          err.message.includes('filepath')
+        ) {
           logger.error(err);
-          reject(generateError(400, 'filepath ' + fqc.filepath + ' is already associated with another fileswid'));
+          reject(
+            generateError(
+              400,
+              'filepath ' +
+                fqc.filepath +
+                ' is already associated with another fileswid'
+            )
+          );
         } else {
           logger.error(err);
           reject(generateError(500, 'Failed to create FileQC record'));
@@ -437,15 +505,17 @@ function getFilepathFromError (errorDetail) {
 
 function upsertFqcs (fqcs) {
   return new Promise((resolve, reject) => {
-    const upsert = 'INSERT INTO FileQc as fqc (filepath, qcpassed, username, comment, fileswid, project) VALUES (${filepath}, ${qcpassed}, ${username}, ${comment}, ${fileswid}, ${project}) ON CONFLICT (fileswid) DO UPDATE SET filepath = ${filepath}, qcpassed = ${qcpassed}, username = ${username}, comment = ${comment} WHERE fqc.fileswid = ${fileswid}';
+    const upsert =
+      'INSERT INTO FileQc as fqc (filepath, qcpassed, username, comment, fileswid, project) VALUES (${filepath}, ${qcpassed}, ${username}, ${comment}, ${fileswid}, ${project}) ON CONFLICT (fileswid) DO UPDATE SET filepath = ${filepath}, qcpassed = ${qcpassed}, username = ${username}, comment = ${comment} WHERE fqc.fileswid = ${fileswid}';
 
-    pg.tx('batch', t => {
-      const queries = [];
-      for (let i = 0; i < fqcs.length; i++) {
-        queries.push(t.none(upsert, fqcs[i]));
-      }
-      return t.batch(queries);
-    })
+    pg
+      .tx('batch', t => {
+        const queries = [];
+        for (let i = 0; i < fqcs.length; i++) {
+          queries.push(t.none(upsert, fqcs[i]));
+        }
+        return t.batch(queries);
+      })
       .then(() => {
         const returnInfo = fqcs.sort((a, b) => {
           return parseInt(a.fileswid) - parseInt(b.fileswid);
@@ -453,10 +523,21 @@ function upsertFqcs (fqcs) {
         return resolve({ fileqcs: returnInfo, errors: [] });
       })
       .catch(err => {
-        if (err.message.includes('duplicate key') && err.message.includes('filepath')) {
-          const dupes = err.data.filter(tx => !tx.success).map(tx => getFilepathFromError(tx.result.detail));
+        if (
+          err.message.includes('duplicate key') &&
+          err.message.includes('filepath')
+        ) {
+          const dupes = err.data
+            .filter(tx => !tx.success)
+            .map(tx => getFilepathFromError(tx.result.detail));
           logger.error(err);
-          reject(generateError(400, 'filepath(s) already associated with another fileswid: ' + dupes.join(', ')));
+          reject(
+            generateError(
+              400,
+              'filepath(s) already associated with another fileswid: ' +
+                dupes.join(', ')
+            )
+          );
         } else {
           logger.error(err.error);
           reject(generateError(500, 'Failed to create FileQC record'));
@@ -467,21 +548,27 @@ function upsertFqcs (fqcs) {
 
 const getAllFileQcSwids = () => {
   return new Promise((resolve, reject) => {
-    pg.any('SELECT fileswid FROM fileqc', [])
+    pg
+      .any('SELECT fileswid FROM fileqc', [])
       .then(data => resolve(data))
-      .catch(err => reject(err)); 
+      .catch(err => reject(err));
   });
 };
 
 const getFqcResultsByProjAndQcStatus = (proj, qcpassed) => {
   // if project is represented with both long and short names, need to search by both names
   const params = getAllProjectNames(proj);
-  let select = 'SELECT * FROM FileQC WHERE project IN (' + getIndexedPlaceholders(params) + ')'
-    + ' AND qcpassed = $' + (params.length + 1)
-    + ' ORDER BY fileswid ASC';
+  let select =
+    'SELECT * FROM FileQC WHERE project IN (' +
+    getIndexedPlaceholders(params) +
+    ')' +
+    ' AND qcpassed = $' +
+    (params.length + 1) +
+    ' ORDER BY fileswid ASC';
   params.push(qcpassed);
   return new Promise((resolve, reject) => {
-    pg.any(select, params)
+    pg
+      .any(select, params)
       .then(data => resolve(data))
       .catch(err => reject(err));
   });
@@ -490,10 +577,17 @@ const getFqcResultsByProjAndQcStatus = (proj, qcpassed) => {
 const getFprsNotInFileQc = (proj, workflow, fileQcSwids) => {
   // if project is represented with both long and short names, need to search by both names
   const projectNames = getAllProjectNames(proj);
-  const select = 'SELECT * FROM fpr WHERE fileswid NOT IN (' + fileQcSwids.join() + ')'
-    + ' AND project IN (' + getQuestionMarkPlaceholders(projectNames) + ')'
-    + (workflow == null ? '' : ' AND workflow IN (' + getQuotedPlaceholders(workflow) + ')')
-    + ' ORDER BY fileswid ASC';
+  const select =
+    'SELECT * FROM fpr WHERE fileswid NOT IN (' +
+    fileQcSwids.join() +
+    ')' +
+    ' AND project IN (' +
+    getQuestionMarkPlaceholders(projectNames) +
+    ')' +
+    (workflow == null
+      ? ''
+      : ' AND workflow IN (' + getQuotedPlaceholders(workflow) + ')') +
+    ' ORDER BY fileswid ASC';
   return new Promise((resolve, reject) => {
     fpr.all(select, projectNames, (err, data) => {
       if (err) reject(err);
@@ -502,11 +596,12 @@ const getFprsNotInFileQc = (proj, workflow, fileQcSwids) => {
   });
 };
 
-
 /** returns the union of the non-null fields of a File Provenance Report object and a FileQC object */
 function mergeOneFileResult (fpr, fqc) {
   if (!fpr.fileswid && !fqc.fileswid) {
-    throw new ValidationError('Cannot find any matching record in either file provenance or FileQC.');
+    throw new ValidationError(
+      'Cannot find any matching record in either file provenance or FileQC.'
+    );
   } else if (fpr.fileswid && !fqc.fileswid) {
     // file exists in file provenance but hasn't been QCed
     return yesFprNoFqc(fpr);
@@ -520,15 +615,21 @@ function mergeOneFileResult (fpr, fqc) {
 }
 
 /** combines the results then merges them  // TODO: fix this description
-  * this only works if results are returned sorted by fileswid */
+ * this only works if results are returned sorted by fileswid */
 function mergeFileResults (fprs, fqcs) {
   const merged = [];
-  for (let i = 0, j = 0; (i <= fprs.length && j <= fqcs.length);) {
-    if (i < fprs.length && (j >= fqcs.length || fprs[i].fileswid < fqcs[j].fileswid)) {
+  for (let i = 0, j = 0; i <= fprs.length && j <= fqcs.length; ) {
+    if (
+      i < fprs.length &&
+      (j >= fqcs.length || fprs[i].fileswid < fqcs[j].fileswid)
+    ) {
       // File Provenance record has no corresponding FileQC record
       merged.push(yesFprNoFqc(fprs[i]));
       i++;
-    } else if (j < fqcs.length && (i >= fprs.length || fprs[i].fileswid > fqcs[j].fileswid)) {
+    } else if (
+      j < fqcs.length &&
+      (i >= fprs.length || fprs[i].fileswid > fqcs[j].fileswid)
+    ) {
       // FileQC record has no corresponding File Provenance record
       merged.push(noFprYesFqc(fqcs[j]));
       j++;
@@ -547,7 +648,7 @@ function mergeFileResults (fprs, fqcs) {
   return merged;
 }
 
-/** If a record is in the File Provenance Report database but not in the FileQC database, 
+/** If a record is in the File Provenance Report database but not in the FileQC database,
  * then its QC status is 'PENDING' */
 function yesFprNoFqc (fpr) {
   fpr.upstream = parseUpstream(fpr.upstream);
@@ -559,7 +660,7 @@ function yesFprNoFqc (fpr) {
  * something weird has happened. Return it and indicate that it's not in the FPR */
 function noFprYesFqc (fqc) {
   fqc.stalestatus = 'NOT IN FILE PROVENANCE';
-  fqc.qcstatus = (fqc.qcpassed == true ? 'PASS' : 'FAIL');
+  fqc.qcstatus = fqc.qcpassed == true ? 'PASS' : 'FAIL';
   delete fqc.qcpassed;
   if (!fqc.comment) delete fqc.comment;
   fqc.fileswid = parseInt(fqc.fileswid);
@@ -569,10 +670,11 @@ function noFprYesFqc (fqc) {
 /** If a record is in both the File Provenance Report and FileQC databases,
  * merge the relevant info */
 function yesFprYesFqc (fpr, fqc) {
-  if (fpr.fileswid != fqc.fileswid) throw new Error('Cannot merge non-matching files');
+  if (fpr.fileswid != fqc.fileswid)
+    throw new Error('Cannot merge non-matching files');
   const merged = Object.assign({}, fpr);
   merged.upstream = parseUpstream(merged.upstream);
-  merged.qcstatus = (fqc.qcpassed == true ? 'PASS' : 'FAIL');
+  merged.qcstatus = fqc.qcpassed == true ? 'PASS' : 'FAIL';
   merged.username = fqc.username;
   if (fqc.comment) merged.comment = fqc.comment;
   merged.qcdate = fqc.qcdate;
@@ -599,5 +701,3 @@ module.exports = {
   addManyFileQcs: addManyFileQcs,
   getMostRecentFprImportTime: getMostRecentFprImportTime
 };
-
-

@@ -23,7 +23,7 @@
             "type": "string"
           },
           {
-            "name": "workflows",
+            "name": "workflow",
             "in": "query",
             "description": "Filter by workflow name(s). Comma-separated list, can only be used with `project` query",
             "type": "string"
