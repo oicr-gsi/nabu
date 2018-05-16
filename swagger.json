@@ -14,24 +14,30 @@
     "/fileqcs": {
       "get": {
         "summary": "Get all FileQCs",
-        "description": "Returns a list containing all FileQCs, including those that are pending. Must be filtered by project or by list of file SWIDs.",
+        "description": "Returns a list containing all FileQCs, including those that are pending. Must be filtered by 'project' or 'fileswids', with optional 'qcstatus' and 'workflow' filters if 'project' is selected.",
         "parameters": [
           {
             "name": "project",
             "in": "query",
-            "description": "Filter by project (one of project or fileswid list is required)",
+            "description": "Filter by project short name",
             "type": "string"
           },
           {
             "name": "workflow",
             "in": "query",
-            "description": "Filter by workflow name(s). Comma-separated list, can only be used with `project` query",
+            "description": "Filter by workflow name. Must be used with `project` query",
+            "type": "string"
+          },
+          {
+            "name": "qcstatus",
+            "in": "query",
+            "description": "Filter by qc status (PASS, FAIL, PENDING)",
             "type": "string"
           },
           {
             "name": "fileswids",
             "in": "query",
-            "description": "Filter by file SWIDs (comma-separated) (one of project or fileswid list is required)",
+            "description": "Filter by file SWIDs (comma-separated)",
             "type": "string"
           }
         ],
@@ -53,7 +59,7 @@
       "post": {
         "summary": "Add a single FileQC",
         "description": "Adds a single FileQC",
-        "parameters": [
+        "schema": [
           {
             "name": "fileswid",
             "in": "query",
@@ -133,7 +139,7 @@
             "description": "Array of FileQCs",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/FileQC-request"
+              "$ref": "#/definitions/FileQC-post"
             }
           }
         ],
@@ -201,10 +207,6 @@
           "description": "QC Date (only returned if a FileQC record is found)",
           "type": "string"
         },
-        "stalestatus": {
-          "description": "Stale status (OK, STALE, NOT IN FILE PROVENANCE)",
-          "type": "string"
-        },
         "upstream": {
           "description": "List of input File SWAs (only returned if a File Provenance Report record is found)",
           "type": "array",
@@ -217,7 +219,7 @@
           "type": "boolean"
         },
         "stalestatus": {
-          "description": "Whether file has been superseded by a more recent version of the analysis (OKAY, STALE, NOT IN PROVENANCE)",
+          "description": "Whether file has been superseded by a more recent analysis (OKAY, STALE, NOT IN PROVENANCE)",
           "type": "string"
         }
       }
@@ -279,7 +281,7 @@
         }
       }
     },
-    "FileQC-request": {
+    "FileQC-post": {
       "type": "object",
       "properties": {
         "fileswid": {

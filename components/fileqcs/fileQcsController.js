@@ -56,14 +56,19 @@ const getAllFileQcs = async (req, res, next) => {
     proj = nullifyIfBlank(validateProject(req.query.project));
     swids = validateSwids(req.query.fileswids);
     workflow = nullifyIfBlank(req.query.workflow);
-    qcStatus = req.query.qcstatus;
+    qcStatus = nullifyIfBlank(req.query.qcstatus);
 
     let results;
-    if (qcStatus === null || typeof qcStatus == 'undefined') {
-      results = await getByProjOrSwids(proj, workflow, swids);
-    } else {
+    if (qcStatus !== null && proj !== null) {
       results = await getByProjAndQcStatus(proj, workflow, qcStatus);
+    } else if (proj !== null) {
+      results = await getByProjAndMaybeWorkflow(proj, workflow);
+    } else if (swids !== null) {
+      results = await getBySwids(swids);
+    } else {
+      throw new ValidationError('Must supply either project or fileswids');
     }
+
     res.status(200).json({ fileqcs: results, errors: [] });
     next();
   } catch (e) {
@@ -71,24 +76,25 @@ const getAllFileQcs = async (req, res, next) => {
   }
 };
 
-const getByProjOrSwids = async (proj, workflow, swids) => {
-  let getFprByProjOrSwids, getFqcByProjOrSwids;
-  if (proj != null) {
-    getFprByProjOrSwids = () => getFprResultsByProject(proj, workflow);
-    getFqcByProjOrSwids = () => getFqcResultsByProject(proj);
-  } else if (swids != null) {
-    getFprByProjOrSwids = () => getFprResultsBySwids(swids);
-    getFqcByProjOrSwids = () => getFqcResultsBySwids(swids);
-  } else {
-    throw new ValidationError('Must supply project or fileswid(s)');
-  }
-
+const getBySwids = async swids => {
   try {
     const results = await Promise.all([
-      getFprByProjOrSwids(),
-      getFqcByProjOrSwids()
+      getFprResultsBySwids(swids),
+      getFqcResultsBySwids(swids)
     ]);
     // merge the results from the File Provenance report and the FileQC database
+    return mergeFileResults(results[0], results[1].fileqcs);
+  } catch (e) {
+    throw e;
+  }
+};
+
+const getByProjAndMaybeWorkflow = async (proj, workflow) => {
+  try {
+    const results = await Promise.all([
+      getFprResultsByProject(proj, workflow),
+      getFqcResultsByProject(proj)
+    ]);
     return mergeFileResults(results[0], results[1].fileqcs);
   } catch (e) {
     throw e;
@@ -98,7 +104,6 @@ const getByProjOrSwids = async (proj, workflow, swids) => {
 const getByProjAndQcStatus = async (proj, workflow, qcStatus) => {
   try {
     const qcpassed = validateQcStatus(qcStatus, false);
-    proj = validateProject(proj);
     if (qcpassed === null) {
       // get only items from FPR that are not in FileQC
       let fileQcSwids = await getAllFileQcSwids();
