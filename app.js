@@ -12,6 +12,8 @@ const uid = require('uid'); // generates a unique ID for each request
 const helmet = require('helmet');
 const cors = require('cors');
 const compression = require('compression');
+const favicon = require('serve-favicon');
+const path = require('path');
 
 const app = express();
 const ignoreFrom = process.env.IGNORE_ADDRESS || ''; // to skip logging of requests from IT's security tests
@@ -36,6 +38,7 @@ const errorHandler = (err, req, res, next) => {
 app.use(helmet());
 app.use(cors());
 app.use(compression());
+app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(bodyParser.json({ type: 'application/json', limit: '50mb' }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/v1', express.Router());
@@ -85,11 +88,7 @@ app.get('/metrics', async (req, res) => {
   res.set('Content-Type', prom.prometheus.register.contentType);
   res.end(prom.prometheus.register.metrics());
 });
-app.get('/favicon.ico', (req, res) => {
-  // end the response as there's no favicon to be gotten. Don't log this to Prometheus
-  res.status(404);
-  res.end();
-});
+
 app.use(errorHandler);
 app.use((req, res, next) => {
   // log metrics after every request
