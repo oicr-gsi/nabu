@@ -26,6 +26,17 @@ function ValidationError (message) {
 }
 ValidationError.prototype = Error.prototype;
 
+const getAvailableConstants = async (req, res, next) => {
+  try {
+    const results = await Promise.all([listProjects(), listWorkflows()]);
+    res.status(200).json({ projects: results[0], workflows: results[1] });
+    next();
+  } catch (e) {
+    console.log(e);
+    handleErrors(e, 'Error getting projects and workflows', next);
+  }
+};
+
 /**
  * Get a single FileQC by File SWID
  */
@@ -384,6 +395,32 @@ function getSingleFqcResult (swid) {
   });
 }
 
+function listProjects () {
+  return new Promise((resolve, reject) => {
+    fpr.all(
+      'SELECT DISTINCT project FROM fpr ORDER BY project ASC',
+      [],
+      (err, data) => {
+        if (err) reject(generateError(500, err));
+        resolve(data ? data.map(fpRecord => fpRecord.project) : []);
+      }
+    );
+  });
+}
+
+function listWorkflows () {
+  return new Promise((resolve, reject) => {
+    fpr.all(
+      'SELECT DISTINCT workflow FROM fpr ORDER BY workflow ASC',
+      [],
+      (err, data) => {
+        if (err) reject(generateError(500, err));
+        resolve(data ? data.map(fpRecord => fpRecord.workflow) : []);
+      }
+    );
+  });
+}
+
 function getAllProjectNames (proj) {
   const ary = [proj];
   if (Object.keys(project_mappings).indexOf(proj) != -1)
@@ -718,5 +755,6 @@ module.exports = {
   getAllFileQcs: getAllFileQcs,
   addFileQc: addFileQc,
   addManyFileQcs: addManyFileQcs,
+  getAvailableConstants: getAvailableConstants,
   getMostRecentFprImportTime: getMostRecentFprImportTime
 };
