@@ -9,7 +9,11 @@ const chaiHttp = require('chai-http');
 const server = require('../app');
 const cmd = require('node-cmd');
 const path = require('path');
-const test_migration = path.resolve(
+const test_fpr_creation = path.resolve(
+  __dirname,
+  './migrations/create_test_fpr.sql'
+);
+const test_fpr_migration = path.resolve(
   __dirname,
   './migrations/V9000__test_data.sql'
 );
@@ -202,11 +206,46 @@ describe('FileQcController', () => {
   revertFprDb();
 });
 
-describe('FileQC', () => {
-  // empty and repopulate the SQLite db and Postgres db
+describe('available constants', () => {
   beforeEach(async () => {
     await cmd.run(
-      'sqlite3 ' + process.env.SQLITE_LOCATION + '/fpr.db < ' + test_migration
+      'sqlite3 ' +
+        process.env.SQLITE_LOCATION +
+        '/fpr.db < ' +
+        test_fpr_creation
+    );
+    await cmd.run(
+      'sqlite3 ' +
+        process.env.SQLITE_LOCATION +
+        '/fpr.db < ' +
+        test_fpr_migration
+    );
+    await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
+  });
+  describe('GET available constants', () => {
+    it('it should list available projects and workflows', done => {
+      chai
+        .request(server)
+        .get('/available')
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.body).to.be.a('object');
+          expect(res.body).to.have.keys('workflows', 'projects');
+          expect(res.body.workflows).to.not.be.empty;
+          expect(res.body.projects).to.not.be.empty;
+          done();
+        });
+    });
+  });
+});
+
+describe('FileQC', () => {
+  beforeEach(async () => {
+    await cmd.run(
+      'sqlite3 ' +
+        process.env.SQLITE_LOCATION +
+        '/fpr.db < ' +
+        test_fpr_migration
     );
     await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
   });
