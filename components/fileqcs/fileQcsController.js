@@ -53,6 +53,8 @@ const getFileQcBySwid = async (req, res, next) => {
 const getAllFileQcs = async (req, res, next) => {
   try {
     let proj, swids, workflow, qcStatus;
+    const validQueryParams = ['project', 'fileswids', 'workflow', 'qcstatus'];
+    validateQueryParams(validQueryParams, req.query);
     proj = nullifyIfBlank(validateProject(req.query.project));
     swids = validateSwids(req.query.fileswids);
     workflow = nullifyIfBlank(req.query.workflow);
@@ -210,6 +212,18 @@ const getMostRecentFprImportTime = () => {
       }
     );
   });
+};
+
+const validateQueryParams = (validParams, actualParams) => {
+  for (let key in actualParams) {
+    if (actualParams.hasOwnProperty(key) && validParams.indexOf(key) == -1) {
+      throw new ValidationError(
+        `Invalid parameter "${key}" given. Valid parameters are: ${validParams.join(
+          ', '
+        )}.`
+      );
+    }
+  }
 };
 
 // validation functions
