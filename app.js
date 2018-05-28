@@ -49,7 +49,8 @@ app.use((req, res, next) => {
   if (!req.uid) req.uid = uid();
   res.uid = req.uid;
   if (
-    !req.connection.remoteAddress.includes(ignoreFrom) &&
+    (ignoreFrom.length == 0 ||
+      !req.connection.remoteAddress.includes(ignoreFrom)) &&
     req.originalUrl != '/metrics'
   ) {
     logger.info({
@@ -77,6 +78,7 @@ app.get('/fileqcs', fileQc.getAllFileQcs);
 app.get('/fileqc/:identifier', fileQc.getFileQc);
 app.post('/fileqcs', fileQc.addFileQc);
 app.post('/fileqcs/batch', fileQc.addManyFileQcs);
+app.delete('/fileqcs/batch', fileQc.deleteFileQcs);
 app.get('/metrics', async (req, res) => {
   try {
     const mostRecentImportTime = await fileQc.getMostRecentFprImportTime();
@@ -94,7 +96,11 @@ app.get('/metrics', async (req, res) => {
 app.use(errorHandler);
 app.use((req, res, next) => {
   // log metrics after every request
-  if (req.connection.remoteAddress != ignoreFrom) {
+  if (
+    (ignoreFrom.length == 0 ||
+      !req.connection.remoteAddress.includes(ignoreFrom)) &&
+    req.originalUrl != '/metrics'
+  ) {
     const responseTimeInMs = Date.now() - Date.parse(req._startTime);
     const path = req.route ? req.route.path : req.originalUrl;
     prom.httpRequestDurationMilliseconds.labels(path).observe(responseTimeInMs);
