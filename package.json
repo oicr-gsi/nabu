@@ -7,13 +7,13 @@
     "start": "node app.js",
     "start:dev": "nodemon app.js",
     "start:prod": "NODE_ENV=production nodejs --abort-on-uncaught-exception app.js",
-    "test": "PORT=3001 SQLITE_LOCATION=$(pwd)/test DB_CONNECTION=postgres://test:test@localhost/qcdb_test LOG_LEVEL=test mocha --exit",
+    "test": "PORT=3001 SQLITE_LOCATION=$(pwd)/test DB_CONNECTION=postgres://test:test@localhost/qcdb_test LOG_LEVEL=test mocha --exit && rm fpr.db",
     "lint": "eslint .",
     "precommit": "lint-staged",
     "fw:clean": "flyway -X -configFiles=conf/flyway.conf clean",
     "fw:migrate": "flyway -X -configFiles=conf/flyway.conf -locations=filesystem:./sql/ migrate",
     "fw:test-clean": "flyway -configFiles=conf/flyway-test-db.conf clean",
-    "fw:test-migrate": "flyway -configFiles=conf/flyway-test-db.conf -locations=filesystem:./sql/,filesystem:./test/migrations/ migrate"
+    "fw:test-migrate": "flyway -configFiles=conf/flyway-test-db.conf -locations=filesystem:./sql/,filesystem:./test/migrations/ migrate && cd test && sqlite3 fpr.db < migrations/create_test_fpr.sql && cd .. && echo \"Recreated FPR test table\""
   },
   "lint-staged": {
     "*.js": [
@@ -37,7 +37,7 @@
     "pg-promise": "7.3.2",
     "prom-client": "10.2.2",
     "serve-favicon": "^2.5.0",
-    "sqlite3": "3.1.13",
+    "sqlite3": "^4.0.1",
     "swagger-ui-express": "2.0.11",
     "uid": "0.0.2",
     "winston": "2.4.0"
@@ -45,14 +45,14 @@
   "devDependencies": {
     "chai": "^4.1.2",
     "chai-exclude": "^1.0.3",
-    "chai-http": "^3.0.0",
-    "eslint": "^4.12.1",
+    "chai-http": "^4.0.0",
+    "eslint": "^5.1.0",
     "husky": "^0.14.3",
-    "lint-staged": "^7.0.0",
+    "lint-staged": "^7.2.0",
     "mocha": "^4.0.1",
     "node-cmd": "^3.0.0",
     "nodemon": "^1.12.1",
     "prettier": "^1.11.1",
-    "rewire": "^3.0.2"
+    "rewire": "^4.0.1"
   }
 }

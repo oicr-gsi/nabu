@@ -24,3 +24,6 @@ test/fpr.db-*
 logs/*.log
 # any future tokens or other config items
 .npmrc
+# SQLite3 test db
+test/fpr.db
+fpr.db
