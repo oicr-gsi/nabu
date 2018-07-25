@@ -59,7 +59,7 @@
       "post": {
         "summary": "Add a single FileQC",
         "description": "Adds a single FileQC",
-        "schema": [
+        "parameters": [
           {
             "name": "fileswid",
             "in": "query",
@@ -91,13 +91,13 @@
         ],
         "responses": {
           "201": {
-            "description": "FileQC successfully created or updated",
+            "description": "FileQC successfully created",
             "schema": {
               "$ref": "#/definitions/FileQC-SWID-SWAs-with-errors"
             }
           },
           "400": {
-            "description": "FileQC was not created or updated",
+            "description": "FileQC was not created",
             "schema": {
               "$ref": "#/definitions/Errors-response"
             }
@@ -130,8 +130,8 @@
     },
     "/fileqcs/batch": {
       "post": {
-        "summary": "Batch create or update FileQC records",
-        "description": "Adds or updates FileQC records for the given items",
+        "summary": "Batch create FileQC records",
+        "description": "Adds FileQC records for the given items",
         "parameters": [
           {
             "in": "body",
@@ -145,16 +145,39 @@
         ],
         "responses": {
           "200": {
-            "description": "Successfully created and/or updated FileQCs",
+            "description": "Successfully created FileQCs",
             "schema": {
               "$ref": "#/definitions/FileQCs-response-with-errors"
             }
           },
           "400": {
-            "description": "Failures during save caused no FileQCs to be created or updated",
+            "description": "Failures during save caused no FileQCs to be created",
             "schema": {
               "$ref": "#/definitions/Errors"
             }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Batch delete FileQC records",
+        "description": "Deletes FileQC records given the FileQC IDs",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "fileqcIds",
+            "description": "Array of FileQC IDs",
+            "required": true
+          },
+          {
+            "in": "body",
+            "name": "username",
+            "description": "Identifier for user who is deleting the FileQCs",
+            "required": "true"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully deleted at least some FileQCs (but not necessarily all)"
           }
         }
       }

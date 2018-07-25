@@ -9,14 +9,6 @@ const chaiHttp = require('chai-http');
 const server = require('../app');
 const cmd = require('node-cmd');
 const path = require('path');
-const test_fpr_creation = path.resolve(
-  __dirname,
-  './migrations/create_test_fpr.sql'
-);
-const test_fpr_migration = path.resolve(
-  __dirname,
-  './migrations/V9000__test_data.sql'
-);
 
 // mock out the databases in the controller to be able to unit test the private functions
 // this will throw a 'duplicate db connection' error when the class is first rewired,
@@ -30,7 +22,33 @@ const revertFprDb = controller.__set__('fpr', {});
 chai.use(chaiHttp);
 chai.use(chaiExclude);
 
-describe('FileQcController', () => {
+const recreateFprDb = async cmd => {
+  await cmd.run(
+    'sqlite3 ' +
+      process.env.SQLITE_LOCATION +
+      '/fpr.db < ' +
+      path.resolve(__dirname, './migrations/create_test_fpr.sql')
+  );
+  await cmd.run(
+    'sqlite3 ' +
+      process.env.SQLITE_LOCATION +
+      '/fpr.db < ' +
+      path.resolve(__dirname, './migrations/V9000__test_data.sql')
+  );
+};
+
+describe('Unit test FileQcController', () => {
+  before(async () => {
+    recreateFprDb(cmd);
+  });
+  beforeEach(async () => {
+    await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
+  });
+  after(() => {
+    revertPgDb();
+    revertFprDb();
+  });
+
   const fprs = {
     12017: {
       fileswid: 12017,
@@ -202,24 +220,13 @@ describe('FileQcController', () => {
     );
     done();
   });
-  revertPgDb();
-  revertFprDb();
 });
 
 describe('available constants', () => {
+  before(async () => {
+    recreateFprDb(cmd);
+  });
   beforeEach(async () => {
-    await cmd.run(
-      'sqlite3 ' +
-        process.env.SQLITE_LOCATION +
-        '/fpr.db < ' +
-        test_fpr_creation
-    );
-    await cmd.run(
-      'sqlite3 ' +
-        process.env.SQLITE_LOCATION +
-        '/fpr.db < ' +
-        test_fpr_migration
-    );
     await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
   });
   describe('GET available constants', () => {
@@ -240,13 +247,10 @@ describe('available constants', () => {
 });
 
 describe('FileQC', () => {
+  before(async () => {
+    recreateFprDb(cmd);
+  });
   beforeEach(async () => {
-    await cmd.run(
-      'sqlite3 ' +
-        process.env.SQLITE_LOCATION +
-        '/fpr.db < ' +
-        test_fpr_migration
-    );
     await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
   });
 
@@ -392,7 +396,7 @@ describe('FileQC', () => {
       });
     }
 
-    it('it should create a new FileQC when one does not exist', done => {
+    it('it should create a new FileQC for a new SWID', done => {
       chai
         .request(server)
         .post('/fileqcs?' + params.join('&'))
@@ -405,17 +409,34 @@ describe('FileQC', () => {
         });
     });
 
-    it('it should update an existing FileQC', done => {
+    it('it should create a new FileQC for the same SWID', done => {
+      const getFor12017 = '/fileqcs?fileswids=12017';
       chai
         .request(server)
-        .post(
-          '/fileqcs?fileswid=12017&qcstatus=FAIL&username=test&comment=failed%20for%20test'
-        )
+        .get(getFor12017)
         .end((err, res) => {
-          expect(res.status).to.equal(201);
-          expect(res.body.fileqc).to.have.property('upstream');
-          expect(res.body.fileqc.qcstatus).to.equal('FAIL');
+          expect(res.status).to.equal(200);
+          expect(res.body.fileqcs).to.have.lengthOf(1);
           expect(res.body.errors).to.be.empty;
+          chai
+            .request(server)
+            .post(
+              '/fileqcs?fileswid=12017&qcstatus=FAIL&username=test&comment=failed%20for%20test'
+            )
+            .end((err, res) => {
+              expect(res.status).to.equal(201);
+              expect(res.body.fileqc).to.have.property('upstream');
+              expect(res.body.fileqc.qcstatus).to.equal('FAIL');
+              expect(res.body.errors).to.be.empty;
+              chai
+                .request(server)
+                .get(getFor12017)
+                .end((err, res) => {
+                  expect(res.status).to.equal(200);
+                  expect(res.body.fileqcs).to.have.lengthOf(2);
+                  expect(res.body.errors).to.be.empty;
+                });
+            });
           done();
         });
     });
@@ -447,6 +468,50 @@ describe('FileQC', () => {
           expect(res.body.fileqcs).to.have.lengthOf(2);
           expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
           expect(res.body.fileqcs[1].qcstatus).to.equal('PASS');
+          done();
+        });
+    });
+  });
+
+  describe('batch DELETE FileQCs', () => {
+    it('it should succeed in deleting a FileQC', done => {
+      chai
+        .request(server)
+        .get('/fileqcs?fileswids=12016')
+        .end((err, res) => {
+          const fqcId = res.body.fileqcs[0].fileqcid;
+          chai
+            .request(server)
+            .delete('/fileqcs/batch')
+            .set('content-type', 'application/json')
+            .send({
+              fileqcids: [fqcId],
+              username: 'me'
+            })
+            .end((err, res) => {
+              expect(res.status).to.equal(200);
+              expect(res.body.success).not.to.be.empty;
+              expect(res.body.errors).to.be.empty;
+              expect(res.body.success[0]).to.match(/^Deleted FileQC.*/);
+            });
+          done();
+        });
+    });
+
+    it('it should fail to delete a non-existent FileQC', done => {
+      chai
+        .request(server)
+        .delete('/fileqcs/batch')
+        .set('content-type', 'application/json')
+        .send({
+          fileqcids: [21221008773217],
+          username: 'mistaken'
+        })
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.body.success).to.be.empty;
+          expect(res.body.errors).not.to.be.empty;
+          expect(res.body.errors[0]).to.match(/^Failed to delete FileQC.*/);
           done();
         });
     });

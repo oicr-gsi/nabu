@@ -134,4 +134,10 @@ ignore:
     - sqlite3 > node-pre-gyp > request > stringstream:
         reason: No fix available
         expires: '2018-06-15T21:58:39.149Z'
+  'npm:extend:20180424':
+    - sqlite3 > request > extend:
+        reason: >-
+          Snyk suggestion did not fix low-severity vulnerability; ignoring for
+          now
+        expires: '2018-08-23T21:27:05.147Z'
 patch: {}
