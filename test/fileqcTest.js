@@ -37,12 +37,16 @@ const recreateFprDb = async cmd => {
   );
 };
 
-describe('FileQcController', () => {
+describe('Unit test FileQcController', () => {
   before(async () => {
     recreateFprDb(cmd);
   });
   beforeEach(async () => {
     await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
+  });
+  after(() => {
+    revertPgDb();
+    revertFprDb();
   });
 
   const fprs = {
@@ -216,8 +220,6 @@ describe('FileQcController', () => {
     );
     done();
   });
-  revertPgDb();
-  revertFprDb();
 });
 
 describe('available constants', () => {
