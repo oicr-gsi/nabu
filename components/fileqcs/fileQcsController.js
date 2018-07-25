@@ -554,13 +554,12 @@ function getFqcResultsBySwids (swids) {
 /** success returns an object containing the fileswid and an array of errors */
 function addSingleFqc (fqc) {
   return new Promise((resolve, reject) => {
-    const add =
-      'INSERT INTO FileQC (filepath, qcpassed, username, comment, fileswid, project) ' +
-      'VALUES (${filepath}, ${qcpassed}, ${username}, ${comment}, ${fileswid}, ${project}) ' +
-      ' RETURNING fileqcid';
-
     pg
-      .one(add, fqc)
+      .task('add-one', t => {
+        // wrapping in a transaction for error handling
+        const insert = pgp.helpers.insert(fqc, fqcCols) + ' RETURNING fileqcid';
+        return t.one(insert);
+      })
       .then(data => {
         data['errors'] = [];
         resolve(data);
@@ -572,19 +571,18 @@ function addSingleFqc (fqc) {
   });
 }
 
+const fqcCols = new pgp.helpers.ColumnSet(
+  ['filepath', 'qcpassed', 'username', 'comment', 'fileswid', 'project'],
+  { table: 'fileqc' }
+);
+
 function addFqcs (fqcs) {
   return new Promise((resolve, reject) => {
-    const add =
-      'INSERT INTO FileQC (filepath, qcpassed, username, comment, fileswid, project) ' +
-      'VALUES (${filepath}, ${qcpassed}, ${username}, ${comment}, ${fileswid}, ${project}) ';
-
     pg
-      .tx('batch', t => {
-        const queries = [];
-        for (let i = 0; i < fqcs.length; i++) {
-          queries.push(t.none(add, fqcs[i]));
-        }
-        return t.batch(queries);
+      .task('add-many', t => {
+        // wrapping in a transaction for error handling
+        const insert = pgp.helpers.insert(fqcs, fqcCols);
+        return t.none(insert);
       })
       .then(() => {
         const returnInfo = fqcs.sort((a, b) => {
@@ -593,8 +591,8 @@ function addFqcs (fqcs) {
         return resolve({ fileqcs: returnInfo, errors: [] });
       })
       .catch(err => {
-        logger.error(err.error);
-        reject(generateError(500, 'Failed to create FileQC record'));
+        logger.error(err);
+        reject(generateError(500, 'Failed to create FileQC records'));
       });
   });
 }
