@@ -9,10 +9,6 @@ const chaiHttp = require('chai-http');
 const server = require('../app');
 const cmd = require('node-cmd');
 const path = require('path');
-const test_fpr_migration = path.resolve(
-  __dirname,
-  './migrations/V9000__test_data.sql'
-);
 
 // mock out the databases in the controller to be able to unit test the private functions
 // this will throw a 'duplicate db connection' error when the class is first rewired,
@@ -26,7 +22,29 @@ const revertFprDb = controller.__set__('fpr', {});
 chai.use(chaiHttp);
 chai.use(chaiExclude);
 
+const recreateFprDb = async cmd => {
+  await cmd.run(
+    'sqlite3 ' +
+      process.env.SQLITE_LOCATION +
+      '/fpr.db < ' +
+      path.resolve(__dirname, './migrations/create_test_fpr.sql')
+  );
+  await cmd.run(
+    'sqlite3 ' +
+      process.env.SQLITE_LOCATION +
+      '/fpr.db < ' +
+      path.resolve(__dirname, './migrations/V9000__test_data.sql')
+  );
+};
+
 describe('FileQcController', () => {
+  before(async () => {
+    recreateFprDb(cmd);
+  });
+  beforeEach(async () => {
+    await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
+  });
+
   const fprs = {
     12017: {
       fileswid: 12017,
@@ -203,19 +221,10 @@ describe('FileQcController', () => {
 });
 
 describe('available constants', () => {
+  before(async () => {
+    recreateFprDb(cmd);
+  });
   beforeEach(async () => {
-    await cmd.run(
-      'sqlite3 ' +
-        process.env.SQLITE_LOCATION +
-        '/fpr.db < ' +
-        path.resolve(__dirname, './migrations/create_test_fpr.sql')
-    );
-    await cmd.run(
-      'sqlite3 ' +
-        process.env.SQLITE_LOCATION +
-        '/fpr.db < ' +
-        test_fpr_migration
-    );
     await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
   });
   describe('GET available constants', () => {
@@ -236,13 +245,10 @@ describe('available constants', () => {
 });
 
 describe('FileQC', () => {
+  before(async () => {
+    recreateFprDb(cmd);
+  });
   beforeEach(async () => {
-    await cmd.run(
-      'sqlite3 ' +
-        process.env.SQLITE_LOCATION +
-        '/fpr.db < ' +
-        test_fpr_migration
-    );
     await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
   });
 
