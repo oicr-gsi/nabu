@@ -189,11 +189,11 @@ const hydrateFqcsPreSave = (fprs, fqcs, req) => {
 const addManyFileQcs = async (req, res, next) => {
   try {
     if (!req.body.fileqcs)
-      throw generateError(400, 'Error: no FileQCs found in request body');
+      throw generateError(400, 'Error: no "fileqcs" found in request body');
 
     const validationResults = validateObjectsFromUser(req.body.fileqcs);
     if (validationResults.errors.length)
-      return next(generateError(400, validationResults.errors));
+      throw new ValidationError(validationResults.errors);
     const toSave = validationResults.validated;
     const swids = toSave.map(record => record.fileswid);
     const fprs = await getFprResultsBySwids(swids);
@@ -214,8 +214,8 @@ const addManyFileQcs = async (req, res, next) => {
  */
 const deleteManyFileQcs = async (req, res, next) => {
   try {
-    if (!req.body.fileqcids)
-      throw generateError(400, 'Error: no FileQc IDs found in request body');
+    if (Object.keys(req.body).indexOf('fileqcids') == -1)
+      throw generateError(400, 'Error: no "fileqcids" found in request body');
     const fqcIds = req.body.fileqcids.map(
       fqcId => validateInteger(fqcId, 'fileQc ID', true),
       'fileqcid'
@@ -756,6 +756,7 @@ function yesFprYesFqc (fpr, fqc) {
   merged.username = fqc.username;
   if (fqc.comment) merged.comment = fqc.comment;
   merged.qcdate = fqc.qcdate;
+  merged.fileqcid = fqc.fileqcid;
   return merged;
 }
 
