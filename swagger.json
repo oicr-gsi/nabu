@@ -8,8 +8,8 @@
   "schemes": [
     "https"
   ],
-  "host": "localhost",
-  "basePath": "/api-docs",
+  "basePath": "/",
+  "schemes": ["http"],
   "paths": {
     "/fileqcs": {
       "get": {
@@ -164,7 +164,7 @@
         "parameters": [
           {
             "in": "body",
-            "name": "fileqcIds",
+            "name": "fileqcids",
             "description": "Array of FileQC IDs",
             "required": true
           },

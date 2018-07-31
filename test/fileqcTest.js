@@ -125,6 +125,7 @@ describe('Unit test FileQcController', () => {
     const actual = mergeOne(fprs['12017'], fqcs['12017']);
     expect(actual)
       .excluding('qcdate')
+      .excluding('fileqcid')
       .to.deep.equal(expected);
     done();
   });
@@ -143,6 +144,7 @@ describe('Unit test FileQcController', () => {
     const actual = mergeOne({}, fqcs['12017']);
     expect(actual)
       .excluding('qcdate')
+      .excluding('fileqcid')
       .to.deep.equal(expected);
     done();
   });
@@ -161,6 +163,7 @@ describe('Unit test FileQcController', () => {
     const actual = mergeOne(fprs['12017'], {});
     expect(actual)
       .excluding('qcdate')
+      .excluding('fileqcid')
       .to.deep.equal(expected);
     done();
   });
@@ -216,6 +219,7 @@ describe('Unit test FileQcController', () => {
     actual.forEach((item, index) =>
       expect(item)
         .excluding('qcdate')
+        .excluding('fileqcid')
         .to.deep.equal(expected[index])
     );
     done();
@@ -395,6 +399,20 @@ describe('FileQC', () => {
         assertNotSaved(currentParams, done, params[counter]);
       });
     }
+
+    it('it should create a new FileQC for a new SWID with a status PENDING', done => {
+      chai
+        .request(server)
+        .post(
+          '/fileqcs?fileswid=12020&username=me&qcstatus=PENDING&project=EMPTY'
+        )
+        .end((err, res) => {
+          expect(res.status).to.equal(201);
+          expect(res.body.fileqc.qcstatus).to.equal('PENDING');
+          expect(res.body.errors).to.be.empty;
+          done();
+        });
+    });
 
     it('it should create a new FileQC for a new SWID', done => {
       chai

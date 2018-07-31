@@ -22,14 +22,15 @@ const errorHandler = (err, req, res, next) => {
   if (res.headersSent) {
     return next(err);
   }
-  if (!err.status) {
+  if (err.status) {
+    res.status(err.status);
+    res.json({
+      errors: err.errors || err.message || err
+    });
+  } else {
     // unexpected error, so log it
-    logger.error({ uid: req.uid, message: err.message });
     res.status(500);
     res.json({ errors: ['An unexpected error has occurred.'] });
-  } else {
-    res.status(err.status);
-    res.json({ errors: err.errors });
   }
   res.end();
   next();
@@ -84,10 +85,11 @@ app.get('/metrics', async (req, res) => {
     const mostRecentImportTime = await fileQc.getMostRecentFprImportTime();
     prom.mostRecentFprImport.set(mostRecentImportTime);
   } catch (e) {
-    logger.error(
-      'Error getting most recent File Provenance Report import time'
-    );
-    logger.error(e);
+    logger.error({
+      error: 'Error getting most recent File Provenance Report import time',
+      details: e,
+      method: '/metrics endpoint'
+    });
   }
   res.set('Content-Type', prom.prometheus.register.contentType);
   res.end(prom.prometheus.register.metrics());
@@ -101,9 +103,14 @@ app.use((req, res, next) => {
       !req.connection.remoteAddress.includes(ignoreFrom)) &&
     req.originalUrl != '/metrics'
   ) {
-    const responseTimeInMs = Date.now() - Date.parse(req._startTime);
     const path = req.route ? req.route.path : req.originalUrl;
-    prom.httpRequestDurationMilliseconds.labels(path).observe(responseTimeInMs);
+    if (req.hasOwnProperty('_startTime')) {
+      // if it doesn't, it's due to a user URL entry error causing the request to be cut short
+      const responseTimeInMs = Date.now() - Date.parse(req._startTime);
+      prom.httpRequestDurationMilliseconds
+        .labels(path)
+        .observe(responseTimeInMs);
+    }
     prom.httpRequestCounter.labels(path, req.method, res.statusCode).inc();
   }
   next();
