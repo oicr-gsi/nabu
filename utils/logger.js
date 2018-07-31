@@ -1,18 +1,20 @@
 'use strict';
 
 const winston = require('winston');
-const logLocation = ('logs');
+const logLocation = 'logs';
 
-const logger = new (winston.Logger)({
+const logger = new winston.Logger({
   transports: [
-    new (winston.transports.File)({ 
+    new winston.transports.File({
       name: 'combined-log',
       filename: `${logLocation}/combined.log`,
       level: 'info',
+      handleException: true,
+      humanReadableUnhandledException: true,
       colorize: true,
       timestamp: 'tsFormat'
     }),
-    new (winston.transports.File)({
+    new winston.transports.File({
       name: 'error-log',
       filename: `${logLocation}/error.log`,
       level: 'error',

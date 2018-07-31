@@ -8,8 +8,8 @@
   "schemes": [
     "https"
   ],
-  "host": "localhost",
-  "basePath": "/api-docs",
+  "basePath": "/",
+  "schemes": ["http"],
   "paths": {
     "/fileqcs": {
       "get": {

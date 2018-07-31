@@ -11,7 +11,7 @@ const fpr = new sqlite3.Database(
   process.env.SQLITE_LOCATION + '/fpr.db',
   sqlite3.OPEN_READWRITE
 );
-const logger = require('winston');
+const logger = require('../../utils/logger');
 
 /* some projects are represented with two different names. This contains only the duplicates,
  * and maps the long name to the short name */
@@ -114,7 +114,7 @@ const getByProjAndMaybeWorkflow = async (proj, workflow) => {
 
 const getByProjAndQcStatus = async (proj, workflow, qcStatus) => {
   try {
-    const qcpassed = validateQcStatus(qcStatus, false);
+    let qcpassed = nullifyIfBlank(qcStatus);
     if (qcpassed === null) {
       // get only items from FPR that are not in FileQC
       let fileQcSwids = await getAllFileQcSwids();
@@ -122,6 +122,7 @@ const getByProjAndQcStatus = async (proj, workflow, qcStatus) => {
       const pendingFprs = await getFprsNotInFileQc(proj, workflow, fileQcSwids);
       return mergeFileResults(pendingFprs, []);
     } else {
+      qcpassed = validateQcStatus(qcStatus);
       // get only the items which are listed as either PASS or FAIL in FileQC
       const fqcs = await getFqcResultsByProjAndQcStatus(proj, qcpassed);
       const swids = fqcs.map(record => record.fileswid);
@@ -143,7 +144,7 @@ const addFileQc = async (req, res, next) => {
       fileswid: validateInteger(req.query.fileswid, 'fileswid', true),
       username: validateUsername(req.query.username),
       comment: validateComment(req.query.comment),
-      qcpassed: validateQcStatus(req.query.qcstatus, true)
+      qcpassed: validateQcStatus(req.query.qcstatus)
     };
 
     const fpr = await getSingleFprResult(fqc.fileswid);
@@ -166,12 +167,14 @@ const hydrateOneFqcPreSave = (fpr, fqc) => {
 
 const hydrateFqcsPreSave = (fprs, fqcs, req) => {
   if (fprs.length > fqcs.length) {
-    logger.error(
-      `[${
-        req.uid
-      }]: Batch add FileQCs: ended up with more FPR records than FQCs submitted. Very mysterious.`
+    logger.error({
+      error: `[${req.uid}]: ended up with ${fprs.length -
+        fqcs.length} more FPR records than FQCs submitted.`,
+      method: 'hydrateFqcsPreSave'
+    });
+    throw new Error(
+      'Error: multiple File Provenance records match a given File QC'
     );
-    throw new Error('Error getting File Provenance records');
   } else {
     // fprHash: { fileswid: indexInFprArray }
     const fprHash = {};
@@ -214,7 +217,7 @@ const addManyFileQcs = async (req, res, next) => {
  */
 const deleteManyFileQcs = async (req, res, next) => {
   try {
-    if (Object.keys(req.body).indexOf('fileqcids') == -1)
+    if (!req.body.fileqcids)
       throw generateError(400, 'Error: no "fileqcids" found in request body');
     const fqcIds = req.body.fileqcids.map(
       fqcId => validateInteger(fqcId, 'fileQc ID', true),
@@ -308,13 +311,18 @@ function validateComment (param) {
   return comment;
 }
 
-function validateQcStatus (param, throwIfNull) {
-  let qcPassed = nullifyIfBlank(param);
-  if (qcPassed === null && throwIfNull)
+function validateQcStatus (param) {
+  let status = nullifyIfBlank(param);
+  if (status !== 'undefined' && status !== null && status.length) {
+    status = status.toUpperCase();
+  }
+  let validStatuses = ['PASS', 'FAIL', 'PENDING'];
+  if (!validStatuses.includes(status)) {
     throw new ValidationError(
-      'FileQC must be saved with qcstatus "PASS" or "FAIL"'
+      'FileQC must be saved with QC status "PASS", "FAIL" or "PENDING"'
     );
-  qcPassed = convertQcStatusToBoolean(qcPassed);
+  }
+  const qcPassed = convertQcStatusToBoolean(status);
   return qcPassed;
 }
 
@@ -333,8 +341,25 @@ function convertQcStatusToBoolean (value) {
     pending: null
   };
   if (typeof statusToBool[value] == 'undefined')
-    throw new ValidationError('Unknown QC status ' + value);
+    throw new ValidationError(
+      'Unknown QC status ' +
+        value +
+        '. QC status must be one of "PASS", "FAIL", or "PENDING"'
+    );
   return statusToBool[value];
+}
+
+function convertBooleanToQcStatus (value) {
+  const boolToStatus = {
+    true: 'PASS',
+    false: 'FAIL',
+    null: 'PENDING'
+  };
+  if (typeof boolToStatus[value] == 'undefined')
+    throw new ValidationError(
+      'Cannot convert QC status ' + value + ' to "PASS", "FAIL", or "PENDING".'
+    );
+  return boolToStatus[value];
 }
 
 function generateError (statusCode, errorMessage) {
@@ -353,7 +378,7 @@ function handleErrors (e, defaultMessage, next) {
     logger.info(e.message);
     return next(e); // generateError has already been called, usually because it's a user error
   } else {
-    logger.error(e);
+    logger.error({ error: e, method: 'handleErrors' });
     next(generateError(500, defaultMessage));
   }
 }
@@ -365,7 +390,7 @@ function validateObjectsFromUser (unvalidatedObjects) {
     try {
       return {
         project: validateProject(unvalidated.project),
-        qcpassed: validateQcStatus(unvalidated.qcstatus, true),
+        qcpassed: validateQcStatus(unvalidated.qcstatus),
         username: validateUsername(unvalidated.username),
         comment: validateComment(unvalidated.comment),
         fileswid: validateInteger(unvalidated.fileswid, 'fileswid', true)
@@ -416,7 +441,7 @@ function getSingleFqcResult (swid) {
         resolve({ fileqc: data[0], errors: [] });
       })
       .catch(err => {
-        logger.error(err);
+        logger.error({ error: err, method: `getSingleFqcResult:${swid}` });
         reject(generateError(500, 'Error retrieving record'));
       });
   });
@@ -524,7 +549,10 @@ function getFqcResultsByProject (project) {
         resolve({ fileqcs: data ? data : [], errors: [] });
       })
       .catch(err => {
-        logger.error(err);
+        logger.error({
+          error: err,
+          method: `getFqcResultsByProject:${project}`
+        });
         reject(generateError(500, 'Error retrieving records'));
       });
   });
@@ -545,7 +573,7 @@ function getFqcResultsBySwids (swids) {
         resolve({ fileqcs: data ? data : [], errors: [] });
       })
       .catch(err => {
-        logger.error(err);
+        logger.error({ error: err, method: 'getFqcResultsBySwids' });
         reject(generateError(500, 'Error retrieving records'));
       });
   });
@@ -565,7 +593,7 @@ function addSingleFqc (fqc) {
         resolve(data);
       })
       .catch(err => {
-        logger.error(err);
+        logger.error({ error: err, method: `addSingleFqc:${fqc.fileswid}` });
         reject(generateError(500, 'Failed to create FileQC record'));
       });
   });
@@ -591,7 +619,7 @@ function addFqcs (fqcs) {
         return resolve({ fileqcs: returnInfo, errors: [] });
       })
       .catch(err => {
-        logger.error(err);
+        logger.error({ error: err, method: 'addFqcs' });
         reject(generateError(500, 'Failed to create FileQC records'));
       });
   });
@@ -618,7 +646,7 @@ const deleteFqcs = (fileQcIds, username) => {
         return resolve({ success: yay, errors: nay });
       })
       .catch(err => {
-        logger.error(err.error);
+        logger.error({ error: err, method: `deleteFqcs:${username}` });
         return reject(generateError(500, 'Failed to delete FileQC records'));
       });
   });
@@ -640,8 +668,8 @@ const getFqcResultsByProjAndQcStatus = (proj, qcpassed) => {
     'SELECT * FROM FileQC WHERE project IN (' +
     getIndexedPlaceholders(params) +
     ')' +
-    ' AND qcpassed = $' +
-    (params.length + 1) +
+    ' AND qcpassed ' +
+    (qcpassed == null ? 'IS NULL' : '= $' + (params.length + 1)) +
     ' ORDER BY fileswid ASC';
   return new Promise((resolve, reject) => {
     pg
@@ -737,7 +765,7 @@ function yesFprNoFqc (fpr) {
  * something weird has happened. Return it and indicate that it's not in the FPR */
 function noFprYesFqc (fqc) {
   fqc.stalestatus = 'NOT IN FILE PROVENANCE';
-  fqc.qcstatus = fqc.qcpassed == true ? 'PASS' : 'FAIL';
+  fqc.qcstatus = convertBooleanToQcStatus(fqc.qcpassed);
   delete fqc.qcpassed;
   delete fqc.deleted;
   if (!fqc.comment) delete fqc.comment;
