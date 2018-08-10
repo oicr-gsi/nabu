@@ -28,7 +28,7 @@ $ npm install sqlite3 --local --build-from-source
 ```
 
 ### Linking Flyway after `npm install`
-Flyway is used here as a library rather than as a package. It needs to be re-symlinked after every `npm install` using the following:
+Flyway is used here as a library rather than as a package. If it doesn't work after an `npm install`, it may need to be re-symlinked using the following:
 ```
 $ rm node_modules/.bin/flyway
 $ cd node_modules/.bin && ln -s ../flyway/lib/flyway-5.0.7/flyway flyway && cd -
@@ -50,7 +50,7 @@ $ sudo -u postgres psql
 # \q
 ```
 
-## Migrating the database
+## Migrating the PostgreSQL database (FileQCs)
 When setting up the database for the first time:
   * Create a file in `conf/` called `flyway.conf` and add to it your database url, user, and password (similar to the `.env` file. The `conf/example-flyway.conf` file provides a template for this.
   * Perform the initial migration using the following:
@@ -63,11 +63,22 @@ After that initial setup, if any new updates require a database migration, use t
 $ npm run fw:migrate
 ```
 
-## Running the application
+## Setting up the SQLite database ([File Provenance Report](https://github.com/oicr-gsi/provenance))
+Nabu uses a SQLite database to store certain fields from the File Provenance Report. This SQLite database should be created in a directory outside of the Nabu directory.
 ```
-$ pg_ctl start -l {DB LOG FILE LOCATION}
+$ mkdir /path/to/sqlite/dir
+$ export SQLITE_LOCATION=/path/to/sqlite/dir
+```
+
+The [rsync_full_fpr.sh](components/fpr/rsync_full_fpr.sh) script will pull the latest version of the file provenance report, provided your environmental variables in `.env` are correctly set. If you are working with a local copy of the file provenance report, move or copy it to the `$SQLITE_LOCATION` directory you just created. The script can then be run without the line that begins with `rsync`. 
+
+## Running the application
+Start PostgreSQL using `pg_ctl start -l {DB LOG FILE LOCATION}` or any other method.
+```
 $ npm start
 ```
+
+A Swagger/OpenAPI page will be available at `http://localhost:####/api-docs/index.html`. (The port is 3000 by default; if you want to run Nabu on another port, start it up using `PORT=#### npm start`.)
 
 ## Development
 Run the linter before committing changes:
