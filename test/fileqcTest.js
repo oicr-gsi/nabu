@@ -361,8 +361,31 @@ describe('FileQC', () => {
           expect(res.status).to.equal(200);
           expect(res.body.errors).to.be.empty;
           expect(res.body.fileqcs).to.be.a('array');
+          expect(res.body.fileqcs).to.have.lengthOf(2);
           expect(res.body.fileqcs[0].fileswid).to.equal(12017);
           expect(res.body.fileqcs[1].fileswid).to.equal(12018);
+          done();
+        });
+    });
+
+    it('it should GET multiple FileQCs for a single SWID', done => {
+      chai
+        .request(server)
+        .get('/fileqcs?fileswids=12020')
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.body.errors).to.be.empty;
+          expect(res.body.fileqcs).to.be.a('array');
+          expect(res.body.fileqcs).to.have.lengthOf(2);
+          expect(res.body.fileqcs[0].fileswid).to.equal(
+            res.body.fileqcs[1].fileswid
+          );
+          expect(res.body.fileqcs[0].workflow).to.equal(
+            res.body.fileqcs[1].workflow
+          );
+          expect(res.body.fileqcs[0].qcstatus).to.not.equal(
+            res.body.fileqcs[1].qcstatus
+          );
           done();
         });
     });
@@ -404,7 +427,7 @@ describe('FileQC', () => {
       chai
         .request(server)
         .post(
-          '/fileqcs?fileswid=12020&username=me&qcstatus=PENDING&project=EMPTY'
+          '/fileqcs?fileswid=12022&username=me&qcstatus=PENDING&project=EMPTY'
         )
         .end((err, res) => {
           expect(res.status).to.equal(201);

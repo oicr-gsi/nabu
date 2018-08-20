@@ -722,35 +722,39 @@ function mergeOneFileResult (fpr, fqc) {
 /** combines the results then merges them  // TODO: fix this description
  * this only works if results are returned sorted by fileswid */
 function mergeFileResults (fprs, fqcs) {
-  const merged = [];
-  for (let i = 0, j = 0; i <= fprs.length && j <= fqcs.length; ) {
-    if (
-      i < fprs.length &&
-      (j >= fqcs.length || fprs[i].fileswid < fqcs[j].fileswid)
-    ) {
-      // File Provenance record has no corresponding FileQC record
-      merged.push(yesFprNoFqc(fprs[i]));
-      i++;
-    } else if (
-      j < fqcs.length &&
-      (i >= fprs.length || fprs[i].fileswid > fqcs[j].fileswid)
-    ) {
-      // FileQC record has no corresponding File Provenance record
-      merged.push(noFprYesFqc(fqcs[j]));
-      j++;
-    } else if (i == fprs.length && j == fqcs.length) {
-      // regrettable that we need to check for this
-      break;
-    } else if (fprs[i].fileswid == fqcs[j].fileswid) {
-      merged.push(yesFprYesFqc(fprs[i], fqcs[j]));
-      i++;
-      j++;
-    } else {
-      // panic
-      throw new ValidationError('Error merging file results');
-    }
+  // merge the FileQCs first...
+  const fqcswids = fqcs.map(fqc => parseInt(fqc.fileswid));
+  const mergedFqcs = fqcs.map(fqc => {
+    const filteredFprs = fprs.filter(fpr => fpr.fileswid == fqc.fileswid);
+    return getMergedResult(filteredFprs, [fqc], fqc.fileswid);
+  });
+  // ...then the requested FPRs with no associated FileQCs...
+  const bareFprs = fprs
+    .filter(fpr => !fqcswids.includes(fpr.fileswid))
+    .map(fpr => yesFprNoFqc(fpr));
+  const all = [].concat.apply(mergedFqcs, bareFprs);
+  //...then order them all by swid
+  all.sort((a, b) => {
+    if (a.fileswid < b.fileswid) return -1;
+    if (a.fileswid > b.fileswid) return 1;
+    return a.qcdate < b.qcdate ? -1 : 1;
+  });
+  return all;
+}
+
+function getMergedResult (fprs, fqcs, swid) {
+  if (fprs.length && fqcs.length) {
+    return yesFprYesFqc(fprs[0], fqcs[0]);
+  } else if (!fprs.length && fqcs.length) {
+    return noFprYesFqc(fqcs[0]);
+  } else if (fprs.length && !fqcs.length) {
+    return yesFprNoFqc(fprs[0]);
+  } else {
+    // panic
+    throw new ValidationError(
+      `Error merging file results for swid ${swid}; no file provenance or FileQC data found`
+    );
   }
-  return merged;
 }
 
 /** If a record is in the File Provenance Report database but not in the FileQC database,
