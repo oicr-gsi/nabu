@@ -427,7 +427,7 @@ describe('FileQC', () => {
       chai
         .request(server)
         .post(
-          '/fileqcs?fileswid=12020&username=me&qcstatus=PENDING&project=EMPTY'
+          '/fileqcs?fileswid=12022&username=me&qcstatus=PENDING&project=EMPTY'
         )
         .end((err, res) => {
           expect(res.status).to.equal(201);
