@@ -94,7 +94,7 @@ const getBySwids = async swids => {
       getFqcResultsBySwids(swids)
     ]);
     // merge the results from the File Provenance report and the FileQC database
-    return mergeFileResults(results[0], results[1].fileqcs, swids);
+    return mergeFileResults(results[0], results[1].fileqcs);
   } catch (e) {
     throw e;
   }
@@ -204,7 +204,7 @@ const addManyFileQcs = async (req, res, next) => {
 
     const fqcInserts = await addFqcs(hydratedFqcs);
     // merge the results
-    const merged = mergeFileResults(fprs, fqcInserts.fileqcs, swids);
+    const merged = mergeFileResults(fprs, fqcInserts.fileqcs);
     res.status(200).json({ fileqcs: merged, errors: fqcInserts.errors });
     next();
   } catch (e) {
