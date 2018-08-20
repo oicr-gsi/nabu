@@ -368,6 +368,28 @@ describe('FileQC', () => {
         });
     });
 
+    it('it should GET multiple FileQCs for a single SWID', done => {
+      chai
+        .request(server)
+        .get('/fileqcs?fileswids=12020')
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.body.errors).to.be.empty;
+          expect(res.body.fileqcs).to.be.a('array');
+          expect(res.body.fileqcs).to.have.lengthOf(2);
+          expect(res.body.fileqcs[0].fileswid).to.equal(
+            res.body.fileqcs[1].fileswid
+          );
+          expect(res.body.fileqcs[0].workflow).to.equal(
+            res.body.fileqcs[1].workflow
+          );
+          expect(res.body.fileqcs[0].qcstatus).to.not.equal(
+            res.body.fileqcs[1].qcstatus
+          );
+          done();
+        });
+    });
+
     it('it should not return files for gibberish projects', done => {
       chai
         .request(server)
