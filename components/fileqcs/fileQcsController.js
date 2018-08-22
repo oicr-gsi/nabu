@@ -37,19 +37,20 @@ const getAvailableConstants = async (req, res, next) => {
 };
 
 /**
- * Get a single FileQC by File SWID
+ * Get all FileQCs for a single File SWID
  */
 const getFileQcBySwid = async (req, res, next) => {
   try {
-    let swid = validateInteger(req.params.identifier, 'fileswid', true);
+    const swid = validateInteger(req.params.identifier, 'fileswid', true);
+    const showAll = validateShowAll(req.query.showall);
 
     const results = await Promise.all([
       getSingleFprResult(swid),
-      getSingleFqcResult(swid)
+      getFqcsBySwid(swid)
     ]);
-    // merge results from FPR and FQC queries (throws if we don't have either an FPR result or an FQC result)
-    const mergedFileQc = mergeOneFileResult(results[0], results[1].fileqc);
-    res.status(200).json({ fileqc: mergedFileQc, errors: results[1].errors });
+    const fileqcs = maybeReduceToMostRecent(results[1].fileqcs, showAll);
+    const mergedFileQcs = getMergedResults(results[0], fileqcs);
+    res.status(200).json({ fileqcs: mergedFileQcs, errors: results[1].errors });
     next();
   } catch (e) {
     handleErrors(e, 'Error getting record', next);
@@ -61,21 +62,28 @@ const getFileQcBySwid = async (req, res, next) => {
  */
 const getAllFileQcs = async (req, res, next) => {
   try {
-    let proj, swids, workflow, qcStatus;
-    const validQueryParams = ['project', 'fileswids', 'workflow', 'qcstatus'];
+    let proj, swids, workflow, qcStatus, showAll;
+    const validQueryParams = [
+      'project',
+      'fileswids',
+      'workflow',
+      'qcstatus',
+      'showall'
+    ];
     validateQueryParams(validQueryParams, req.query);
     proj = nullifyIfBlank(validateProject(req.query.project));
     swids = validateIntegers(req.query.fileswids, 'fileswid');
     workflow = nullifyIfBlank(req.query.workflow);
     qcStatus = nullifyIfBlank(req.query.qcstatus);
+    showAll = validateShowAll(req.query.showall);
 
     let results;
     if (qcStatus !== null && proj !== null) {
-      results = await getByProjAndQcStatus(proj, workflow, qcStatus);
+      results = await getByProjAndQcStatus(proj, qcStatus, showAll);
     } else if (proj !== null) {
-      results = await getByProjAndMaybeWorkflow(proj, workflow);
+      results = await getByProjAndMaybeWorkflow(proj, workflow, showAll);
     } else if (swids !== null) {
-      results = await getBySwids(swids);
+      results = await getBySwids(swids, showAll);
     } else {
       throw new ValidationError('Must supply either project or fileswids');
     }
@@ -87,48 +95,60 @@ const getAllFileQcs = async (req, res, next) => {
   }
 };
 
-const getBySwids = async swids => {
+const getBySwids = async (swids, showAll) => {
   try {
     const results = await Promise.all([
       getFprResultsBySwids(swids),
       getFqcResultsBySwids(swids)
     ]);
     // merge the results from the File Provenance report and the FileQC database
-    return mergeFileResults(results[0], results[1].fileqcs);
+    const fileqcs = maybeReduceToMostRecent(results[1].fileqcs, showAll);
+    return mergeFprsAndFqcs(results[0], fileqcs);
   } catch (e) {
     throw e;
   }
 };
 
-const getByProjAndMaybeWorkflow = async (proj, workflow) => {
+const getByProjAndMaybeWorkflow = async (proj, workflow, showAll) => {
   try {
     const results = await Promise.all([
       getFprResultsByProject(proj, workflow),
       getFqcResultsByProject(proj)
     ]);
-    return mergeFileResults(results[0], results[1].fileqcs);
+    const fileqcs = maybeReduceToMostRecent(results[1].fileqcs, showAll);
+    return mergeFprsAndFqcs(results[0], fileqcs);
   } catch (e) {
     throw e;
   }
 };
 
-const getByProjAndQcStatus = async (proj, workflow, qcStatus) => {
+const getByProjAndQcStatus = async (proj, qcStatus, showAll) => {
   try {
-    let qcpassed = nullifyIfBlank(qcStatus);
-    if (qcpassed === null) {
-      // get only items from FPR that are not in FileQC
-      let fileQcSwids = await getAllFileQcSwids();
-      fileQcSwids = fileQcSwids.map(o => parseInt(o.fileswid));
-      const pendingFprs = await getFprsNotInFileQc(proj, workflow, fileQcSwids);
-      return mergeFileResults(pendingFprs, []);
+    qcStatus = validateQcStatus(qcStatus);
+    const fqcs = await getFqcResultsByProjAndQcStatus(proj, qcStatus);
+    const fileqcs = maybeReduceToMostRecent(fqcs, showAll);
+    const swids = fileqcs.map(record => record.fileswid);
+    let fprs;
+    if ('PENDING' == qcStatus) {
+      // want both the FPR records with no FileQCs, as well as
+      // the FPR records with PENDING FileQCs and no PASS or FAIL FileQCs
+      qcStatus = convertQcStatusToBoolean(qcStatus);
+      const passedFqcs = await getFqcResultsByProjAndQcStatus(proj, 'PASS');
+      const passedFqcSwids = passedFqcs.map(fqc => fqc.fileswid);
+      const failedFqcs = await getFqcResultsByProjAndQcStatus(proj, 'FAIL');
+      const failedFqcSwids = failedFqcs.map(fqc => fqc.fileswid);
+      const allFprsForProj = await getFprResultsByProject(proj);
+      fprs = allFprsForProj.filter(fpr => {
+        return (
+          !passedFqcSwids.includes(fpr.fileswid) &&
+          !failedFqcSwids.includes(fpr.fileswid)
+        );
+      });
     } else {
-      qcpassed = validateQcStatus(qcStatus);
-      // get only the items which are listed as either PASS or FAIL in FileQC
-      const fqcs = await getFqcResultsByProjAndQcStatus(proj, qcpassed);
-      const swids = fqcs.map(record => record.fileswid);
-      const fprs = await getFprResultsBySwids(swids);
-      return mergeFileResults(fprs, fqcs);
+      // get only the FPRs for the PASS/FAIL records requested
+      fprs = await getFprResultsBySwids(swids);
     }
+    return mergeFprsAndFqcs(fprs, fileqcs);
   } catch (e) {
     throw e;
   }
@@ -151,7 +171,7 @@ const addFileQc = async (req, res, next) => {
     const hydratedFqc = hydrateOneFqcPreSave(fpr, fqc);
     const fqcInsert = await addSingleFqc(hydratedFqc);
     // merge the results
-    const merged = mergeOneFileResult(fpr, hydratedFqc);
+    const merged = mergeOneFileResult(fpr[0] || null, hydratedFqc);
     res.status(201).json({ fileqc: merged, errors: fqcInsert.errors });
     next();
   } catch (e) {
@@ -204,7 +224,7 @@ const addManyFileQcs = async (req, res, next) => {
 
     const fqcInserts = await addFqcs(hydratedFqcs);
     // merge the results
-    const merged = mergeFileResults(fprs, fqcInserts.fileqcs);
+    const merged = mergeFprsAndFqcs(fprs, fqcInserts.fileqcs);
     res.status(200).json({ fileqcs: merged, errors: fqcInserts.errors });
     next();
   } catch (e) {
@@ -326,6 +346,15 @@ function validateQcStatus (param) {
   return qcPassed;
 }
 
+function validateShowAll (param) {
+  let showAll = nullifyIfBlank(param);
+  if (showAll == null || showAll == 'false') return false;
+  if (showAll == 'true') return true;
+  throw new ValidationError(
+    `Unknown value "${param}" for parameter showall. Expected values are: "true", "false", empty string`
+  );
+}
+
 function nullifyIfBlank (value) {
   if (typeof value == 'undefined' || value === null || value.length == 0)
     value = null;
@@ -425,23 +454,23 @@ function getSingleFprResult (swid) {
   return new Promise((resolve, reject) => {
     fpr.get('SELECT * FROM fpr WHERE fileswid = ?', [swid], (err, data) => {
       if (err) reject(generateError(500, err));
-      resolve(data ? data : {});
+      resolve(data ? [data] : []);
     });
   });
 }
 
 /** success returns a single FileQC result */
-function getSingleFqcResult (swid) {
+function getFqcsBySwid (swid) {
   return new Promise((resolve, reject) => {
     const sql = 'SELECT * FROM FileQc WHERE fileswid = $1 AND deleted = FALSE';
     pg
       .any(sql, [swid])
       .then(data => {
-        if (!data || data.length == 0) resolve({ fileqc: {}, errors: [] });
-        resolve({ fileqc: data[0], errors: [] });
+        if (!data || data.length == 0) resolve({ fileqcs: [], errors: [] });
+        resolve({ fileqcs: [data], errors: [] });
       })
       .catch(err => {
-        logger.error({ error: err, method: `getSingleFqcResult:${swid}` });
+        logger.error({ error: err, method: `getFqcsBySwid: ${swid}` });
         reject(generateError(500, 'Error retrieving record'));
       });
   });
@@ -652,15 +681,6 @@ const deleteFqcs = (fileQcIds, username) => {
   });
 };
 
-const getAllFileQcSwids = () => {
-  return new Promise((resolve, reject) => {
-    pg
-      .any('SELECT fileswid FROM fileqc', [])
-      .then(data => resolve(data))
-      .catch(err => reject(generateError(500, err)));
-  });
-};
-
 const getFqcResultsByProjAndQcStatus = (proj, qcpassed) => {
   // if project is represented with both long and short names, need to search by both names
   const params = getAllProjectNames(proj);
@@ -679,38 +699,46 @@ const getFqcResultsByProjAndQcStatus = (proj, qcpassed) => {
   });
 };
 
-const getFprsNotInFileQc = (proj, workflow, fileQcSwids) => {
-  // if project is represented with both long and short names, need to search by both names
-  const projectNames = getAllProjectNames(proj);
-  const select =
-    'SELECT * FROM fpr WHERE fileswid NOT IN (' +
-    fileQcSwids.join() +
-    ')' +
-    ' AND project IN (' +
-    getQuestionMarkPlaceholders(projectNames) +
-    ')' +
-    (workflow == null
-      ? ''
-      : ' AND workflow IN (' + getQuotedPlaceholders(workflow) + ')') +
-    ' ORDER BY fileswid ASC';
-  return new Promise((resolve, reject) => {
-    fpr.all(select, projectNames, (err, data) => {
-      if (err) reject(generateError(500, err));
-      resolve(data);
-    });
-  });
-};
+/**
+ * if `showAll`, the no reduction happens. Otherwise, it returns a set of
+ * FileQcs which are unique by fileswid, returning the one with the most
+ * recent qcdate.
+ */
+function maybeReduceToMostRecent (fqcs, showAll = false) {
+  if (showAll || !fqcs.length) {
+    return fqcs || [];
+  } else {
+    // get only the most recent FileQC for each swid;
+    const mostRecent = {};
+    for (let fqc of fqcs) {
+      if (!mostRecent[fqc.fileswid]) {
+        // add the entry
+        mostRecent[fqc.fileswid] = fqc;
+      } else {
+        // update the entry if necessary
+        const existingDate = mostRecent[fqc.fileswid].qcdate;
+        const currentDate = fqc.qcdate;
+        if (
+          new Date(currentDate).getTime() > new Date(existingDate).getTime()
+        ) {
+          mostRecent[fqc.fileswid] = fqc;
+        }
+      }
+    }
+    return Object.values(mostRecent);
+  }
+}
 
 /** returns the union of the non-null fields of a File Provenance Report object and a FileQC object */
 function mergeOneFileResult (fpr, fqc) {
-  if (!fpr.fileswid && !fqc.fileswid) {
+  if ((!fpr || !fpr.fileswid) && (!fqc || !fqc.fileswid)) {
     throw new ValidationError(
       'Cannot find any matching record in either file provenance or FileQC.'
     );
-  } else if (fpr.fileswid && !fqc.fileswid) {
+  } else if (fpr && fpr.fileswid && (!fqc || !fqc.fileswid)) {
     // file exists in file provenance but hasn't been QCed
     return yesFprNoFqc(fpr);
-  } else if (!fpr.fileswid && fqc.fileswid) {
+  } else if ((!fpr || !fpr.fileswid) && fqc && fqc.fileswid) {
     // this file is in the FileQC database but not in file provenance
     return noFprYesFqc(fqc);
   } else {
@@ -719,30 +747,26 @@ function mergeOneFileResult (fpr, fqc) {
   }
 }
 
-/** combines the results then merges them  // TODO: fix this description
- * this only works if results are returned sorted by fileswid */
-function mergeFileResults (fprs, fqcs) {
-  // merge the FileQCs first...
+/** combines the results from FPR and FileQC queries then merges them if appropriate
+ * this returns all results sorted by fileswid */
+function mergeFprsAndFqcs (fprs, fqcs) {
+  // merge the FileQCs with FPRs first...
   const fqcswids = fqcs.map(fqc => parseInt(fqc.fileswid));
   const mergedFqcs = fqcs.map(fqc => {
     const filteredFprs = fprs.filter(fpr => fpr.fileswid == fqc.fileswid);
-    return getMergedResult(filteredFprs, [fqc], fqc.fileswid);
+    return maybeMergeResult(filteredFprs, [fqc], fqc.fileswid);
   });
   // ...then the requested FPRs with no associated FileQCs...
   const bareFprs = fprs
     .filter(fpr => !fqcswids.includes(fpr.fileswid))
     .map(fpr => yesFprNoFqc(fpr));
   const all = [].concat.apply(mergedFqcs, bareFprs);
-  //...then order them all by swid
-  all.sort((a, b) => {
-    if (a.fileswid < b.fileswid) return -1;
-    if (a.fileswid > b.fileswid) return 1;
-    return a.qcdate < b.qcdate ? -1 : 1;
-  });
+  //...then order them all by swid (or date, if two swids have same date)
+  all.sort(sortBySwidOrDate);
   return all;
 }
 
-function getMergedResult (fprs, fqcs, swid) {
+function maybeMergeResult (fprs, fqcs, swid) {
   if (fprs.length && fqcs.length) {
     return yesFprYesFqc(fprs[0], fqcs[0]);
   } else if (!fprs.length && fqcs.length) {
@@ -756,6 +780,24 @@ function getMergedResult (fprs, fqcs, swid) {
     );
   }
 }
+
+function sortBySwidOrDate (a, b) {
+  if (a.fileswid < b.fileswid) return -1;
+  if (a.fileswid > b.fileswid) return 1;
+  return a.qcdate < b.qcdate ? -1 : 1;
+}
+
+const getMergedResults = (fprs, fqcs) => {
+  if (fqcs.length) {
+    const mostRecent = fqcs.reduce(
+      (a, b) =>
+        new Date(a.qcdate).getTime() > new Date(b.qcdate).getTime() ? a : b
+    );
+    return mergeFprsAndFqcs(fprs, mostRecent);
+  } else {
+    return mergeFprsAndFqcs(fprs, fqcs);
+  }
+};
 
 /** If a record is in the File Provenance Report database but not in the FileQC database,
  * then its QC status is 'PENDING' */
