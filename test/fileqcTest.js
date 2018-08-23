@@ -107,7 +107,7 @@ describe('Unit test FileQcController', () => {
     }
   };
   const mergeOne = controller.__get__('mergeOneFileResult');
-  const mergeFileResults = controller.__get__('mergeFileResults');
+  const mergeFileResults = controller.__get__('mergeFprsAndFqcs');
 
   it('should merge file results when item is found in both FPR and FQC', done => {
     const expected = {
@@ -266,10 +266,14 @@ describe('FileQC', () => {
         .end((err, res) => {
           expect(res.status).to.equal(200);
           expect(res.body).to.be.a('object');
-          expect(res.body.fileqc).to.be.a('object');
-          expect(res.body.fileqc.fileswid).to.equal(12019);
-          expect(res.body.fileqc.qcstatus).to.equal('PENDING');
-          expect(res.body.fileqc).to.not.have.any.keys('username', 'comment');
+          expect(res.body.fileqcs).to.be.a('array');
+          expect(res.body.fileqcs).to.have.length(1);
+          expect(res.body.fileqcs[0].fileswid).to.equal(12019);
+          expect(res.body.fileqcs[0].qcstatus).to.equal('PENDING');
+          expect(res.body.fileqcs[0]).to.not.have.any.keys(
+            'username',
+            'comment'
+          );
           expect(res.body.errors).to.be.empty;
           done();
         });
@@ -282,11 +286,11 @@ describe('FileQC', () => {
         .end((err, res) => {
           expect(res.status).to.equal(200);
           expect(res.body).to.be.a('object');
-          expect(res.body.fileqc).to.be.a('object');
-          expect(res.body.fileqc.fileswid).to.equal(12017);
-          expect(res.body.fileqc.qcstatus).to.equal('PASS');
-          expect(res.body.fileqc.username).to.equal('me');
-          expect(res.body.fileqc).to.have.property('comment');
+          expect(res.body.fileqcs).to.be.a('array');
+          expect(res.body.fileqcs[0].fileswid).to.equal(12017);
+          expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
+          expect(res.body.fileqcs[0].username).to.equal('me');
+          expect(res.body.fileqcs[0]).to.have.property('comment');
           expect(res.body.errors).to.be.empty;
           done();
         });
@@ -299,10 +303,10 @@ describe('FileQC', () => {
         .end((err, res) => {
           expect(res.status).to.equal(200);
           expect(res.body).to.be.a('object');
-          expect(res.body.fileqc).to.be.a('object');
-          expect(res.body.fileqc.fileswid).to.equal(12018);
-          expect(res.body.fileqc.qcstatus).to.equal('FAIL');
-          expect(res.body.fileqc.stalestatus).to.equal(
+          expect(res.body.fileqcs).to.be.a('array');
+          expect(res.body.fileqcs[0].fileswid).to.equal(12018);
+          expect(res.body.fileqcs[0].qcstatus).to.equal('FAIL');
+          expect(res.body.fileqcs[0].stalestatus).to.equal(
             'NOT IN FILE PROVENANCE'
           );
           expect(res.body.errors).to.be.empty;
@@ -310,17 +314,15 @@ describe('FileQC', () => {
         });
     });
 
-    it('it should fail to GET one unknown FileQC', done => {
+    it('it should GET zero results for one unknown FileQC', done => {
       chai
         .request(server)
         .get('/fileqc/11')
         .end((err, res) => {
-          expect(res.status).to.equal(400);
+          expect(res.status).to.equal(200);
           expect(res.body).to.be.a('object');
-          expect(res.body.errors).to.not.be.empty;
-          expect(res.body.errors).to.have.members([
-            'Cannot find any matching record in either file provenance or FileQC.'
-          ]);
+          expect(res.body.fileqcs).to.be.empty;
+          expect(res.body.errors).to.be.empty;
           done();
         });
     });
@@ -368,10 +370,10 @@ describe('FileQC', () => {
         });
     });
 
-    it('it should GET multiple FileQCs for a single SWID', done => {
+    it('it should GET multiple FileQCs for a single SWID if extra param is added', done => {
       chai
         .request(server)
-        .get('/fileqcs?fileswids=12020')
+        .get('/fileqcs?fileswids=12020&showall=true')
         .end((err, res) => {
           expect(res.status).to.equal(200);
           expect(res.body.errors).to.be.empty;
@@ -386,6 +388,19 @@ describe('FileQC', () => {
           expect(res.body.fileqcs[0].qcstatus).to.not.equal(
             res.body.fileqcs[1].qcstatus
           );
+          done();
+        });
+    });
+
+    it('it should GET one FileQC for a single SWID if no extra param is added', done => {
+      chai
+        .request(server)
+        .get('/fileqcs?fileswids=12020')
+        .end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.body.errors).to.be.empty;
+          expect(res.body.fileqcs).to.be.a('array');
+          expect(res.body.fileqcs).to.have.lengthOf(1);
           done();
         });
     });
@@ -472,6 +487,14 @@ describe('FileQC', () => {
               chai
                 .request(server)
                 .get(getFor12017)
+                .end((err, res) => {
+                  expect(res.status).to.equal(200);
+                  expect(res.body.fileqcs).to.have.lengthOf(1);
+                  expect(res.body.errors).to.be.empty;
+                });
+              chai
+                .request(server)
+                .get(getFor12017 + '&showall=true')
                 .end((err, res) => {
                   expect(res.status).to.equal(200);
                   expect(res.body.fileqcs).to.have.lengthOf(2);

@@ -6,11 +6,40 @@
     "description": "API for the FileQC project"
   },
   "schemes": [
-    "https"
+    "http"
   ],
   "basePath": "/",
-  "schemes": ["http"],
   "paths": {
+    "/available": {
+      "get": {
+        "summary": "Get available projects and workflows",
+        "description": "Lists all projects and workflow names in File Provenance Report",
+        "responses": {
+          "200": {
+            "description": "Lists of projects and workflow names in File Provenance Report",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "projects": {
+                  "description": "List of distinct projects in the File Provenance Report",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "workflows": {
+                  "description": "List of distinct workflow names in the File Provenance Report",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/fileqcs": {
       "get": {
         "summary": "Get all FileQCs",
@@ -38,6 +67,12 @@
             "name": "fileswids",
             "in": "query",
             "description": "Filter by file SWIDs (comma-separated)",
+            "type": "string"
+          },
+          {
+            "name": "showall",
+            "in": "query",
+            "description": "If 'true', will display all FileQCs for the retrieved file SWIDs (default is to display only the most recent FileQC)",
             "type": "string"
           }
         ],
@@ -107,8 +142,8 @@
     },
     "/fileqc/{fileswid}": {
       "get": {
-        "summary": "Get a single FileQC",
-        "description": "Returns a single FileQC for the given file SWID",
+        "summary": "Get one or all FileQCs for the given file SWID",
+        "description": "Returns either the most recent or all FileQC for the given file SWID",
         "parameters": [
           {
             "name": "fileswid",
@@ -116,6 +151,13 @@
             "required": true,
             "type": "integer",
             "description": "the file SWID"
+          },
+          {
+            "name": "showall",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "If 'true', will show all FileQCs for the given file SWID. If 'false' or absent, will show only the most recent FileQC."
           }
         ],
         "responses": {
@@ -307,21 +349,40 @@
     "FileQC-post": {
       "type": "object",
       "properties": {
-        "fileswid": {
-          "description": "File SWID",
-          "type": "integer"
-        },
-        "qcstatus": {
-          "description": "PASS or FAIL (PENDING not permitted)",
-          "type": "string"
-        },
-        "username": {
-          "description": "Name of person QCing the file",
-          "type": "string"
-        },
-        "comment": {
-          "description": "optional URL-escaped reason why FileQC is PASS or FAIL",
-          "type": "string"
+        "fileqcs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "fileswid": {
+                "description": "File SWID",
+                "type": "integer"
+              },
+              "qcstatus": {
+                "description": "PASS or FAIL (PENDING not permitted)",
+                "type": "string"
+              },
+              "username": {
+                "description": "Name of person QCing the file",
+                "type": "string"
+              },
+              "comment": {
+                "description": "optional URL-escaped reason why FileQC is PASS or FAIL",
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "FileQC-delete": {
+      "type": "object",
+      "properties": {
+        "fileqcids": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
         }
       }
     }
