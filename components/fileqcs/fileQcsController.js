@@ -237,7 +237,7 @@ const addManyFileQcs = async (req, res, next) => {
  */
 const deleteManyFileQcs = async (req, res, next) => {
   try {
-    if (!req.body.fileqcids)
+    if (!req.body.fileqcids || !req.body.fileqcids.length)
       throw generateError(400, 'Error: no "fileqcids" found in request body');
     const fqcIds = req.body.fileqcids.map(
       fqcId => validateInteger(fqcId, 'fileQc ID', true),
