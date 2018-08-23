@@ -40,7 +40,7 @@ Create a `.env` file and populate it. The `.env-example` file provides a templat
 If a variable in this file is also set on the system, the file variable _will not_ overwrite the system variable.
 You will have to decide what you want your `DB_NAME`, `DB_USER` and `DB_PW` to be. 
 If you are running on your local machine, the `DB_HOST` will be `localhost`.
-The `FPR_FULL` variable can be `/scratch2/groups/seqware/nsdev/backups/seqware_files_report_latest.tsv.gz`, and the `[...temporaryLocation...]` blocks can be anywhere on your computer.
+The `[...temporaryLocation...]` blocks can be anywhere on your computer.
 The `[..projectLocation...]` is the location of the `nabu` directory on your file system, and `IGNORE_ADDRESS` can be left blank.
 
 ## Create a PostgreSQL database
