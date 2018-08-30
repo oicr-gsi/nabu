@@ -760,7 +760,7 @@ function mergeFprsAndFqcs (fprs, fqcs) {
   const bareFprs = fprs
     .filter(fpr => !fqcswids.includes(fpr.fileswid))
     .map(fpr => yesFprNoFqc(fpr));
-  const all = [].concat.apply(mergedFqcs, bareFprs);
+  const all = mergedFqcs.concat(bareFprs);
   //...then order them all by swid (or date, if two swids have same date)
   all.sort(sortBySwidOrDate);
   return all;
