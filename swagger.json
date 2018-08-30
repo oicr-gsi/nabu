@@ -80,7 +80,7 @@
           "200": {
             "description": "A list of FileQCs",
             "schema": {
-              "$ref": "#/definitions/FileQCs-response"
+              "$ref": "#/definitions/FileQCs-response-with-errors"
             }
           },
           "404": {
@@ -276,7 +276,7 @@
           "description": "List of input File SWAs (only returned if a File Provenance Report record is found)",
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "integer"
           }
         },
         "skip": {
