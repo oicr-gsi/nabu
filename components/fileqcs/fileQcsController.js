@@ -48,12 +48,14 @@ const getFileQcBySwid = async (req, res, next) => {
       getSingleFprResult(swid),
       getFqcsBySwid(swid)
     ]);
+    if (results[1].errors && results[1].errors.length)
+      throw generateError(500, results[1].errors[0]);
     const fileqcs = maybeReduceToMostRecent(results[1].fileqcs, showAll);
     const mergedFileQcs = getMergedResults(results[0], fileqcs);
-    res.status(200).json({ fileqcs: mergedFileQcs, errors: results[1].errors });
+    res.status(200).json({ fileqcs: mergedFileQcs });
     next();
   } catch (e) {
-    handleErrors(e, 'Error getting record', next);
+    handleErrors(e, 'Error getting FileQCs for SWID', next);
   }
 };
 
@@ -88,7 +90,7 @@ const getAllFileQcs = async (req, res, next) => {
       throw new ValidationError('Must supply either project or fileswids');
     }
 
-    res.status(200).json({ fileqcs: results, errors: [] });
+    res.status(200).json({ fileqcs: results });
     next();
   } catch (e) {
     handleErrors(e, 'Error getting records', next);
@@ -170,9 +172,11 @@ const addFileQc = async (req, res, next) => {
     const fpr = await getSingleFprResult(fqc.fileswid);
     const hydratedFqc = hydrateOneFqcPreSave(fpr, fqc);
     const fqcInsert = await addSingleFqc(hydratedFqc);
-    // merge the results
+    if (fqcInsert.errors && fqcInsert.errors.length)
+      throw generateError(500, fqcInsert.errors[0]);
+    // otherwise, merge the results
     const merged = mergeOneFileResult(fpr[0] || null, hydratedFqc);
-    res.status(201).json({ fileqc: merged, errors: fqcInsert.errors });
+    res.status(201).json({ fileqc: merged });
     next();
   } catch (e) {
     handleErrors(e, 'Error adding record', next);
@@ -223,9 +227,11 @@ const addManyFileQcs = async (req, res, next) => {
     const hydratedFqcs = hydrateFqcsPreSave(fprs, toSave, req);
 
     const fqcInserts = await addFqcs(hydratedFqcs);
-    // merge the results
+    if (fqcInserts.errors && fqcInserts.errors.length)
+      throw generateError(500, fqcInserts.errors);
+    // otherwise, merge the results
     const merged = mergeFprsAndFqcs(fprs, fqcInserts.fileqcs);
-    res.status(200).json({ fileqcs: merged, errors: fqcInserts.errors });
+    res.status(200).json({ fileqcs: merged });
     next();
   } catch (e) {
     handleErrors(e, 'Error adding FileQCs', next);
@@ -403,12 +409,15 @@ function handleErrors (e, defaultMessage, next) {
   if (e instanceof ValidationError) {
     logger.info(e);
     next(generateError(400, e.message));
+  } else if (defaultMessage) {
+    logger.error({ error: e, method: 'handleErrors' });
+    next(generateError(500, defaultMessage));
   } else if (e.status) {
-    logger.info(e.message);
+    logger.info({ error: e.message });
     return next(e); // generateError has already been called, usually because it's a user error
   } else {
     logger.error({ error: e, method: 'handleErrors' });
-    next(generateError(500, defaultMessage));
+    next(generateError(500, 'Error'));
   }
 }
 

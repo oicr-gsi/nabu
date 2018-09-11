@@ -274,7 +274,6 @@ describe('FileQC', () => {
             'username',
             'comment'
           );
-          expect(res.body.errors).to.be.empty;
           done();
         });
     });
@@ -291,7 +290,6 @@ describe('FileQC', () => {
           expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
           expect(res.body.fileqcs[0].username).to.equal('me');
           expect(res.body.fileqcs[0]).to.have.property('comment');
-          expect(res.body.errors).to.be.empty;
           done();
         });
     });
@@ -309,7 +307,6 @@ describe('FileQC', () => {
           expect(res.body.fileqcs[0].stalestatus).to.equal(
             'NOT IN FILE PROVENANCE'
           );
-          expect(res.body.errors).to.be.empty;
           done();
         });
     });
@@ -322,7 +319,6 @@ describe('FileQC', () => {
           expect(res.status).to.equal(200);
           expect(res.body).to.be.a('object');
           expect(res.body.fileqcs).to.be.empty;
-          expect(res.body.errors).to.be.empty;
           done();
         });
     });
@@ -350,7 +346,6 @@ describe('FileQC', () => {
           expect(res.body).to.be.a('object');
           expect(res.body.fileqcs).to.be.a('array');
           expect(res.body.fileqcs).to.have.lengthOf(4);
-          expect(res.body.errors).to.be.empty;
           done();
         });
     });
@@ -361,7 +356,6 @@ describe('FileQC', () => {
         .get('/fileqcs?fileswids=12017,12018')
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.errors).to.be.empty;
           expect(res.body.fileqcs).to.be.a('array');
           expect(res.body.fileqcs).to.have.lengthOf(2);
           expect(res.body.fileqcs[0].fileswid).to.equal(12017);
@@ -376,7 +370,6 @@ describe('FileQC', () => {
         .get('/fileqcs?fileswids=12020&showall=true')
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.errors).to.be.empty;
           expect(res.body.fileqcs).to.be.a('array');
           expect(res.body.fileqcs).to.have.lengthOf(2);
           expect(res.body.fileqcs[0].fileswid).to.equal(
@@ -398,7 +391,6 @@ describe('FileQC', () => {
         .get('/fileqcs?fileswids=12020')
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.errors).to.be.empty;
           expect(res.body.fileqcs).to.be.a('array');
           expect(res.body.fileqcs).to.have.lengthOf(1);
           done();
@@ -411,7 +403,6 @@ describe('FileQC', () => {
         .get('/fileqcs?project=UNKNOWN')
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.errors).to.be.empty;
           expect(res.body.fileqcs).to.be.empty;
           done();
         });
@@ -447,7 +438,6 @@ describe('FileQC', () => {
         .end((err, res) => {
           expect(res.status).to.equal(201);
           expect(res.body.fileqc.qcstatus).to.equal('PENDING');
-          expect(res.body.errors).to.be.empty;
           done();
         });
     });
@@ -460,7 +450,6 @@ describe('FileQC', () => {
           expect(res.status).to.equal(201);
           expect(res.body.fileqc).to.have.property('upstream');
           expect(res.body.fileqc.qcstatus).to.equal('PASS');
-          expect(res.body.errors).to.be.empty;
           done();
         });
     });
@@ -473,7 +462,6 @@ describe('FileQC', () => {
         .end((err, res) => {
           expect(res.status).to.equal(200);
           expect(res.body.fileqcs).to.have.lengthOf(1);
-          expect(res.body.errors).to.be.empty;
           chai
             .request(server)
             .post(
@@ -483,14 +471,12 @@ describe('FileQC', () => {
               expect(res.status).to.equal(201);
               expect(res.body.fileqc).to.have.property('upstream');
               expect(res.body.fileqc.qcstatus).to.equal('FAIL');
-              expect(res.body.errors).to.be.empty;
               chai
                 .request(server)
                 .get(getFor12017)
                 .end((err, res) => {
                   expect(res.status).to.equal(200);
                   expect(res.body.fileqcs).to.have.lengthOf(1);
-                  expect(res.body.errors).to.be.empty;
                 });
               chai
                 .request(server)
@@ -498,7 +484,6 @@ describe('FileQC', () => {
                 .end((err, res) => {
                   expect(res.status).to.equal(200);
                   expect(res.body.fileqcs).to.have.lengthOf(2);
-                  expect(res.body.errors).to.be.empty;
                 });
             });
           done();
@@ -528,7 +513,6 @@ describe('FileQC', () => {
         })
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.errors).to.be.empty;
           expect(res.body.fileqcs).to.have.lengthOf(2);
           expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
           expect(res.body.fileqcs[1].qcstatus).to.equal('PASS');
@@ -555,7 +539,6 @@ describe('FileQC', () => {
             .end((err, res) => {
               expect(res.status).to.equal(200);
               expect(res.body.success).not.to.be.empty;
-              expect(res.body.errors).to.be.empty;
               expect(res.body.success[0]).to.match(/^Deleted FileQC.*/);
             });
           done();
@@ -573,7 +556,6 @@ describe('FileQC', () => {
         })
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.success).to.be.empty;
           expect(res.body.errors).not.to.be.empty;
           expect(res.body.errors[0]).to.match(/^Failed to delete FileQC.*/);
           done();
