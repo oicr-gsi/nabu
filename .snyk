@@ -143,5 +143,5 @@ ignore:
   'npm:chownr:20180731':
     - sqlite3 > node-pre-gyp > tar > chownr:
         reason: No patch available yet
-        expires: '2018-08-30T20:45:03.229Z'
+        expires: '2018-10-11T21:03:27.753Z'
 patch: {}
