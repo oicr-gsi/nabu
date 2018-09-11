@@ -74,7 +74,7 @@ const getFileQcBySwid = async (req, res, next) => {
     if (results[1].errors && results[1].errors.length)
       throw generateError(500, results[1].errors[0]);
     const fileqcs = maybeReduceToMostRecent(results[1].fileqcs, showAll);
-    const mergedFileQcs = getMergedResults(results[0], fileqcs);
+    const mergedFileQcs = mergeFprsAndFqcs(results[0], fileqcs);
     res.status(200).json({ fileqcs: mergedFileQcs });
     next();
   } catch (e) {
@@ -413,11 +413,13 @@ function convertBooleanToQcStatus (value) {
     false: 'FAIL',
     null: 'PENDING'
   };
-  if (typeof boolToStatus[value] == 'undefined')
+  if (typeof boolToStatus[value] === 'undefined') return 'PENDING';
+  const status = boolToStatus[value];
+  if (status === 'undefined')
     throw new ValidationError(
       'Cannot convert QC status ' + value + ' to "PASS", "FAIL", or "PENDING".'
     );
-  return boolToStatus[value];
+  return status;
 }
 
 function generateError (statusCode, errorMessage) {
@@ -499,6 +501,9 @@ function getFqcsBySwid (swid) {
       .any(sql, [swid])
       .then(data => {
         if (!data || data.length == 0) resolve({ fileqcs: [], errors: [] });
+        if (Array.isArray(data)) {
+          resolve({ fileqcs: data, errors: [] });
+        }
         resolve({ fileqcs: [data], errors: [] });
       })
       .catch(err => {
@@ -819,18 +824,6 @@ function sortBySwidOrDate (a, b) {
   return a.qcdate < b.qcdate ? -1 : 1;
 }
 
-const getMergedResults = (fprs, fqcs) => {
-  if (fqcs.length) {
-    const mostRecent = fqcs.reduce(
-      (a, b) =>
-        new Date(a.qcdate).getTime() > new Date(b.qcdate).getTime() ? a : b
-    );
-    return mergeFprsAndFqcs(fprs, mostRecent);
-  } else {
-    return mergeFprsAndFqcs(fprs, fqcs);
-  }
-};
-
 /** If a record is in the File Provenance Report database but not in the FileQC database,
  * then its QC status is 'PENDING' */
 function yesFprNoFqc (fpr) {
@@ -858,7 +851,7 @@ function yesFprYesFqc (fpr, fqc) {
     throw new Error('Cannot merge non-matching files');
   const merged = Object.assign({}, fpr);
   merged.upstream = parseUpstream(merged.upstream);
-  merged.qcstatus = fqc.qcpassed == true ? 'PASS' : 'FAIL';
+  merged.qcstatus = convertBooleanToQcStatus(fqc.qcpassed);
   merged.username = fqc.username;
   if (fqc.comment) merged.comment = fqc.comment;
   merged.qcdate = fqc.qcdate;
