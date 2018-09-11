@@ -193,7 +193,8 @@ const addFileQc = async (req, res, next) => {
     };
 
     const fpr = await getSingleFprResult(fqc.fileswid);
-    const hydratedFqc = hydrateOneFqcPreSave(fpr, fqc);
+    if (!fpr.length) fpr[0] = {};
+    const hydratedFqc = hydrateOneFqcPreSave(fpr[0], fqc);
     const fqcInsert = await addSingleFqc(hydratedFqc);
     if (fqcInsert.errors && fqcInsert.errors.length)
       throw generateError(500, fqcInsert.errors[0]);

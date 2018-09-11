@@ -432,9 +432,7 @@ describe('FileQC', () => {
     it('it should create a new FileQC for a new SWID with a status PENDING', done => {
       chai
         .request(server)
-        .post(
-          '/fileqcs?fileswid=12022&username=me&qcstatus=PENDING&project=EMPTY'
-        )
+        .post('/fileqcs?fileswid=12022&username=me&qcstatus=PENDING')
         .end((err, res) => {
           expect(res.status).to.equal(201);
           expect(res.body.fileqc.qcstatus).to.equal('PENDING');
