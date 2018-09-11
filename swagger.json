@@ -78,9 +78,9 @@
         ],
         "responses": {
           "200": {
-            "description": "A list of FileQCs",
+            "description": "A list of FileQCs sorted by file SWIDs",
             "schema": {
-              "$ref": "#/definitions/FileQCs-response-with-errors"
+              "$ref": "#/definitions/FileQCs-response"
             }
           },
           "404": {
@@ -140,10 +140,27 @@
         }
       }
     },
+    "/fileqcs-only": {
+      "get": {
+        "summary": "Get a stream of all FileQCs",
+        "description": "Returns an unordered stream of all FileQCs in the database",
+        "responses": {
+          "200": {
+            "description": "A stream of all FileQCs",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/FileQCs-only-response"
+              }
+            }
+          }
+        }
+      }
+    },
     "/fileqc/{fileswid}": {
       "get": {
         "summary": "Get one or all FileQCs for the given file SWID",
-        "description": "Returns either the most recent or all FileQC for the given file SWID",
+        "description": "Returns either the most recent or all FileQCs for the given file SWID (sorted by QC date) for the given file SWID",
         "parameters": [
           {
             "name": "fileswid",
@@ -187,7 +204,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Successfully created FileQCs",
+            "description": "Successfully created FileQCs, ordered by file SWID",
             "schema": {
               "$ref": "#/definitions/FileQCs-response"
             }
@@ -316,32 +333,40 @@
         }
       }
     },
-    "FileQC-SWID-SWAs-with-errors": {
-      "type": "object",
-      "properties": {
-        "fileqc": {
-          "description": "FileQC",
-          "type": "object",
-          "properties": {
-            "fileswid": {
-              "description": "File SWID",
-              "type": "integer"
-            },
-            "upstream": {
-              "description": "Upstream input file SWAs",
-              "type": "array",
-              "items": {
-                "type": "integer"
-              }
-            }
-          }
+    "FileQCs-only-response": {
+      "type": "array",
+      "items": {
+        "fileqcid": {
+          "description": "Unique FileQC ID",
+          "type": "integer"
         },
-        "errors": {
-          "description": "Empty array of errors",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "fileswid": {
+          "description": "File SWID",
+          "type": "integer"
+        },
+        "filepath": {
+          "description": "File Path",
+          "type": "string"
+        },
+        "qcstatus": {
+          "description": "FileQC status (PASS, FAIL, PENDING)",
+          "type": "string"
+        },
+        "username": {
+          "description": "Name of person QCing the file",
+          "type": "string"
+        },
+        "comment": {
+          "description": "Further information about the QC status",
+          "type": "string"
+        },
+        "project": {
+          "description": "Project name",
+          "type": "string"
+        },
+        "qcdate": {
+          "description": "QC Date",
+          "type": "string"
         }
       }
     },

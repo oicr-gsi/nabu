@@ -77,6 +77,7 @@ app.get('/available', fileQc.getAvailableConstants);
 // routes to fileQC records
 app.get('/fileqcs', fileQc.getAllFileQcs);
 app.get('/fileqc/:identifier', fileQc.getFileQc);
+app.get('/fileqcs-only', fileQc.getAllBareFileQcs);
 app.post('/fileqcs', fileQc.addFileQc);
 app.post('/fileqcs/batch', fileQc.addManyFileQcs);
 app.delete('/fileqcs/batch', fileQc.deleteFileQcs);

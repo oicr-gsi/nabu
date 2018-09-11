@@ -2,6 +2,8 @@
 
 const pgp = require('pg-promise')({});
 const pg = pgp(process.env.DB_CONNECTION);
+const queryStream = require('pg-query-stream');
+const JSONStream = require('JSONStream');
 const basesqlite3 = require('sqlite3');
 const sqlite3 =
   (process.env.DEBUG || 'false') === 'true'
@@ -22,7 +24,8 @@ fpr.run('PRAGMA journal_mode = WAL;');
 
 /** set up custom error if bad params are given */
 function ValidationError (message) {
-  this.message = message;
+  this.name = 'ValidationError';
+  this.message = message || '';
 }
 ValidationError.prototype = Error.prototype;
 
@@ -33,6 +36,26 @@ const getAvailableConstants = async (req, res, next) => {
     next();
   } catch (e) {
     handleErrors(e, 'Error getting projects and workflows', next);
+  }
+};
+
+/** returns a Stream of FileQC results */
+const getAllBareFileQcs = async (req, res, next) => {
+  const query = new queryStream('SELECT * FROM FileQC');
+
+  try {
+    const streamed = await pg.stream(query, stream => {
+      res.status(200);
+      stream.pipe(JSONStream.stringify()).pipe(res);
+    });
+    logger.info({
+      streamRowsProcessed: streamed.processed,
+      streamingDuration: streamed.duration,
+      method: 'getAllBareFileQcs'
+    });
+    next();
+  } catch (e) {
+    handleErrors(e, 'Error streaming FileQCs', next);
   }
 };
 
@@ -859,6 +882,7 @@ function parseUpstream (upstream) {
 module.exports = {
   getFileQc: getFileQcBySwid,
   getAllFileQcs: getAllFileQcs,
+  getAllBareFileQcs: getAllBareFileQcs,
   addFileQc: addFileQc,
   addManyFileQcs: addManyFileQcs,
   getAvailableConstants: getAvailableConstants,
