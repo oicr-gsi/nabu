@@ -109,6 +109,63 @@ describe('Unit test FileQcController', () => {
   const mergeOne = controller.__get__('mergeOneFileResult');
   const mergeFileResults = controller.__get__('mergeFprsAndFqcs');
 
+  it('should return all data when some inputs are present in FPR, others in FQC, and some in both', done => {
+    const expected = [
+      {
+        fileswid: 12017,
+        filepath:
+          '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R1_001.fastq.gz',
+        project: 'IPSCellLineReprogramming',
+        qcstatus: 'FAIL',
+        username: 'test',
+        comment: 'failed for test',
+        upstream: [],
+        skip: 'false',
+        stalestatus: 'OKAY'
+      },
+      {
+        fileswid: 12018,
+        project: 'IPSCellLineReprogramming',
+        filepath: '/oicr/deleted/items',
+        username: 'me',
+        qcstatus: 'FAIL',
+        stalestatus: 'NOT IN FILE PROVENANCE'
+      },
+      {
+        fileswid: 12019,
+        filepath:
+          '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R2_001.fastq.gz',
+        skip: 'false',
+        stalestatus: 'OKAY',
+        project: 'IPSCellLineReprogramming',
+        upstream: [],
+        qcstatus: 'PENDING'
+      },
+      {
+        fileswid: 12025,
+        project: 'IPSCellLineReprogramming',
+        filepath:
+          '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11714/11714_ACTTGA_L002_R1_001.fastq.gz',
+        username: 'me',
+        qcstatus: 'PASS',
+        upstream: [],
+        skip: 'false',
+        stalestatus: 'OKAY'
+      }
+    ];
+    const actual = mergeFileResults(
+      [fprs['12017'], fprs['12019'], fprs['12025']],
+      [fqcs['12017'], fqcs['12018'], fqcs['12025']]
+    );
+    actual.forEach((item, index) =>
+      expect(item)
+        .excluding('qcdate')
+        .excluding('fileqcid')
+        .to.deep.equal(expected[index])
+    );
+    done();
+  });
+
   it('should merge file results when item is found in both FPR and FQC', done => {
     const expected = {
       fileswid: 12017,
@@ -167,63 +224,6 @@ describe('Unit test FileQcController', () => {
       .to.deep.equal(expected);
     done();
   });
-
-  it('should return all data when some inputs are present in FPR, others in FQC, and some in both', done => {
-    const expected = [
-      {
-        fileswid: 12017,
-        filepath:
-          '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R1_001.fastq.gz',
-        project: 'IPSCellLineReprogramming',
-        qcstatus: 'FAIL',
-        username: 'test',
-        comment: 'failed for test',
-        upstream: [],
-        skip: 'false',
-        stalestatus: 'OKAY'
-      },
-      {
-        fileswid: 12018,
-        project: 'IPSCellLineReprogramming',
-        filepath: '/oicr/deleted/items',
-        username: 'me',
-        qcstatus: 'FAIL',
-        stalestatus: 'NOT IN FILE PROVENANCE'
-      },
-      {
-        fileswid: 12019,
-        filepath:
-          '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R2_001.fastq.gz',
-        skip: 'false',
-        stalestatus: 'OKAY',
-        project: 'IPSCellLineReprogramming',
-        upstream: [],
-        qcstatus: 'PENDING'
-      },
-      {
-        fileswid: 12025,
-        project: 'IPSCellLineReprogramming',
-        filepath:
-          '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11714/11714_ACTTGA_L002_R1_001.fastq.gz',
-        username: 'me',
-        qcstatus: 'PASS',
-        upstream: [],
-        skip: 'false',
-        stalestatus: 'OKAY'
-      }
-    ];
-    const actual = mergeFileResults(
-      [fprs['12017'], fprs['12019'], fprs['12025']],
-      [fqcs['12017'], fqcs['12018'], fqcs['12025']]
-    );
-    actual.forEach((item, index) =>
-      expect(item)
-        .excluding('qcdate')
-        .excluding('fileqcid')
-        .to.deep.equal(expected[index])
-    );
-    done();
-  });
 });
 
 describe('available constants', () => {
@@ -274,7 +274,6 @@ describe('FileQC', () => {
             'username',
             'comment'
           );
-          expect(res.body.errors).to.be.empty;
           done();
         });
     });
@@ -291,7 +290,6 @@ describe('FileQC', () => {
           expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
           expect(res.body.fileqcs[0].username).to.equal('me');
           expect(res.body.fileqcs[0]).to.have.property('comment');
-          expect(res.body.errors).to.be.empty;
           done();
         });
     });
@@ -309,7 +307,6 @@ describe('FileQC', () => {
           expect(res.body.fileqcs[0].stalestatus).to.equal(
             'NOT IN FILE PROVENANCE'
           );
-          expect(res.body.errors).to.be.empty;
           done();
         });
     });
@@ -322,7 +319,6 @@ describe('FileQC', () => {
           expect(res.status).to.equal(200);
           expect(res.body).to.be.a('object');
           expect(res.body.fileqcs).to.be.empty;
-          expect(res.body.errors).to.be.empty;
           done();
         });
     });
@@ -350,7 +346,6 @@ describe('FileQC', () => {
           expect(res.body).to.be.a('object');
           expect(res.body.fileqcs).to.be.a('array');
           expect(res.body.fileqcs).to.have.lengthOf(4);
-          expect(res.body.errors).to.be.empty;
           done();
         });
     });
@@ -361,7 +356,6 @@ describe('FileQC', () => {
         .get('/fileqcs?fileswids=12017,12018')
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.errors).to.be.empty;
           expect(res.body.fileqcs).to.be.a('array');
           expect(res.body.fileqcs).to.have.lengthOf(2);
           expect(res.body.fileqcs[0].fileswid).to.equal(12017);
@@ -376,7 +370,6 @@ describe('FileQC', () => {
         .get('/fileqcs?fileswids=12020&showall=true')
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.errors).to.be.empty;
           expect(res.body.fileqcs).to.be.a('array');
           expect(res.body.fileqcs).to.have.lengthOf(2);
           expect(res.body.fileqcs[0].fileswid).to.equal(
@@ -398,7 +391,6 @@ describe('FileQC', () => {
         .get('/fileqcs?fileswids=12020')
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.errors).to.be.empty;
           expect(res.body.fileqcs).to.be.a('array');
           expect(res.body.fileqcs).to.have.lengthOf(1);
           done();
@@ -411,7 +403,6 @@ describe('FileQC', () => {
         .get('/fileqcs?project=UNKNOWN')
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.errors).to.be.empty;
           expect(res.body.fileqcs).to.be.empty;
           done();
         });
@@ -441,13 +432,10 @@ describe('FileQC', () => {
     it('it should create a new FileQC for a new SWID with a status PENDING', done => {
       chai
         .request(server)
-        .post(
-          '/fileqcs?fileswid=12022&username=me&qcstatus=PENDING&project=EMPTY'
-        )
+        .post('/fileqcs?fileswid=12022&username=me&qcstatus=PENDING')
         .end((err, res) => {
           expect(res.status).to.equal(201);
           expect(res.body.fileqc.qcstatus).to.equal('PENDING');
-          expect(res.body.errors).to.be.empty;
           done();
         });
     });
@@ -460,7 +448,6 @@ describe('FileQC', () => {
           expect(res.status).to.equal(201);
           expect(res.body.fileqc).to.have.property('upstream');
           expect(res.body.fileqc.qcstatus).to.equal('PASS');
-          expect(res.body.errors).to.be.empty;
           done();
         });
     });
@@ -473,7 +460,6 @@ describe('FileQC', () => {
         .end((err, res) => {
           expect(res.status).to.equal(200);
           expect(res.body.fileqcs).to.have.lengthOf(1);
-          expect(res.body.errors).to.be.empty;
           chai
             .request(server)
             .post(
@@ -483,14 +469,12 @@ describe('FileQC', () => {
               expect(res.status).to.equal(201);
               expect(res.body.fileqc).to.have.property('upstream');
               expect(res.body.fileqc.qcstatus).to.equal('FAIL');
-              expect(res.body.errors).to.be.empty;
               chai
                 .request(server)
                 .get(getFor12017)
                 .end((err, res) => {
                   expect(res.status).to.equal(200);
                   expect(res.body.fileqcs).to.have.lengthOf(1);
-                  expect(res.body.errors).to.be.empty;
                 });
               chai
                 .request(server)
@@ -498,7 +482,6 @@ describe('FileQC', () => {
                 .end((err, res) => {
                   expect(res.status).to.equal(200);
                   expect(res.body.fileqcs).to.have.lengthOf(2);
-                  expect(res.body.errors).to.be.empty;
                 });
             });
           done();
@@ -528,7 +511,6 @@ describe('FileQC', () => {
         })
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.errors).to.be.empty;
           expect(res.body.fileqcs).to.have.lengthOf(2);
           expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
           expect(res.body.fileqcs[1].qcstatus).to.equal('PASS');
@@ -555,7 +537,6 @@ describe('FileQC', () => {
             .end((err, res) => {
               expect(res.status).to.equal(200);
               expect(res.body.success).not.to.be.empty;
-              expect(res.body.errors).to.be.empty;
               expect(res.body.success[0]).to.match(/^Deleted FileQC.*/);
             });
           done();
@@ -573,7 +554,6 @@ describe('FileQC', () => {
         })
         .end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.success).to.be.empty;
           expect(res.body.errors).not.to.be.empty;
           expect(res.body.errors[0]).to.match(/^Failed to delete FileQC.*/);
           done();

@@ -2,6 +2,8 @@
 
 const pgp = require('pg-promise')({});
 const pg = pgp(process.env.DB_CONNECTION);
+const queryStream = require('pg-query-stream');
+const JSONStream = require('JSONStream');
 const basesqlite3 = require('sqlite3');
 const sqlite3 =
   (process.env.DEBUG || 'false') === 'true'
@@ -22,7 +24,8 @@ fpr.run('PRAGMA journal_mode = WAL;');
 
 /** set up custom error if bad params are given */
 function ValidationError (message) {
-  this.message = message;
+  this.name = 'ValidationError';
+  this.message = message || '';
 }
 ValidationError.prototype = Error.prototype;
 
@@ -33,6 +36,26 @@ const getAvailableConstants = async (req, res, next) => {
     next();
   } catch (e) {
     handleErrors(e, 'Error getting projects and workflows', next);
+  }
+};
+
+/** returns a Stream of FileQC results */
+const getAllBareFileQcs = async (req, res, next) => {
+  const query = new queryStream('SELECT * FROM FileQC');
+
+  try {
+    const streamed = await pg.stream(query, stream => {
+      res.status(200);
+      stream.pipe(JSONStream.stringify()).pipe(res);
+    });
+    logger.info({
+      streamRowsProcessed: streamed.processed,
+      streamingDuration: streamed.duration,
+      method: 'getAllBareFileQcs'
+    });
+    next();
+  } catch (e) {
+    handleErrors(e, 'Error streaming FileQCs', next);
   }
 };
 
@@ -48,12 +71,14 @@ const getFileQcBySwid = async (req, res, next) => {
       getSingleFprResult(swid),
       getFqcsBySwid(swid)
     ]);
+    if (results[1].errors && results[1].errors.length)
+      throw generateError(500, results[1].errors[0]);
     const fileqcs = maybeReduceToMostRecent(results[1].fileqcs, showAll);
-    const mergedFileQcs = getMergedResults(results[0], fileqcs);
-    res.status(200).json({ fileqcs: mergedFileQcs, errors: results[1].errors });
+    const mergedFileQcs = mergeFprsAndFqcs(results[0], fileqcs);
+    res.status(200).json({ fileqcs: mergedFileQcs });
     next();
   } catch (e) {
-    handleErrors(e, 'Error getting record', next);
+    handleErrors(e, 'Error getting FileQCs for SWID', next);
   }
 };
 
@@ -88,7 +113,7 @@ const getAllFileQcs = async (req, res, next) => {
       throw new ValidationError('Must supply either project or fileswids');
     }
 
-    res.status(200).json({ fileqcs: results, errors: [] });
+    res.status(200).json({ fileqcs: results });
     next();
   } catch (e) {
     handleErrors(e, 'Error getting records', next);
@@ -168,11 +193,14 @@ const addFileQc = async (req, res, next) => {
     };
 
     const fpr = await getSingleFprResult(fqc.fileswid);
-    const hydratedFqc = hydrateOneFqcPreSave(fpr, fqc);
+    if (!fpr.length) fpr[0] = {};
+    const hydratedFqc = hydrateOneFqcPreSave(fpr[0], fqc);
     const fqcInsert = await addSingleFqc(hydratedFqc);
-    // merge the results
+    if (fqcInsert.errors && fqcInsert.errors.length)
+      throw generateError(500, fqcInsert.errors[0]);
+    // otherwise, merge the results
     const merged = mergeOneFileResult(fpr[0] || null, hydratedFqc);
-    res.status(201).json({ fileqc: merged, errors: fqcInsert.errors });
+    res.status(201).json({ fileqc: merged });
     next();
   } catch (e) {
     handleErrors(e, 'Error adding record', next);
@@ -223,9 +251,11 @@ const addManyFileQcs = async (req, res, next) => {
     const hydratedFqcs = hydrateFqcsPreSave(fprs, toSave, req);
 
     const fqcInserts = await addFqcs(hydratedFqcs);
-    // merge the results
+    if (fqcInserts.errors && fqcInserts.errors.length)
+      throw generateError(500, fqcInserts.errors);
+    // otherwise, merge the results
     const merged = mergeFprsAndFqcs(fprs, fqcInserts.fileqcs);
-    res.status(200).json({ fileqcs: merged, errors: fqcInserts.errors });
+    res.status(200).json({ fileqcs: merged });
     next();
   } catch (e) {
     handleErrors(e, 'Error adding FileQCs', next);
@@ -237,6 +267,7 @@ const addManyFileQcs = async (req, res, next) => {
  */
 const deleteManyFileQcs = async (req, res, next) => {
   try {
+    console.log(req);
     if (!req.body.fileqcids || !req.body.fileqcids.length)
       throw generateError(400, 'Error: no "fileqcids" found in request body');
     const fqcIds = req.body.fileqcids.map(
@@ -384,11 +415,13 @@ function convertBooleanToQcStatus (value) {
     false: 'FAIL',
     null: 'PENDING'
   };
-  if (typeof boolToStatus[value] == 'undefined')
+  if (typeof boolToStatus[value] === 'undefined') return 'PENDING';
+  const status = boolToStatus[value];
+  if (status === 'undefined')
     throw new ValidationError(
       'Cannot convert QC status ' + value + ' to "PASS", "FAIL", or "PENDING".'
     );
-  return boolToStatus[value];
+  return status;
 }
 
 function generateError (statusCode, errorMessage) {
@@ -404,11 +437,14 @@ function handleErrors (e, defaultMessage, next) {
     logger.info(e);
     next(generateError(400, e.message));
   } else if (e.status) {
-    logger.info(e.message);
+    logger.info({ error: e.errors });
     return next(e); // generateError has already been called, usually because it's a user error
-  } else {
+  } else if (defaultMessage) {
     logger.error({ error: e, method: 'handleErrors' });
     next(generateError(500, defaultMessage));
+  } else {
+    logger.error({ error: e, method: 'handleErrors' });
+    next(generateError(500, 'Error'));
   }
 }
 
@@ -467,6 +503,9 @@ function getFqcsBySwid (swid) {
       .any(sql, [swid])
       .then(data => {
         if (!data || data.length == 0) resolve({ fileqcs: [], errors: [] });
+        if (Array.isArray(data)) {
+          resolve({ fileqcs: data, errors: [] });
+        }
         resolve({ fileqcs: [data], errors: [] });
       })
       .catch(err => {
@@ -787,18 +826,6 @@ function sortBySwidOrDate (a, b) {
   return a.qcdate < b.qcdate ? -1 : 1;
 }
 
-const getMergedResults = (fprs, fqcs) => {
-  if (fqcs.length) {
-    const mostRecent = fqcs.reduce(
-      (a, b) =>
-        new Date(a.qcdate).getTime() > new Date(b.qcdate).getTime() ? a : b
-    );
-    return mergeFprsAndFqcs(fprs, mostRecent);
-  } else {
-    return mergeFprsAndFqcs(fprs, fqcs);
-  }
-};
-
 /** If a record is in the File Provenance Report database but not in the FileQC database,
  * then its QC status is 'PENDING' */
 function yesFprNoFqc (fpr) {
@@ -826,7 +853,7 @@ function yesFprYesFqc (fpr, fqc) {
     throw new Error('Cannot merge non-matching files');
   const merged = Object.assign({}, fpr);
   merged.upstream = parseUpstream(merged.upstream);
-  merged.qcstatus = fqc.qcpassed == true ? 'PASS' : 'FAIL';
+  merged.qcstatus = convertBooleanToQcStatus(fqc.qcpassed);
   merged.username = fqc.username;
   if (fqc.comment) merged.comment = fqc.comment;
   merged.qcdate = fqc.qcdate;
@@ -850,6 +877,7 @@ function parseUpstream (upstream) {
 module.exports = {
   getFileQc: getFileQcBySwid,
   getAllFileQcs: getAllFileQcs,
+  getAllBareFileQcs: getAllBareFileQcs,
   addFileQc: addFileQc,
   addManyFileQcs: addManyFileQcs,
   getAvailableConstants: getAvailableConstants,
