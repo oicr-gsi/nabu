@@ -528,7 +528,7 @@ describe('FileQC', () => {
           const fqcId = res.body.fileqcs[0].fileqcid;
           chai
             .request(server)
-            .delete('/fileqcs/batch')
+            .post('/delete-fileqcs')
             .set('content-type', 'application/json')
             .send({
               fileqcids: [fqcId],
@@ -546,7 +546,7 @@ describe('FileQC', () => {
     it('it should fail to delete a non-existent FileQC', done => {
       chai
         .request(server)
-        .delete('/fileqcs/batch')
+        .post('/delete-fileqcs')
         .set('content-type', 'application/json')
         .send({
           fileqcids: [21221008773217],
