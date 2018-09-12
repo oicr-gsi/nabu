@@ -4,6 +4,7 @@ const pgp = require('pg-promise')({});
 const pg = pgp(process.env.DB_CONNECTION);
 const queryStream = require('pg-query-stream');
 const JSONStream = require('JSONStream');
+const moment = require('moment');
 const basesqlite3 = require('sqlite3');
 const sqlite3 =
   (process.env.DEBUG || 'false') === 'true'
@@ -267,7 +268,6 @@ const addManyFileQcs = async (req, res, next) => {
  */
 const deleteManyFileQcs = async (req, res, next) => {
   try {
-    console.log(req);
     if (!req.body.fileqcids || !req.body.fileqcids.length)
       throw generateError(400, 'Error: no "fileqcids" found in request body');
     const fqcIds = req.body.fileqcids.map(
@@ -843,6 +843,7 @@ function noFprYesFqc (fqc) {
   delete fqc.deleted;
   if (!fqc.comment) delete fqc.comment;
   fqc.fileswid = parseInt(fqc.fileswid);
+  fqc.qcdate = moment(fqc.qcdate).format('YYYY-MM-DD HH:mm');
   return fqc;
 }
 
@@ -856,7 +857,7 @@ function yesFprYesFqc (fpr, fqc) {
   merged.qcstatus = convertBooleanToQcStatus(fqc.qcpassed);
   merged.username = fqc.username;
   if (fqc.comment) merged.comment = fqc.comment;
-  merged.qcdate = fqc.qcdate;
+  merged.qcdate = moment(fqc.qcdate).format('YYYY-MM-DD HH:mm');
   merged.fileqcid = fqc.fileqcid;
   return merged;
 }
