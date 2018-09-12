@@ -267,6 +267,7 @@ const addManyFileQcs = async (req, res, next) => {
  */
 const deleteManyFileQcs = async (req, res, next) => {
   try {
+    console.log(req);
     if (!req.body.fileqcids || !req.body.fileqcids.length)
       throw generateError(400, 'Error: no "fileqcids" found in request body');
     const fqcIds = req.body.fileqcids.map(
@@ -435,12 +436,12 @@ function handleErrors (e, defaultMessage, next) {
   if (e instanceof ValidationError) {
     logger.info(e);
     next(generateError(400, e.message));
+  } else if (e.status) {
+    logger.info({ error: e.errors });
+    return next(e); // generateError has already been called, usually because it's a user error
   } else if (defaultMessage) {
     logger.error({ error: e, method: 'handleErrors' });
     next(generateError(500, defaultMessage));
-  } else if (e.status) {
-    logger.info({ error: e.message });
-    return next(e); // generateError has already been called, usually because it's a user error
   } else {
     logger.error({ error: e, method: 'handleErrors' });
     next(generateError(500, 'Error'));
