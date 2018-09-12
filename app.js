@@ -80,7 +80,7 @@ app.get('/fileqc/:identifier', fileQc.getFileQc);
 app.get('/fileqcs-only', fileQc.getAllBareFileQcs);
 app.post('/fileqcs', fileQc.addFileQc);
 app.post('/fileqcs/batch', fileQc.addManyFileQcs);
-app.delete('/fileqcs/batch', fileQc.deleteFileQcs);
+app.post('/delete-fileqcs', fileQc.deleteFileQcs);
 app.get('/metrics', async (req, res) => {
   try {
     const mostRecentImportTime = await fileQc.getMostRecentFprImportTime();

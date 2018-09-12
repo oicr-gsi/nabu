@@ -267,7 +267,6 @@ const addManyFileQcs = async (req, res, next) => {
  */
 const deleteManyFileQcs = async (req, res, next) => {
   try {
-    console.log(req);
     if (!req.body.fileqcids || !req.body.fileqcids.length)
       throw generateError(400, 'Error: no "fileqcids" found in request body');
     const fqcIds = req.body.fileqcids.map(
@@ -704,14 +703,34 @@ const deleteFqcs = (fileQcIds, username) => {
       .any(delete_stmt, fileQcIds)
       .then(data => {
         data = data.map(d => d.fileqcid);
-        const unfound = fileQcIds.filter(id => data.indexOf(id) == -1);
-        const yay = data.length
-          ? [`Deleted FileQC(s) ${data.join(', ')}. `]
-          : [];
-        const nay = unfound.length
-          ? [`Failed to delete FileQC(s) ${unfound.join(', ')}.`]
-          : [];
-        return resolve({ success: yay, errors: nay });
+        const undeleted = fileQcIds.filter(id => data.indexOf(id) == -1);
+        const yay = [];
+        if (data.length) {
+          yay.push(`Deleted FileQC(s) ${data.join(', ')}. `);
+        }
+        const nay = [];
+        if (undeleted.length) {
+          nay.push(`Failed to delete FileQC(s) ${undeleted.join(', ')}.`);
+          pg
+            .any(
+              `SELECT fileqcid FROM FileQC WHERE fileqcid IN (${undeleted.join(
+                ','
+              )})`
+            )
+            .then(data => {
+              const notInDb = undeleted.filter(id => !data.includes(id));
+              if (notInDb.length) {
+                nay.push(`FileQC ID(s) do not exist: ${notInDb.join(', ')}`);
+              }
+              return resolve({ success: yay, errors: nay });
+            })
+            .catch(err => {
+              logger.error({ error: err, method: 'deleteFqcs' });
+              return resolve({ success: yay, errors: nay });
+            });
+        } else {
+          return resolve({ success: yay, errors: nay });
+        }
       })
       .catch(err => {
         logger.error({ error: err, method: `deleteFqcs:${username}` });

@@ -216,31 +216,36 @@
             }
           }
         }
-      },
-      "delete": {
+      }
+    },
+    "/delete-fileqcs": {
+      "post": {
         "summary": "Batch delete FileQC records",
-        "description": "Deletes FileQC records given the FileQC IDs",
+        "description": "Deletes FileQC records for the given FileQC IDs",
         "parameters": [
           {
             "in": "body",
-            "name": "fileqcids",
-            "description": "Array of FileQC IDs",
-            "required": true
-          },
-          {
-            "in": "body",
-            "name": "username",
-            "description": "Identifier for user who is deleting the FileQCs",
-            "required": "true"
+            "name": "fileqcs",
+            "schema": {
+              "$ref": "#/definitions/FileQC-delete"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Successfully deleted at least some FileQCs (but not necessarily all)",
+            "description": "Successfully deleted at least some FileQCs",
             "type": "object",
             "properties": {
               "success": {
                 "type": "array",
+                "description": "Message containing the IDs of the FileQCs which were deleted",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "errors": {
+                "type": "array",
+                "description": "Message containing the IDs of the FileQCs which were not deleted",
                 "items": {
                   "type": "string"
                 }
@@ -403,10 +408,17 @@
       "type": "object",
       "properties": {
         "fileqcids": {
+          "description": "Comma-separated list of FileQC IDs",
+          "required": true,
           "type": "array",
           "items": {
             "type": "integer"
           }
+        },
+        "username": {
+          "description": "Name of the user who is deleting the FileQCs",
+          "required": "true",
+          "type": "string"
         }
       }
     }
