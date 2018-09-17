@@ -339,8 +339,8 @@
       }
     },
     "FileQCs-only-response": {
-      "type": "array",
-      "items": {
+      "type": "object",
+      "properties": {
         "fileqcid": {
           "description": "Unique FileQC ID",
           "type": "integer"
