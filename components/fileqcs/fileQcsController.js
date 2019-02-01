@@ -42,7 +42,7 @@ const getAvailableConstants = async (req, res, next) => {
 
 /** returns a Stream of FileQC results */
 const getAllBareFileQcs = async (req, res, next) => {
-  const query = new queryStream('SELECT * FROM FileQC');
+  const query = new queryStream('SELECT fileQcId, qcDate, fileswid, project, filepath, CASE qcpassed WHEN TRUE THEN \'PASS\' WHEN FALSE THEN \'FAIL\' ELSE \'PENDING\' END AS qcpassed, username, COALESCE(comment, \'\') FROM FileQC WHERE deleted = FALSE');
 
   try {
     const streamed = await pg.stream(query, stream => {
