@@ -10,10 +10,9 @@
     "test": "PORT=3001 SQLITE_LOCATION=$(pwd)/test DB_CONNECTION=postgres://test:test@localhost/qcdb_test LOG_LEVEL=test mocha --exit",
     "lint": "eslint .",
     "precommit": "lint-staged",
-    "fw:clean": "flyway -X -configFiles=conf/flyway.conf clean",
-    "fw:migrate": "flyway -X -configFiles=conf/flyway.conf -locations=filesystem:./sql/ migrate",
-    "fw:test-clean": "flyway -configFiles=conf/flyway-test-db.conf clean",
-    "fw:test-migrate": "flyway -configFiles=conf/flyway-test-db.conf -locations=filesystem:./sql/,filesystem:./test/migrations/ migrate && cd test && sqlite3 fpr.db < migrations/create_test_fpr.sql && cd .. && echo \"Recreated FPR test table\""
+		"fw:clean": "docker run --rm -v $(pwd)/conf:/flyway/conf -v $(pwd)/sql:/flyway/sql --network=host boxfuse/flyway clean",
+		"fw:migrate": "docker run --rm -v $(pwd)/conf:/flyway/conf -v $(pwd)/sql:/flyway/sql --network=host boxfuse/flyway migrate",
+		"pretest": ". test/setup_test_dbs.sh"
   },
   "lint-staged": {
     "*.js": [
