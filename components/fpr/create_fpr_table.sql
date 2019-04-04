@@ -9,7 +9,10 @@ CREATE TABLE fpr (
   stalestatus TEXT NOT NULL,
   project TEXT NOT NULL,
   upstream INTEGER[],
-  workflow TEXT NOT NULL
+  workflow TEXT NOT NULL,
+  library TEXT NOT NULL,
+  run TEXT NOT NULL,
+  lane INTEGER NOT NULL
 );
 
 .mode tabs

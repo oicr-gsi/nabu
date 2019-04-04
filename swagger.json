@@ -43,7 +43,7 @@
     "/fileqcs": {
       "get": {
         "summary": "Get all FileQCs",
-        "description": "Returns a list containing all FileQCs, including those that are pending. Must be filtered by 'project' or 'fileswids', with optional 'qcstatus' and 'workflow' filters if 'project' is selected.",
+        "description": "Returns a list containing all FileQCs, including those that are pending. Must be filtered by 'project' or 'fileswids' or 'run', with optional 'qcstatus' and 'workflow' filters if 'project' is selected.",
         "parameters": [
           {
             "name": "project",
@@ -67,6 +67,12 @@
             "name": "fileswids",
             "in": "query",
             "description": "Filter by file SWIDs (comma-separated)",
+            "type": "string"
+          },
+          {
+            "name": "run",
+            "in": "query",
+            "description": "Name of run. Will return all BamQC FileQCs associated with samples from this run. Only the most recent FileQC will be returned (cannot be override by 'showall').",
             "type": "string"
           },
           {

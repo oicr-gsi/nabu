@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0)
 and this project attempts to adhere to Semantic Versioning.
 
+## Unreleased
+
+### Added
+  * Users can now search by `run` and get back all FileQCs for BamQC files in that run.
+
 ## [2.0.0]  2018-09-14
 
 ### Added:
