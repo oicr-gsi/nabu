@@ -28,14 +28,6 @@ $ npm uninstall sqlite3
 $ npm install sqlite3 --local --build-from-source
 ```
 
-### Linking Flyway after `npm install`
-Flyway is used here as a library rather than as a package. If it doesn't work after an `npm install`, it may need to be re-symlinked using the following:
-```
-$ rm node_modules/.bin/flyway
-$ cd node_modules/.bin && ln -s ../flyway/lib/flyway-5.0.7/flyway flyway && cd -
-``` 
-Note: **Do not use `npm ci`** on this project, as it will remove the Flyway library.
-
 ## Setting environment variables
 Create a `.env` file and populate it. The `.env-example` file provides a template for this.
 If a variable in this file is also set on the system, the file variable _will not_ overwrite the system variable.
@@ -105,10 +97,9 @@ Linter settings are in .eslintrc.json .
 
 ## Testing
 
-Create a file in `test/` called `flyway.conf`. The `test/example-flwyay.conf` file provides a template for this.
-Use these variables to create the database below.
+Use the variables in `test/flyway.conf` to create a test database in PostgreSQL (sadly, it's not yet containerized).
 
-### Create a PostgreSQL database for the tests (sadly, it's not yet containerized)
+### Create a PostgreSQL database for the tests
 
     $ psql postgres -U postgres
 
