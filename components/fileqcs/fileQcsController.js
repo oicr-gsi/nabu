@@ -42,7 +42,9 @@ const getAvailableConstants = async (req, res, next) => {
 
 /** returns a Stream of FileQC results */
 const getAllBareFileQcs = async (req, res, next) => {
-  const query = new queryStream('SELECT fileQcId, qcDate, fileswid, project, filepath, CASE qcpassed WHEN TRUE THEN \'PASS\' WHEN FALSE THEN \'FAIL\' ELSE \'PENDING\' END AS qcpassed, username, COALESCE(comment, \'\') FROM FileQC WHERE deleted = FALSE');
+  const query = new queryStream(
+    'SELECT fileQcId, qcDate, fileswid, project, filepath, CASE qcpassed WHEN TRUE THEN \'PASS\' WHEN FALSE THEN \'FAIL\' ELSE \'PENDING\' END AS qcpassed, username, COALESCE(comment, \'\') FROM FileQC WHERE deleted = FALSE'
+  );
 
   try {
     const streamed = await pg.stream(query, stream => {
@@ -75,7 +77,7 @@ const getFileQcBySwid = async (req, res, next) => {
     if (results[1].errors && results[1].errors.length)
       throw generateError(500, results[1].errors[0]);
     const fileqcs = maybeReduceToMostRecent(results[1].fileqcs, showAll);
-    const mergedFileQcs = mergeFprsAndFqcs(results[0], fileqcs);
+    const mergedFileQcs = mergeFprsAndFqcs(results[0], fileqcs, false);
     res.status(200).json({ fileqcs: mergedFileQcs });
     next();
   } catch (e) {
@@ -84,21 +86,23 @@ const getFileQcBySwid = async (req, res, next) => {
 };
 
 /**
- * Get all FileQCs restricted by Project, QC Status, and/or Workflow, or File SWIDs
+ * Get all FileQCs restricted by Project (with optional QC Status or Workflow), or File SWIDs, or Run
  */
 const getAllFileQcs = async (req, res, next) => {
   try {
-    let proj, swids, workflow, qcStatus, showAll;
+    let proj, swids, run, workflow, qcStatus, showAll;
     const validQueryParams = [
       'project',
       'fileswids',
       'workflow',
       'qcstatus',
+      'run',
       'showall'
     ];
     validateQueryParams(validQueryParams, req.query);
     proj = nullifyIfBlank(validateProject(req.query.project));
     swids = validateIntegers(req.query.fileswids, 'fileswid');
+    run = nullifyIfBlank(req.query.run);
     workflow = nullifyIfBlank(req.query.workflow);
     qcStatus = nullifyIfBlank(req.query.qcstatus);
     showAll = validateShowAll(req.query.showall);
@@ -110,6 +114,8 @@ const getAllFileQcs = async (req, res, next) => {
       results = await getByProjAndMaybeWorkflow(proj, workflow, showAll);
     } else if (swids !== null) {
       results = await getBySwids(swids, showAll);
+    } else if (run != null) {
+      results = await getByRun(run);
     } else {
       throw new ValidationError('Must supply either project or fileswids');
     }
@@ -129,7 +135,7 @@ const getBySwids = async (swids, showAll) => {
     ]);
     // merge the results from the File Provenance report and the FileQC database
     const fileqcs = maybeReduceToMostRecent(results[1].fileqcs, showAll);
-    return mergeFprsAndFqcs(results[0], fileqcs);
+    return mergeFprsAndFqcs(results[0], fileqcs, false);
   } catch (e) {
     throw e;
   }
@@ -142,7 +148,7 @@ const getByProjAndMaybeWorkflow = async (proj, workflow, showAll) => {
       getFqcResultsByProject(proj)
     ]);
     const fileqcs = maybeReduceToMostRecent(results[1].fileqcs, showAll);
-    return mergeFprsAndFqcs(results[0], fileqcs);
+    return mergeFprsAndFqcs(results[0], fileqcs, false);
   } catch (e) {
     throw e;
   }
@@ -174,7 +180,18 @@ const getByProjAndQcStatus = async (proj, qcStatus, showAll) => {
       // get only the FPRs for the PASS/FAIL records requested
       fprs = await getFprResultsBySwids(swids);
     }
-    return mergeFprsAndFqcs(fprs, fileqcs);
+    return mergeFprsAndFqcs(fprs, fileqcs, false);
+  } catch (e) {
+    throw e;
+  }
+};
+
+const getByRun = async run => {
+  try {
+    const fprs = await getFprResultsByRun(run);
+    const swids = fprs.map(fpr => fpr.fileswid);
+    const fqcResult = await getFqcResultsBySwids(swids);
+    return mergeFprsAndFqcs(fprs, fqcResult.fileqcs, true);
   } catch (e) {
     throw e;
   }
@@ -255,7 +272,7 @@ const addManyFileQcs = async (req, res, next) => {
     if (fqcInserts.errors && fqcInserts.errors.length)
       throw generateError(500, fqcInserts.errors);
     // otherwise, merge the results
-    const merged = mergeFprsAndFqcs(fprs, fqcInserts.fileqcs);
+    const merged = mergeFprsAndFqcs(fprs, fqcInserts.fileqcs, false);
     res.status(200).json({ fileqcs: merged });
     next();
   } catch (e) {
@@ -600,6 +617,26 @@ function getFprResultsBySwids (swids) {
   });
 }
 
+function getFprResultsByRun (run) {
+  return new Promise((resolve, reject) => {
+    // validate run name
+    if (!/^[\w-]+$/.test(run)) {
+      reject(
+        generateError(400, `'${run}' is not recognized as a valid run name`)
+      );
+    }
+    const select =
+      'SELECT * FROM fpr WHERE run = \'' +
+      run +
+      '\' AND workflow = \'BamQC\'' +
+      ' ORDER BY fileswid ASC';
+    fpr.all(select, (err, data) => {
+      if (err) reject(generateError(500, err));
+      resolve(data ? data : []);
+    });
+  });
+}
+
 /** success returns an array of FileQCs filtered by the given project */
 function getFqcResultsByProject (project) {
   // if project is represented with both long and short names in FPR, need to search by both names
@@ -629,6 +666,9 @@ function getFqcResultsByProject (project) {
 /** success returns an array of FileQCs filtered by the given file SWIDs */
 function getFqcResultsBySwids (swids) {
   return new Promise((resolve, reject) => {
+    if (!swids.length) {
+      resolve({ fileqcs: [], errors: [] });
+    }
     const sql =
       'SELECT * FROM FileQC WHERE fileswid in (' +
       swids.join() +
@@ -808,7 +848,9 @@ function mergeOneFileResult (fpr, fqc) {
 
 /** combines the results from FPR and FileQC queries then merges them if appropriate
  * this returns all results sorted by fileswid */
-function mergeFprsAndFqcs (fprs, fqcs) {
+function mergeFprsAndFqcs (fprs, fqcs, includeRunInfo) {
+  // first, remove run info if necessary
+  fprs = fprs.map(fpr => maybeRemoveRunInfo(includeRunInfo, fpr));
   // merge the FileQCs with FPRs first...
   const fqcswids = fqcs.map(fqc => parseInt(fqc.fileswid));
   const mergedFqcs = fqcs.map(fqc => {
@@ -823,6 +865,19 @@ function mergeFprsAndFqcs (fprs, fqcs) {
   //...then order them all by swid (or date, if two swids have same date)
   all.sort(sortBySwidOrDate);
   return all;
+}
+
+// We will usually want to delete the run name and lane number before returning
+// the FPR record to the user
+function maybeRemoveRunInfo (keepRunInfo, fpr) {
+  if (keepRunInfo === true) {
+    return fpr;
+  } else {
+    delete fpr.run;
+    delete fpr.lane;
+    delete fpr.library;
+    return fpr;
+  }
 }
 
 function maybeMergeResult (fprs, fqcs, swid) {
