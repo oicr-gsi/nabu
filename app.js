@@ -135,7 +135,7 @@ const getSslFilesOrYell = filepath => {
     return fs.readFileSync(filepath);
   } catch (e) {
     throw new Error(
-      'Could not read file path to SSL key or certificate. Are they set correctly in .env?'
+      `Could not read file path '${filepath}' to SSL key or certificate. Are they set correctly in .env?`
     );
   }
 };
