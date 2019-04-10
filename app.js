@@ -14,6 +14,8 @@ const cors = require('cors');
 const compression = require('compression');
 const favicon = require('serve-favicon');
 const path = require('path');
+const https = require('https');
+const fs = require('fs');
 
 const app = express();
 const ignoreFrom = process.env.IGNORE_ADDRESS || ''; // to skip logging of requests from IT's security tests
@@ -117,13 +119,37 @@ app.use((req, res, next) => {
   next();
 });
 
-module.exports = app;
+const getSslFilesOrNull = filepath => {
+  try {
+    return fs.readFileSync(filepath);
+  } catch (e) {
+    return null;
+  }
+};
 
+const httpsOptions = {
+  key: getSslFilesOrNull(process.env.HTTPS_KEY),
+  cert: getSslFilesOrNull(process.env.HTTPS_CERT)
+};
+const port = process.env.PORT || 3000;
+const httpsPort = process.env.HTTPS_PORT || 8443;
 // Start server and listen on port
-app.set('port', process.env.PORT || 3000);
+app.set('port', port);
 const server = app.listen(app.get('port'), () => {
   const host = server.address().address;
   const port = server.address().port;
-
-  logger.info('Listening at http://%s:%s', host, port);
+  logger.info('Unencrypted server listening at http://%s:%s', host, port);
 });
+const httpsServer = https
+  .createServer(httpsOptions, app)
+  .listen(httpsPort, () => {
+    if (httpsOptions.key !== null) {
+      logger.info(
+        'Encrypted server listening at https://%s:%s',
+        server.address().address,
+        httpsPort
+      );
+    }
+  });
+
+module.exports = app;
