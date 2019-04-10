@@ -47,7 +47,7 @@ app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(bodyParser.json({ type: 'application/json', limit: '50mb' }));
 // redirect http requests to https
 app.use((req, res, next) => {
-  if (!req.secure) {
+  if (!req.secure && req.originalUrl !== '/metrics') {
     const host = req.get('Host').split(':')[0];
     // using 307 Temporary Redirect preserves the original HTTP method in the request.
     return res.redirect(307, `https://${host}:${httpsPort}${req.url}`);
