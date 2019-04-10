@@ -1,21 +1,21 @@
 'use strict';
 
 require('dotenv').config();
-const express = require('express'); // Express server
-const bodyParser = require('body-parser'); // parses request bodies
-const swaggerUi = require('swagger-ui-express'); // Swagger documentation package
-const swaggerSpec = require('./swagger.json'); // Swagger documentation contents
-const prom = require('./utils/prometheus'); // Prometheus exporting
-const fileQc = require('./components/fileqcs/fileQcsController'); // controller for FileQC endpoints
-const logger = require('./utils/logger'); // logging
-const uid = require('uid'); // generates a unique ID for each request
-const helmet = require('helmet');
-const cors = require('cors');
+const bodyParser = require('body-parser');
 const compression = require('compression');
+const cors = require('cors');
+const express = require('express');
 const favicon = require('serve-favicon');
-const path = require('path');
-const https = require('https');
+const fileQc = require('./components/fileqcs/fileQcsController'); // controller for FileQC endpoints
 const fs = require('fs');
+const helmet = require('helmet');
+const https = require('https');
+const logger = require('./utils/logger');
+const path = require('path');
+const prom = require('./utils/prometheus');
+const swaggerSpec = require('./swagger.json');
+const swaggerUi = require('swagger-ui-express');
+const uid = require('uid');
 
 const app = express();
 const ignoreFrom = process.env.IGNORE_ADDRESS || ''; // to skip logging of requests from IT's security tests
