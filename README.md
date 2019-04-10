@@ -86,7 +86,7 @@ Start PostgreSQL using `pg_ctl start -l {DB LOG FILE LOCATION}` or any other met
 $ npm start
 ```
 
-A Swagger/OpenAPI page will be available at `http://localhost:####/api-docs/index.html`. (The port is 3000 by default; if you want to run Nabu on another port, start it up using `PORT=#### npm start`.)
+A Swagger/OpenAPI page will be available at <https://localhost:8443/api-docs/index.html>. (The port is 8443 by default; if you want to run Nabu on another port, start it up using `HTTPS_PORT=#### npm start`.)
 
 ## Development
 Run the linter before committing changes:

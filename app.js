@@ -19,6 +19,8 @@ const uid = require('uid');
 
 const app = express();
 const ignoreFrom = process.env.IGNORE_ADDRESS || ''; // to skip logging of requests from IT's security tests
+const port = process.env.PORT || 3000;
+const httpsPort = process.env.HTTPS_PORT || 8443;
 
 const errorHandler = (err, req, res, next) => {
   if (res.headersSent) {
@@ -43,6 +45,15 @@ app.use(cors());
 app.use(compression());
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(bodyParser.json({ type: 'application/json', limit: '50mb' }));
+// redirect http requests to https
+app.use((req, res, next) => {
+  if (!req.secure) {
+    const host = req.get('Host').split(':')[0];
+    // using 307 Temporary Redirect preserves the original HTTP method in the request.
+    return res.redirect(307, `https://${host}:${httpsPort}${req.url}`);
+  }
+  next();
+});
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/v1', express.Router());
 app.use((req, res, next) => {
@@ -119,37 +130,39 @@ app.use((req, res, next) => {
   next();
 });
 
-const getSslFilesOrNull = filepath => {
+const getSslFilesOrYell = filepath => {
   try {
     return fs.readFileSync(filepath);
   } catch (e) {
-    return null;
+    throw new Error(
+      'Could not read file path to SSL key or certificate. Are they set correctly in .env?'
+    );
   }
 };
 
 const httpsOptions = {
-  key: getSslFilesOrNull(process.env.HTTPS_KEY),
-  cert: getSslFilesOrNull(process.env.HTTPS_CERT)
+  key: getSslFilesOrYell(process.env.HTTPS_KEY),
+  cert: getSslFilesOrYell(process.env.HTTPS_CERT)
 };
-const port = process.env.PORT || 3000;
-const httpsPort = process.env.HTTPS_PORT || 8443;
 // Start server and listen on port
 app.set('port', port);
 const server = app.listen(app.get('port'), () => {
   const host = server.address().address;
   const port = server.address().port;
-  logger.info('Unencrypted server listening at http://%s:%s', host, port);
+  logger.info(
+    'Unencrypted redirecting server listening at http://%s:%s',
+    host,
+    port
+  );
 });
 const httpsServer = https
   .createServer(httpsOptions, app)
   .listen(httpsPort, () => {
-    if (httpsOptions.key !== null) {
-      logger.info(
-        'Encrypted server listening at https://%s:%s',
-        server.address().address,
-        httpsPort
-      );
-    }
+    logger.info(
+      'Encrypted server listening at https://%s:%s',
+      server.address().address,
+      httpsPort
+    );
   });
 
 module.exports = app;

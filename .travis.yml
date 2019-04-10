@@ -12,6 +12,12 @@ env:
   global:
   - NABU=$(pwd)
   - NODE_ENV=TEST
+  local:
+  - HTTPS_KEY=${NABU}/test/key.pem
+  - HTTPS_CERT=${NABU}/test/cert.pem
+
+before-install:
+  - openssl req -x509 -newkey rsa:4096 -keyout test/key.pem -out test/cert.pem -nodes -days 365 -subj '/CN=localhost'
 
 install:
   - npm install
