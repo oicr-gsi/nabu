@@ -12,7 +12,6 @@ env:
   global:
   - NABU=$(pwd)
   - NODE_ENV=TEST
-  local:
   - HTTPS_KEY=${NABU}/test/key.pem
   - HTTPS_CERT=${NABU}/test/cert.pem
 
