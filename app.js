@@ -1,6 +1,7 @@
 'use strict';
 
 require('dotenv').config();
+const ActiveDirectory = require('activedirectory2').promiseWrapper;
 const bodyParser = require('body-parser');
 const compression = require('compression');
 const cors = require('cors');
@@ -21,6 +22,16 @@ const app = express();
 const ignoreFrom = process.env.IGNORE_ADDRESS || ''; // to skip logging of requests from IT's security tests
 const port = process.env.PORT || 3000;
 const httpsPort = process.env.HTTPS_PORT || 8443;
+
+function configureActiveDirectory () {
+  if (process.env.AD_URL) {
+    return new ActiveDirectory({ url: process.env.AD_URL });
+  } else {
+    return null;
+  }
+}
+
+const ad = configureActiveDirectory();
 
 const errorHandler = (err, req, res, next) => {
   if (res.headersSent) {
@@ -91,12 +102,51 @@ app.get('/', (req, res) => {
 
 app.get('/available', fileQc.getAvailableConstants);
 
+const authorizeThenAddFileQcs = async (req, res, next) => {
+  if (ad === null)
+    return next({
+      status: 400,
+      errors: [
+        'Active Directory is not configured so QCs cannot be created from the run report page.'
+      ]
+    });
+  const allowedUsers = process.env.RR_AUTHORIZED_USERS.split(',');
+  if (!allowedUsers.includes(req.body.username)) {
+    return next({
+      status: 400,
+      errors: [
+        `User ${req.body.username} may not create QCs from the run report page.`
+      ]
+    });
+  }
+  const userPrincipalName = req.body.username + '@ad.oicr.on.ca';
+  try {
+    ad.authenticate(userPrincipalName, req.body.password, async (err, auth) => {
+      if (err) {
+        return next({ status: 400, errors: ['Error authenticating user'] });
+      } else if (auth) {
+        await fileQc.addManyFileQcs(req, res, next);
+        return next();
+      } else {
+        return next({
+          status: 400,
+          errors: [`Authentication failed for user ${req.body.username}`]
+        });
+      }
+    });
+  } catch (e) {
+    return next(e);
+  }
+};
+
 // routes to fileQC records
 app.get('/fileqcs', fileQc.getAllFileQcs);
 app.get('/fileqc/:identifier', fileQc.getFileQc);
 app.get('/fileqcs-only', fileQc.getAllBareFileQcs);
 app.post('/fileqcs', fileQc.addFileQc);
 app.post('/fileqcs/batch', fileQc.addManyFileQcs);
+app.post('/fileqcs/run-report', authorizeThenAddFileQcs);
+
 app.post('/delete-fileqcs', fileQc.deleteFileQcs);
 app.get('/metrics', async (req, res) => {
   try {

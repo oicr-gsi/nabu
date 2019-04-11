@@ -10,9 +10,9 @@
     "test": "PORT=3001 SQLITE_LOCATION=$(pwd)/test DB_CONNECTION=postgres://test:test@localhost/qcdb_test LOG_LEVEL=test mocha --exit",
     "lint": "eslint .",
     "precommit": "lint-staged",
-		"fw:clean": "docker run --rm -v $(pwd)/conf:/flyway/conf -v $(pwd)/sql:/flyway/sql --network=host boxfuse/flyway clean",
-		"fw:migrate": "docker run --rm -v $(pwd)/conf:/flyway/conf -v $(pwd)/sql:/flyway/sql --network=host boxfuse/flyway migrate",
-		"pretest": ". test/setup_test_dbs.sh"
+    "fw:clean": "docker run --rm -v $(pwd)/conf:/flyway/conf -v $(pwd)/sql:/flyway/sql --network=host boxfuse/flyway clean",
+    "fw:migrate": "docker run --rm -v $(pwd)/conf:/flyway/conf -v $(pwd)/sql:/flyway/sql --network=host boxfuse/flyway migrate",
+    "pretest": ". test/setup_test_dbs.sh"
   },
   "lint-staged": {
     "*.js": [
@@ -27,6 +27,7 @@
   "author": "Heather Armstrong",
   "license": "MIT",
   "dependencies": {
+    "activedirectory2": "^1.2.7",
     "JSONStream": "^1.3.4",
     "body-parser": "1.18.2",
     "compression": "^1.7.2",

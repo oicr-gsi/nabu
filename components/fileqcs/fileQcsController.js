@@ -259,7 +259,6 @@ const addManyFileQcs = async (req, res, next) => {
   try {
     if (!req.body.fileqcs)
       throw generateError(400, 'Error: no "fileqcs" found in request body');
-
     const validationResults = validateObjectsFromUser(req.body.fileqcs);
     if (validationResults.errors.length)
       throw new ValidationError(validationResults.errors);
@@ -267,7 +266,6 @@ const addManyFileQcs = async (req, res, next) => {
     const swids = toSave.map(record => record.fileswid);
     const fprs = await getFprResultsBySwids(swids);
     const hydratedFqcs = hydrateFqcsPreSave(fprs, toSave, req);
-
     const fqcInserts = await addFqcs(hydratedFqcs);
     if (fqcInserts.errors && fqcInserts.errors.length)
       throw generateError(500, fqcInserts.errors);
