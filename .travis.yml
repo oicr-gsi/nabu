@@ -12,6 +12,8 @@ env:
   global:
   - NABU=$(pwd)
   - NODE_ENV=TEST
+  - HTTPS_KEY=${NABU}/test/key.pem
+  - HTTPS_CERT=${NABU}/test/cert.pem
 
 install:
   - npm install
@@ -19,6 +21,7 @@ install:
 before_script:
   - psql -c "create user test; alter role test with password 'test';" -U postgres
   - psql -c "create database qcdb_test with owner test;" -U postgres
+  - openssl req -x509 -newkey rsa:4096 -keyout test/key.pem -out test/cert.pem -nodes -days 365 -subj '/CN=localhost'
 
 script: 
   - npm run lint

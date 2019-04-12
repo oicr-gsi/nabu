@@ -1,22 +1,26 @@
 'use strict';
 
 require('dotenv').config();
-const express = require('express'); // Express server
-const bodyParser = require('body-parser'); // parses request bodies
-const swaggerUi = require('swagger-ui-express'); // Swagger documentation package
-const swaggerSpec = require('./swagger.json'); // Swagger documentation contents
-const prom = require('./utils/prometheus'); // Prometheus exporting
-const fileQc = require('./components/fileqcs/fileQcsController'); // controller for FileQC endpoints
-const logger = require('./utils/logger'); // logging
-const uid = require('uid'); // generates a unique ID for each request
-const helmet = require('helmet');
-const cors = require('cors');
+const bodyParser = require('body-parser');
 const compression = require('compression');
+const cors = require('cors');
+const express = require('express');
 const favicon = require('serve-favicon');
+const fileQc = require('./components/fileqcs/fileQcsController'); // controller for FileQC endpoints
+const fs = require('fs');
+const helmet = require('helmet');
+const https = require('https');
+const logger = require('./utils/logger');
 const path = require('path');
+const prom = require('./utils/prometheus');
+const swaggerSpec = require('./swagger.json');
+const swaggerUi = require('swagger-ui-express');
+const uid = require('uid');
 
 const app = express();
 const ignoreFrom = process.env.IGNORE_ADDRESS || ''; // to skip logging of requests from IT's security tests
+const port = process.env.PORT || 3000;
+const httpsPort = process.env.HTTPS_PORT || 8443;
 
 const errorHandler = (err, req, res, next) => {
   if (res.headersSent) {
@@ -41,6 +45,19 @@ app.use(cors());
 app.use(compression());
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(bodyParser.json({ type: 'application/json', limit: '50mb' }));
+// redirect http requests to https in production
+app.use((req, res, next) => {
+  if (
+    !req.secure &&
+    req.originalUrl !== '/metrics' &&
+    process.env.NODE_ENV === 'production'
+  ) {
+    const host = req.get('Host').split(':')[0];
+    // using 307 Temporary Redirect preserves the original HTTP method in the request.
+    return res.redirect(307, `https://${host}:${httpsPort}${req.url}`);
+  }
+  next();
+});
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/v1', express.Router());
 app.use((req, res, next) => {
@@ -117,13 +134,39 @@ app.use((req, res, next) => {
   next();
 });
 
-module.exports = app;
+const getSslFilesOrYell = filepath => {
+  try {
+    return fs.readFileSync(filepath);
+  } catch (e) {
+    throw new Error(
+      `Could not read file path '${filepath}' to SSL key or certificate. Are they set correctly in .env?`
+    );
+  }
+};
 
+const httpsOptions = {
+  key: getSslFilesOrYell(process.env.HTTPS_KEY),
+  cert: getSslFilesOrYell(process.env.HTTPS_CERT)
+};
 // Start server and listen on port
-app.set('port', process.env.PORT || 3000);
+app.set('port', port);
 const server = app.listen(app.get('port'), () => {
   const host = server.address().address;
   const port = server.address().port;
-
-  logger.info('Listening at http://%s:%s', host, port);
+  logger.info(
+    'Unencrypted redirecting server listening at http://%s:%s',
+    host,
+    port
+  );
 });
+const httpsServer = https
+  .createServer(httpsOptions, app)
+  .listen(httpsPort, () => {
+    logger.info(
+      'Encrypted server listening at https://%s:%s',
+      server.address().address,
+      httpsPort
+    );
+  });
+
+module.exports = app;
