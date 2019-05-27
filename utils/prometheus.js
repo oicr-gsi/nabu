@@ -2,6 +2,8 @@
 
 const prometheus = require('prom-client');
 
+const ignoreFrom = process.env.IGNORE_ADDRESS || ''; // skip monitoring requests from IT's security servers
+
 // Prometheus monitoring
 prometheus.collectDefaultMetrics();
 const httpRequestDurationMilliseconds = new prometheus.Histogram({
@@ -19,12 +21,32 @@ const httpRequestCounter = new prometheus.Counter({
 
 const mostRecentFprImport = new prometheus.Gauge({
   name: 'fpr_most_recent_import',
-  help: 'Time (in seconds) that the File Provenance Report was most recently imported'
+  help:
+    'Time (in seconds) that the File Provenance Report was most recently imported'
 });
+
+const monitorAfterRequest = (req, res, next) => {
+  // log metrics after every request
+  if (
+    (ignoreFrom.length == 0 ||
+      !req.connection.remoteAddress.includes(ignoreFrom)) &&
+    req.originalUrl != '/metrics'
+  ) {
+    const path = req.route ? req.route.path : req.originalUrl;
+    if (req.hasOwnProperty('_startTime')) {
+      // if it doesn't, it's due to a user URL entry error causing the request to be cut short
+      const responseTimeInMs = Date.now() - Date.parse(req._startTime);
+      httpRequestDurationMilliseconds.labels(path).observe(responseTimeInMs);
+    }
+    httpRequestCounter.labels(path, req.method, res.statusCode).inc();
+  }
+  next();
+};
 
 module.exports = {
   httpRequestDurationMilliseconds: httpRequestDurationMilliseconds,
   httpRequestCounter: httpRequestCounter,
   mostRecentFprImport: mostRecentFprImport,
+  monitorAfterRequest: monitorAfterRequest,
   prometheus: prometheus
 };
