@@ -83,7 +83,12 @@ app.get('/fileqc/:identifier', fileQc.getFileQc);
 app.get('/fileqcs-only', fileQc.getAllBareFileQcs);
 app.post('/fileqcs', fileQc.addFileQc);
 app.post('/fileqcs/batch', fileQc.addManyFileQcs);
-app.post('/fileqcs/run-report', ad.authorizeADUser, fileQc.addManyFileQcs);
+app.post(
+  '/fileqcs/run-report',
+  ad.isUserAuthorized,
+  ad.authenticateADUser,
+  fileQc.addManyFileQcs
+);
 
 app.post('/delete-fileqcs', fileQc.deleteFileQcs);
 app.get('/metrics', async (req, res) => {
