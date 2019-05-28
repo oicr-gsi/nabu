@@ -1,7 +1,10 @@
 'use strict';
 
+const uid = require('uid');
 const winston = require('winston');
 const logLocation = process.env.LOG_LOCATION || 'logs';
+
+const ignoreFrom = process.env.IGNORE_ADDRESS || ''; // skip logging of requests from IT's security server
 
 const logger = new winston.Logger({
   transports: [
@@ -34,4 +37,33 @@ if (process.env.NODE_ENV !== 'production' || process.env.LOG_LEVEL != 'prod') {
   });
 }
 
-module.exports = logger;
+const addUID = (req, res, next) => {
+  // have to manually set this because there's no guarantee it'll be called this in future versions of Express
+  req._startTime = new Date();
+  // generate a unique identifier for each request, if one hasn't already been set
+  if (!req.uid) req.uid = uid();
+  res.uid = req.uid;
+  next();
+};
+
+const logRequestInfo = (req, res, next) => {
+  if (
+    (ignoreFrom.length == 0 ||
+      !req.connection.remoteAddress.includes(ignoreFrom)) &&
+    req.originalUrl != '/metrics'
+  ) {
+    logger.info({
+      uid: req.uid,
+      method: req.method,
+      url: req.originalUrl,
+      origin: req.connection.remoteAddress
+    });
+  }
+  next();
+};
+
+module.exports = {
+  logger: logger,
+  addUID: addUID,
+  logRequestInfo: logRequestInfo
+};

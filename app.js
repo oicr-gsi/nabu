@@ -1,7 +1,7 @@
 'use strict';
 
 require('dotenv').config();
-const ActiveDirectory = require('activedirectory2').promiseWrapper;
+const ad = require('./utils/activeDirectory');
 const bodyParser = require('body-parser');
 const compression = require('compression');
 const cors = require('cors');
@@ -11,27 +11,16 @@ const fileQc = require('./components/fileqcs/fileQcsController'); // controller 
 const fs = require('fs');
 const helmet = require('helmet');
 const https = require('https');
-const logger = require('./utils/logger');
+const log = require('./utils/logger');
 const path = require('path');
 const prom = require('./utils/prometheus');
 const swaggerSpec = require('./swagger.json');
 const swaggerUi = require('swagger-ui-express');
-const uid = require('uid');
 
 const app = express();
-const ignoreFrom = process.env.IGNORE_ADDRESS || ''; // to skip logging of requests from IT's security tests
 const port = process.env.PORT || 3000;
 const httpsPort = process.env.HTTPS_PORT || 8443;
-
-function configureActiveDirectory () {
-  if (process.env.AD_URL) {
-    return new ActiveDirectory({ url: process.env.AD_URL });
-  } else {
-    return null;
-  }
-}
-
-const ad = configureActiveDirectory();
+const logger = log.logger;
 
 const errorHandler = (err, req, res, next) => {
   if (res.headersSent) {
@@ -44,6 +33,11 @@ const errorHandler = (err, req, res, next) => {
     });
   } else {
     // unexpected error, so log it
+    logger.error({
+      error: 'Unexpected error',
+      details: err,
+      endpoint: req.originalUrl
+    });
     res.status(500);
     res.json({ errors: ['An unexpected error has occurred.'] });
   }
@@ -71,26 +65,7 @@ app.use((req, res, next) => {
 });
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/v1', express.Router());
-app.use((req, res, next) => {
-  // have to manually set this because there's no guarantee it'll be called this in future versions of Express
-  req._startTime = new Date();
-  // generate a unique identifier for each request, if one hasn't already been set
-  if (!req.uid) req.uid = uid();
-  res.uid = req.uid;
-  if (
-    (ignoreFrom.length == 0 ||
-      !req.connection.remoteAddress.includes(ignoreFrom)) &&
-    req.originalUrl != '/metrics'
-  ) {
-    logger.info({
-      uid: req.uid,
-      method: req.method,
-      url: req.originalUrl,
-      origin: req.connection.remoteAddress
-    });
-  }
-  next();
-});
+app.use(log.addUID, log.logRequestInfo);
 
 // home page
 app.get('/', (req, res) => {
@@ -102,50 +77,18 @@ app.get('/', (req, res) => {
 
 app.get('/available', fileQc.getAvailableConstants);
 
-const authorizeThenAddFileQcs = async (req, res, next) => {
-  if (ad === null)
-    return next({
-      status: 400,
-      errors: [
-        'Active Directory is not configured so QCs cannot be created from the run report page.'
-      ]
-    });
-  const allowedUsers = process.env.RR_AUTHORIZED_USERS.split(',');
-  if (!allowedUsers.includes(req.body.username)) {
-    return next({
-      status: 400,
-      errors: [
-        `User ${req.body.username} may not create QCs from the run report page.`
-      ]
-    });
-  }
-  const userPrincipalName = req.body.username + '@ad.oicr.on.ca';
-  try {
-    ad.authenticate(userPrincipalName, req.body.password, async (err, auth) => {
-      if (err) {
-        return next({ status: 400, errors: ['Error authenticating user'] });
-      } else if (auth) {
-        await fileQc.addManyFileQcs(req, res, next);
-        return next();
-      } else {
-        return next({
-          status: 400,
-          errors: [`Authentication failed for user ${req.body.username}`]
-        });
-      }
-    });
-  } catch (e) {
-    return next(e);
-  }
-};
-
 // routes to fileQC records
 app.get('/fileqcs', fileQc.getAllFileQcs);
 app.get('/fileqc/:identifier', fileQc.getFileQc);
 app.get('/fileqcs-only', fileQc.getAllBareFileQcs);
 app.post('/fileqcs', fileQc.addFileQc);
 app.post('/fileqcs/batch', fileQc.addManyFileQcs);
-app.post('/fileqcs/run-report', authorizeThenAddFileQcs);
+app.post(
+  '/fileqcs/run-report',
+  ad.isUserAuthorized,
+  ad.authenticateADUser,
+  fileQc.addManyFileQcs
+);
 
 app.post('/delete-fileqcs', fileQc.deleteFileQcs);
 app.get('/metrics', async (req, res) => {
@@ -164,25 +107,7 @@ app.get('/metrics', async (req, res) => {
 });
 
 app.use(errorHandler);
-app.use((req, res, next) => {
-  // log metrics after every request
-  if (
-    (ignoreFrom.length == 0 ||
-      !req.connection.remoteAddress.includes(ignoreFrom)) &&
-    req.originalUrl != '/metrics'
-  ) {
-    const path = req.route ? req.route.path : req.originalUrl;
-    if (req.hasOwnProperty('_startTime')) {
-      // if it doesn't, it's due to a user URL entry error causing the request to be cut short
-      const responseTimeInMs = Date.now() - Date.parse(req._startTime);
-      prom.httpRequestDurationMilliseconds
-        .labels(path)
-        .observe(responseTimeInMs);
-    }
-    prom.httpRequestCounter.labels(path, req.method, res.statusCode).inc();
-  }
-  next();
-});
+app.use(prom.monitorAfterRequest);
 
 const getSslFilesOrYell = filepath => {
   try {

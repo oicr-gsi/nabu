@@ -14,7 +14,8 @@ const fpr = new sqlite3.Database(
   process.env.SQLITE_LOCATION + '/fpr.db',
   sqlite3.OPEN_READWRITE
 );
-const logger = require('../../utils/logger');
+const log = require('../../utils/logger');
+const logger = log.logger;
 
 /* some projects are represented with two different names. This contains only the duplicates,
  * and maps the long name to the short name */

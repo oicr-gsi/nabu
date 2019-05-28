@@ -27,3 +27,5 @@ logs/*.log
 # SQLite3 test db
 test/fpr.db
 fpr.db
+# VS Code settings
+.vscode/
