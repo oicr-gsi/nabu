@@ -47,16 +47,21 @@ const addUID = (req, res, next) => {
 };
 
 const logRequestInfo = (req, res, next) => {
+  // If request comes from behind a proxy, `req.connection.remoteAddress` will be undefined.
+  // Make a best guess at getting the remote address.
+  const remoteAddress =
+    (req.headers['x-forwarded-for']
+      ? req.headers['x-forwarded-for'].split(',')[0]
+      : req.connection && req.connection.remoteAddress) || 'unknown';
   if (
-    (ignoreFrom.length == 0 ||
-      !req.connection.remoteAddress.includes(ignoreFrom)) &&
+    (ignoreFrom.length == 0 || !remoteAddress.matches(ignoreFrom)) &&
     req.originalUrl != '/metrics'
   ) {
     logger.info({
       uid: req.uid,
       method: req.method,
       url: req.originalUrl,
-      origin: req.connection.remoteAddress
+      origin: remoteAddress
     });
   }
   next();
