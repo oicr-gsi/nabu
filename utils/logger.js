@@ -54,7 +54,7 @@ const logRequestInfo = (req, res, next) => {
       ? req.headers['x-forwarded-for'].split(',')[0]
       : req.connection && req.connection.remoteAddress) || 'unknown';
   if (
-    (ignoreFrom.length == 0 || !remoteAddress.matches(ignoreFrom)) &&
+    (ignoreFrom.length == 0 || !remoteAddress.match(ignoreFrom)) &&
     req.originalUrl != '/metrics'
   ) {
     logger.info({
