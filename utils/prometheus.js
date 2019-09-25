@@ -2,7 +2,16 @@
 
 const prometheus = require('prom-client');
 
-const ignoreFrom = process.env.IGNORE_ADDRESS || ''; // skip monitoring requests from IT's security servers
+const monitoredEndpoints = [
+  '/available',
+  '/fileqc',
+  '/fileqcs',
+  '/fileqcs-only',
+  '/delete-fileqcs'
+];
+const isEndpointMonitored = url => {
+  return monitoredEndpoints.some(endpoint => url.startsWith(endpoint));
+};
 
 // Prometheus monitoring
 prometheus.collectDefaultMetrics();
@@ -27,11 +36,7 @@ const mostRecentFprImport = new prometheus.Gauge({
 
 const monitorAfterRequest = (req, res, next) => {
   // log metrics after every request
-  if (
-    (ignoreFrom.length == 0 ||
-      !req.connection.remoteAddress.includes(ignoreFrom)) &&
-    req.originalUrl != '/metrics'
-  ) {
+  if (isEndpointMonitored(req.originalUrl)) {
     const path = req.route ? req.route.path : req.originalUrl;
     if (req.hasOwnProperty('_startTime')) {
       // if it doesn't, it's due to a user URL entry error causing the request to be cut short

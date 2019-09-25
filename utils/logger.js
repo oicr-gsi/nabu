@@ -4,7 +4,16 @@ const uid = require('uid');
 const winston = require('winston');
 const logLocation = process.env.LOG_LOCATION || 'logs';
 
-const ignoreFrom = process.env.IGNORE_ADDRESS || ''; // skip logging of requests from IT's security server
+const monitoredEndpoints = [
+  '/available',
+  '/fileqc',
+  '/fileqcs',
+  '/fileqcs-only',
+  '/delete-fileqcs'
+];
+const isEndpointMonitored = url => {
+  return monitoredEndpoints.some(endpoint => url.startsWith(endpoint));
+};
 
 const logger = new winston.Logger({
   transports: [
@@ -53,10 +62,7 @@ const logRequestInfo = (req, res, next) => {
     (req.headers['x-forwarded-for']
       ? req.headers['x-forwarded-for'].split(',')[0]
       : req.connection && req.connection.remoteAddress) || 'unknown';
-  if (
-    (ignoreFrom.length == 0 || !remoteAddress.match(ignoreFrom)) &&
-    req.originalUrl != '/metrics'
-  ) {
+  if (isEndpointMonitored(req.originalUrl)) {
     logger.info({
       uid: req.uid,
       method: req.method,
