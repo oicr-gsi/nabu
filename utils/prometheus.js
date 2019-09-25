@@ -27,9 +27,12 @@ const mostRecentFprImport = new prometheus.Gauge({
 
 const monitorAfterRequest = (req, res, next) => {
   // log metrics after every request
+  const remoteAddress =
+    (req.headers['x-forwarded-for']
+      ? req.headers['x-forwarded-for'].split(',')[0]
+      : req.connection && req.connection.remoteAddress) || 'unknown';
   if (
-    (ignoreFrom.length == 0 ||
-      !req.connection.remoteAddress.includes(ignoreFrom)) &&
+    (ignoreFrom.length == 0 || remoteAddress.includes(ignoreFrom)) &&
     req.originalUrl != '/metrics'
   ) {
     const path = req.route ? req.route.path : req.originalUrl;
