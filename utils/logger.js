@@ -1,6 +1,6 @@
 'use strict';
 
-const uid = require('uid');
+const uid = require('uid').uid;
 const winston = require('winston');
 const logLocation = process.env.LOG_LOCATION || 'logs';
 

@@ -103,7 +103,7 @@ app.get('/metrics', async (req, res) => {
     });
   }
   res.set('Content-Type', prom.prometheus.register.contentType);
-  res.end(prom.prometheus.register.metrics());
+  res.end(await prom.prometheus.register.metrics());
 });
 
 app.use(errorHandler);
