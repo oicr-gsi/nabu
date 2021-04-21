@@ -89,11 +89,13 @@ $ npm start
 A Swagger/OpenAPI page will be available at <https://localhost:8443/api-docs/index.html>. (The port is 8443 by default; if you want to run Nabu on another port, start it up using `HTTPS_PORT=#### npm start`.)
 
 ## Development
-Run the linter before committing changes:
+
+Install _husky_ which will lint and prettify files on precommit:
 ```
-$ npm run lint
+$ npx husky install
+$ npx husky add .husky/pre-commit "npm run pre-commit"
+
 ```
-Linter settings are in .eslintrc.json .
 
 ## Testing
 

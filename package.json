@@ -9,7 +9,7 @@
     "start:prod": "NODE_ENV=production nodejs --abort-on-uncaught-exception app.js",
     "test": "PORT=3001 SQLITE_LOCATION=$(pwd)/test DB_CONNECTION=postgres://test:test@localhost/qcdb_test LOG_LEVEL=test mocha --exit",
     "lint": "eslint .",
-    "precommit": "lint-staged",
+    "pre-commit": "lint-staged",
     "fw:clean": "flyway -c conf/flyway.js clean",
     "fw:migrate": "flyway -c conf/flyway.js migrate",
     "pretest": ". test/setup_test_dbs.sh"
@@ -17,8 +17,7 @@
   "lint-staged": {
     "*.js": [
       "prettier --single-quote --write",
-      "eslint --fix .",
-      "git add"
+      "eslint --fix ."
     ]
   },
   "repository": {
