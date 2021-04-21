@@ -21,7 +21,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 const httpsPort = process.env.HTTPS_PORT || 8443;
 const logger = log.logger;
-
+ 
 const errorHandler = (err, req, res, next) => {
   if (res.headersSent) {
     return next(err);
@@ -129,18 +129,14 @@ const server = app.listen(app.get('port'), () => {
   const host = server.address().address;
   const port = server.address().port;
   logger.info(
-    'Unencrypted redirecting server listening at http://%s:%s',
-    host,
-    port
+    `Unencrypted redirecting server listening at http://${host}:${port}`
   );
 });
 const httpsServer = https
   .createServer(httpsOptions, app)
   .listen(httpsPort, () => {
     logger.info(
-      'Encrypted server listening at https://%s:%s',
-      server.address().address,
-      httpsPort
+      `Encrypted server listening at https://${server.address().address}:${httpsPort}`
     );
   });
 

@@ -1,7 +1,7 @@
 'use strict';
 
 const uid = require('uid').uid;
-const winston = require('winston');
+const { createLogger, format, transports } = require('winston');
 const logLocation = process.env.LOG_LOCATION || 'logs';
 
 const monitoredEndpoints = [
@@ -15,34 +15,30 @@ const isEndpointMonitored = url => {
   return monitoredEndpoints.some(endpoint => url.startsWith(endpoint));
 };
 
-const logger = new winston.Logger({
+const logger = createLogger({
+  format: format.combine(
+    format.timestamp(),
+    format.json()
+  ),
   transports: [
-    new winston.transports.File({
+    new transports.File({
       name: 'combined-log',
       filename: `${logLocation}/combined.log`,
       level: 'info',
-      handleException: true,
-      humanReadableUnhandledException: true,
-      colorize: true,
-      timestamp: 'tsFormat'
+      handleException: true
     }),
-    new winston.transports.File({
+    new transports.File({
       name: 'error-log',
       filename: `${logLocation}/error.log`,
       level: 'error',
-      handleException: true,
-      humanReadableUnhandledException: true,
-      colorize: true,
-      timestamp: 'tsFormat'
+      handleException: true
     })
   ]
 });
 
 if (process.env.NODE_ENV !== 'production' || process.env.LOG_LEVEL != 'prod') {
-  logger.add(winston.transports.Console, {
+  logger.add(new transports.Console, {
     level: 'debug',
-    colorize: true,
-    timestamp: 'tsFormat'
   });
 }
 
