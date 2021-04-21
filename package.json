@@ -10,8 +10,8 @@
     "test": "PORT=3001 SQLITE_LOCATION=$(pwd)/test DB_CONNECTION=postgres://test:test@localhost/qcdb_test LOG_LEVEL=test mocha --exit",
     "lint": "eslint .",
     "precommit": "lint-staged",
-    "fw:clean": "docker run --rm -v $(pwd)/conf:/flyway/conf -v $(pwd)/sql:/flyway/sql --network=host boxfuse/flyway clean",
-    "fw:migrate": "docker run --rm -v $(pwd)/conf:/flyway/conf -v $(pwd)/sql:/flyway/sql --network=host boxfuse/flyway migrate",
+    "fw:clean": "flyway -c conf/flyway.js clean",
+    "fw:migrate": "flyway -c conf/flyway.js migrate",
     "pretest": ". test/setup_test_dbs.sh"
   },
   "lint-staged": {
@@ -36,6 +36,7 @@
     "express": "^4.17.1",
     "helmet": "^4.4.1",
     "moment": "^2.29.1",
+    "node-flywaydb": "^3.0.5",
     "pg-promise": "^10.10.1",
     "pg-query-stream": "^4.1.0",
     "prom-client": "^13.1.0",
