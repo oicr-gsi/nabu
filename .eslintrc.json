@@ -41,6 +41,7 @@
         ],
       	"no-console": "warn",
         "no-var": "error",
-        "no-unused-vars": "warn"
+        "no-unused-vars": "warn",
+        "no-prototype-builtins": "warn"
     }
 }

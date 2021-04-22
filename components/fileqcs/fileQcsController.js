@@ -48,14 +48,14 @@ const getAllBareFileQcs = async (req, res, next) => {
   );
 
   try {
-    const streamed = await pg.stream(query, stream => {
+    const streamed = await pg.stream(query, (stream) => {
       res.status(200);
       stream.pipe(JSONStream.stringify()).pipe(res);
     });
     logger.info({
       streamRowsProcessed: streamed.processed,
       streamingDuration: streamed.duration,
-      method: 'getAllBareFileQcs'
+      method: 'getAllBareFileQcs',
     });
     next();
   } catch (e) {
@@ -73,7 +73,7 @@ const getFileQcBySwid = async (req, res, next) => {
 
     const results = await Promise.all([
       getSingleFprResult(swid),
-      getFqcsBySwid(swid)
+      getFqcsBySwid(swid),
     ]);
     if (results[1].errors && results[1].errors.length)
       throw generateError(500, results[1].errors[0]);
@@ -98,7 +98,7 @@ const getAllFileQcs = async (req, res, next) => {
       'workflow',
       'qcstatus',
       'run',
-      'showall'
+      'showall',
     ];
     validateQueryParams(validQueryParams, req.query);
     proj = nullifyIfBlank(validateProject(req.query.project));
@@ -129,73 +129,57 @@ const getAllFileQcs = async (req, res, next) => {
 };
 
 const getBySwids = async (swids, showAll) => {
-  try {
-    const results = await Promise.all([
-      getFprResultsBySwids(swids),
-      getFqcResultsBySwids(swids)
-    ]);
-    // merge the results from the File Provenance report and the FileQC database
-    const fileqcs = maybeReduceToMostRecent(results[1].fileqcs, showAll);
-    return mergeFprsAndFqcs(results[0], fileqcs, false);
-  } catch (e) {
-    throw e;
-  }
+  const results = await Promise.all([
+    getFprResultsBySwids(swids),
+    getFqcResultsBySwids(swids),
+  ]);
+  // merge the results from the File Provenance report and the FileQC database
+  const fileqcs = maybeReduceToMostRecent(results[1].fileqcs, showAll);
+  return mergeFprsAndFqcs(results[0], fileqcs, false);
 };
 
 const getByProjAndMaybeWorkflow = async (proj, workflow, showAll) => {
-  try {
-    const results = await Promise.all([
-      getFprResultsByProject(proj, workflow),
-      getFqcResultsByProject(proj)
-    ]);
-    const fileqcs = maybeReduceToMostRecent(results[1].fileqcs, showAll);
-    return mergeFprsAndFqcs(results[0], fileqcs, false);
-  } catch (e) {
-    throw e;
-  }
+  const results = await Promise.all([
+    getFprResultsByProject(proj, workflow),
+    getFqcResultsByProject(proj),
+  ]);
+  const fileqcs = maybeReduceToMostRecent(results[1].fileqcs, showAll);
+  return mergeFprsAndFqcs(results[0], fileqcs, false);
 };
 
 const getByProjAndQcStatus = async (proj, qcStatus, showAll) => {
-  try {
-    qcStatus = validateQcStatus(qcStatus);
-    const fqcs = await getFqcResultsByProjAndQcStatus(proj, qcStatus);
-    const fileqcs = maybeReduceToMostRecent(fqcs, showAll);
-    const swids = fileqcs.map(record => record.fileswid);
-    let fprs;
-    if ('PENDING' == qcStatus) {
-      // want both the FPR records with no FileQCs, as well as
-      // the FPR records with PENDING FileQCs and no PASS or FAIL FileQCs
-      qcStatus = convertQcStatusToBoolean(qcStatus);
-      const passedFqcs = await getFqcResultsByProjAndQcStatus(proj, 'PASS');
-      const passedFqcSwids = passedFqcs.map(fqc => fqc.fileswid);
-      const failedFqcs = await getFqcResultsByProjAndQcStatus(proj, 'FAIL');
-      const failedFqcSwids = failedFqcs.map(fqc => fqc.fileswid);
-      const allFprsForProj = await getFprResultsByProject(proj);
-      fprs = allFprsForProj.filter(fpr => {
-        return (
-          !passedFqcSwids.includes(fpr.fileswid) &&
-          !failedFqcSwids.includes(fpr.fileswid)
-        );
-      });
-    } else {
-      // get only the FPRs for the PASS/FAIL records requested
-      fprs = await getFprResultsBySwids(swids);
-    }
-    return mergeFprsAndFqcs(fprs, fileqcs, false);
-  } catch (e) {
-    throw e;
+  qcStatus = validateQcStatus(qcStatus);
+  const fqcs = await getFqcResultsByProjAndQcStatus(proj, qcStatus);
+  const fileqcs = maybeReduceToMostRecent(fqcs, showAll);
+  const swids = fileqcs.map((record) => record.fileswid);
+  let fprs;
+  if ('PENDING' == qcStatus) {
+    // want both the FPR records with no FileQCs, as well as
+    // the FPR records with PENDING FileQCs and no PASS or FAIL FileQCs
+    qcStatus = convertQcStatusToBoolean(qcStatus);
+    const passedFqcs = await getFqcResultsByProjAndQcStatus(proj, 'PASS');
+    const passedFqcSwids = passedFqcs.map((fqc) => fqc.fileswid);
+    const failedFqcs = await getFqcResultsByProjAndQcStatus(proj, 'FAIL');
+    const failedFqcSwids = failedFqcs.map((fqc) => fqc.fileswid);
+    const allFprsForProj = await getFprResultsByProject(proj);
+    fprs = allFprsForProj.filter((fpr) => {
+      return (
+        !passedFqcSwids.includes(fpr.fileswid) &&
+        !failedFqcSwids.includes(fpr.fileswid)
+      );
+    });
+  } else {
+    // get only the FPRs for the PASS/FAIL records requested
+    fprs = await getFprResultsBySwids(swids);
   }
+  return mergeFprsAndFqcs(fprs, fileqcs, false);
 };
 
-const getByRun = async run => {
-  try {
-    const fprs = await getFprResultsByRun(run);
-    const swids = fprs.map(fpr => fpr.fileswid);
-    const fqcResult = await getFqcResultsBySwids(swids);
-    return mergeFprsAndFqcs(fprs, fqcResult.fileqcs, true);
-  } catch (e) {
-    throw e;
-  }
+const getByRun = async (run) => {
+  const fprs = await getFprResultsByRun(run);
+  const swids = fprs.map((fpr) => fpr.fileswid);
+  const fqcResult = await getFqcResultsBySwids(swids);
+  return mergeFprsAndFqcs(fprs, fqcResult.fileqcs, true);
 };
 
 /**
@@ -208,7 +192,7 @@ const addFileQc = async (req, res, next) => {
       fileswid: validateInteger(req.query.fileswid, 'fileswid', true),
       username: validateUsername(req.query.username),
       comment: validateComment(req.query.comment),
-      qcpassed: validateQcStatus(req.query.qcstatus)
+      qcpassed: validateQcStatus(req.query.qcstatus),
     };
 
     const fpr = await getSingleFprResult(fqc.fileswid);
@@ -235,9 +219,10 @@ const hydrateOneFqcPreSave = (fpr, fqc) => {
 const hydrateFqcsPreSave = (fprs, fqcs, req) => {
   if (fprs.length > fqcs.length) {
     logger.error({
-      error: `[${req.uid}]: ended up with ${fprs.length -
-        fqcs.length} more FPR records than FQCs submitted.`,
-      method: 'hydrateFqcsPreSave'
+      error: `[${req.uid}]: ended up with ${
+        fprs.length - fqcs.length
+      } more FPR records than FQCs submitted.`,
+      method: 'hydrateFqcsPreSave',
     });
     throw new Error(
       'Error: multiple File Provenance records match a given File QC'
@@ -246,7 +231,7 @@ const hydrateFqcsPreSave = (fprs, fqcs, req) => {
     // fprHash: { fileswid: indexInFprArray }
     const fprHash = {};
     fprs.map((fpr, index) => (fprHash[fpr.fileswid] = index));
-    return fqcs.map(fqc => {
+    return fqcs.map((fqc) => {
       const correspondingFpr = fprs[fprHash[fqc.fileswid]] || {};
       return hydrateOneFqcPreSave(correspondingFpr, fqc);
     });
@@ -264,7 +249,7 @@ const addManyFileQcs = async (req, res, next) => {
     if (validationResults.errors.length)
       throw new ValidationError(validationResults.errors);
     const toSave = validationResults.validated;
-    const swids = toSave.map(record => record.fileswid);
+    const swids = toSave.map((record) => record.fileswid);
     const fprs = await getFprResultsBySwids(swids);
     const hydratedFqcs = hydrateFqcsPreSave(fprs, toSave, req);
     const fqcInserts = await addFqcs(hydratedFqcs);
@@ -287,7 +272,7 @@ const deleteManyFileQcs = async (req, res, next) => {
     if (!req.body.fileqcids || !req.body.fileqcids.length)
       throw generateError(400, 'Error: no "fileqcids" found in request body');
     const fqcIds = req.body.fileqcids.map(
-      fqcId => validateInteger(fqcId, 'fileQc ID', true),
+      (fqcId) => validateInteger(fqcId, 'fileQc ID', true),
       'fileqcid'
     );
     const username = validateUsername(req.body.username);
@@ -358,8 +343,8 @@ function validateIntegers (param, paramLabel) {
   if (nullifyIfBlank(param) == null) return null;
   return param
     .split(',')
-    .map(num => validateInteger(num, paramLabel))
-    .filter(num => !Number.isNaN(num));
+    .map((num) => validateInteger(num, paramLabel))
+    .filter((num) => !Number.isNaN(num));
 }
 
 function validateUsername (param) {
@@ -414,7 +399,7 @@ function convertQcStatusToBoolean (value) {
   const statusToBool = {
     pass: true,
     fail: false,
-    pending: null
+    pending: null,
   };
   if (typeof statusToBool[value] == 'undefined')
     throw new ValidationError(
@@ -429,7 +414,7 @@ function convertBooleanToQcStatus (value) {
   const boolToStatus = {
     true: 'PASS',
     false: 'FAIL',
-    null: 'PENDING'
+    null: 'PENDING',
   };
   if (typeof boolToStatus[value] === 'undefined') return 'PENDING';
   const status = boolToStatus[value];
@@ -443,7 +428,7 @@ function convertBooleanToQcStatus (value) {
 function generateError (statusCode, errorMessage) {
   const err = {
     status: statusCode,
-    errors: [errorMessage]
+    errors: [errorMessage],
   };
   return err;
 }
@@ -467,20 +452,20 @@ function handleErrors (e, defaultMessage, next) {
 /** returns an object { validated: {}, errors: [] } */
 function validateObjectsFromUser (unvalidatedObjects) {
   let validationErrors = [];
-  let validatedParams = unvalidatedObjects.map(unvalidated => {
+  let validatedParams = unvalidatedObjects.map((unvalidated) => {
     try {
       return {
         project: validateProject(unvalidated.project),
         qcpassed: validateQcStatus(unvalidated.qcstatus),
         username: validateUsername(unvalidated.username),
         comment: validateComment(unvalidated.comment),
-        fileswid: validateInteger(unvalidated.fileswid, 'fileswid', true)
+        fileswid: validateInteger(unvalidated.fileswid, 'fileswid', true),
       };
     } catch (e) {
       if (e instanceof ValidationError) {
         validationErrors.push({
           fileswid: unvalidated.fileswid,
-          error: e.message
+          error: e.message,
         });
         return null;
       } else {
@@ -515,16 +500,15 @@ function getSingleFprResult (swid) {
 function getFqcsBySwid (swid) {
   return new Promise((resolve, reject) => {
     const sql = 'SELECT * FROM FileQc WHERE fileswid = $1 AND deleted = FALSE';
-    pg
-      .any(sql, [swid])
-      .then(data => {
+    pg.any(sql, [swid])
+      .then((data) => {
         if (!data || data.length == 0) resolve({ fileqcs: [], errors: [] });
         if (Array.isArray(data)) {
           resolve({ fileqcs: data, errors: [] });
         }
         resolve({ fileqcs: [data], errors: [] });
       })
-      .catch(err => {
+      .catch((err) => {
         logger.error({ error: err, method: `getFqcsBySwid: ${swid}` });
         reject(generateError(500, 'Error retrieving record'));
       });
@@ -538,7 +522,7 @@ function listProjects () {
       [],
       (err, data) => {
         if (err) reject(generateError(500, err));
-        resolve(data ? data.map(fpRecord => fpRecord.project) : []);
+        resolve(data ? data.map((fpRecord) => fpRecord.project) : []);
       }
     );
   });
@@ -551,7 +535,7 @@ function listWorkflows () {
       [],
       (err, data) => {
         if (err) reject(generateError(500, err));
-        resolve(data ? data.map(fpRecord => fpRecord.workflow) : []);
+        resolve(data ? data.map((fpRecord) => fpRecord.workflow) : []);
       }
     );
   });
@@ -577,7 +561,7 @@ function getIndexedPlaceholders (items, offset = 0) {
 function getQuotedPlaceholders (workflowNames) {
   return workflowNames
     .split(',')
-    .map(wf => '\'' + wf + '\'')
+    .map((wf) => '\'' + wf + '\'')
     .join(', ');
 }
 
@@ -647,15 +631,14 @@ function getFqcResultsByProject (project) {
     ' AND deleted = FALSE' +
     ' ORDER BY fileswid ASC';
   return new Promise((resolve, reject) => {
-    pg
-      .any(select, projectNames)
-      .then(data => {
+    pg.any(select, projectNames)
+      .then((data) => {
         resolve({ fileqcs: data ? data : [], errors: [] });
       })
-      .catch(err => {
+      .catch((err) => {
         logger.error({
           error: err,
-          method: `getFqcResultsByProject:${project}`
+          method: `getFqcResultsByProject:${project}`,
         });
         reject(generateError(500, 'Error retrieving records'));
       });
@@ -674,12 +657,11 @@ function getFqcResultsBySwids (swids) {
       ')' +
       ' AND deleted = FALSE' +
       ' ORDER BY fileswid ASC';
-    pg
-      .any(sql)
-      .then(data => {
+    pg.any(sql)
+      .then((data) => {
         resolve({ fileqcs: data ? data : [], errors: [] });
       })
-      .catch(err => {
+      .catch((err) => {
         logger.error({ error: err, method: 'getFqcResultsBySwids' });
         reject(generateError(500, 'Error retrieving records'));
       });
@@ -689,17 +671,16 @@ function getFqcResultsBySwids (swids) {
 /** success returns an object containing the fileswid and an array of errors */
 function addSingleFqc (fqc) {
   return new Promise((resolve, reject) => {
-    pg
-      .task('add-one', t => {
-        // wrapping in a transaction for error handling
-        const insert = pgp.helpers.insert(fqc, fqcCols) + ' RETURNING fileqcid';
-        return t.one(insert);
-      })
-      .then(data => {
+    pg.task('add-one', (t) => {
+      // wrapping in a transaction for error handling
+      const insert = pgp.helpers.insert(fqc, fqcCols) + ' RETURNING fileqcid';
+      return t.one(insert);
+    })
+      .then((data) => {
         data['errors'] = [];
         resolve(data);
       })
-      .catch(err => {
+      .catch((err) => {
         logger.error({ error: err, method: `addSingleFqc:${fqc.fileswid}` });
         reject(generateError(500, 'Failed to create FileQC record'));
       });
@@ -713,19 +694,18 @@ const fqcCols = new pgp.helpers.ColumnSet(
 
 function addFqcs (fqcs) {
   return new Promise((resolve, reject) => {
-    pg
-      .task('add-many', t => {
-        // wrapping in a transaction for error handling
-        const insert = pgp.helpers.insert(fqcs, fqcCols);
-        return t.none(insert);
-      })
+    pg.task('add-many', (t) => {
+      // wrapping in a transaction for error handling
+      const insert = pgp.helpers.insert(fqcs, fqcCols);
+      return t.none(insert);
+    })
       .then(() => {
         const returnInfo = fqcs.sort((a, b) => {
           return parseInt(a.fileswid) - parseInt(b.fileswid);
         });
         return resolve({ fileqcs: returnInfo, errors: [] });
       })
-      .catch(err => {
+      .catch((err) => {
         logger.error({ error: err, method: 'addFqcs' });
         reject(generateError(500, 'Failed to create FileQC records'));
       });
@@ -739,11 +719,10 @@ const deleteFqcs = (fileQcIds, username) => {
     const delete_stmt = `UPDATE FileQC SET deleted = TRUE, 
       comment = CONCAT(comment, '. Deleted by ${extraValidUserName} at ${new Date()}')
       WHERE fileqcid IN (${fqcPlaceholders}) RETURNING fileqcid`;
-    pg
-      .any(delete_stmt, fileQcIds)
-      .then(data => {
-        data = data.map(d => d.fileqcid);
-        const undeleted = fileQcIds.filter(id => data.indexOf(id) == -1);
+    pg.any(delete_stmt, fileQcIds)
+      .then((data) => {
+        data = data.map((d) => d.fileqcid);
+        const undeleted = fileQcIds.filter((id) => data.indexOf(id) == -1);
         const yay = [];
         if (data.length) {
           yay.push(`Deleted FileQC(s) ${data.join(', ')}. `);
@@ -751,20 +730,19 @@ const deleteFqcs = (fileQcIds, username) => {
         const nay = [];
         if (undeleted.length) {
           nay.push(`Failed to delete FileQC(s) ${undeleted.join(', ')}.`);
-          pg
-            .any(
-              `SELECT fileqcid FROM FileQC WHERE fileqcid IN (${undeleted.join(
-                ','
-              )})`
-            )
-            .then(data => {
-              const notInDb = undeleted.filter(id => !data.includes(id));
+          pg.any(
+            `SELECT fileqcid FROM FileQC WHERE fileqcid IN (${undeleted.join(
+              ','
+            )})`
+          )
+            .then((data) => {
+              const notInDb = undeleted.filter((id) => !data.includes(id));
               if (notInDb.length) {
                 nay.push(`FileQC ID(s) do not exist: ${notInDb.join(', ')}`);
               }
               return resolve({ success: yay, errors: nay });
             })
-            .catch(err => {
+            .catch((err) => {
               logger.error({ error: err, method: 'deleteFqcs' });
               return resolve({ success: yay, errors: nay });
             });
@@ -772,7 +750,7 @@ const deleteFqcs = (fileQcIds, username) => {
           return resolve({ success: yay, errors: nay });
         }
       })
-      .catch(err => {
+      .catch((err) => {
         logger.error({ error: err, method: `deleteFqcs:${username}` });
         return reject(generateError(500, 'Failed to delete FileQC records'));
       });
@@ -790,10 +768,9 @@ const getFqcResultsByProjAndQcStatus = (proj, qcpassed) => {
     (qcpassed == null ? 'IS NULL' : '= $' + (params.length + 1)) +
     ' ORDER BY fileswid ASC';
   return new Promise((resolve, reject) => {
-    pg
-      .any(select, params.concat([qcpassed]))
-      .then(data => resolve(data))
-      .catch(err => reject(generateError(500, err)));
+    pg.any(select, params.concat([qcpassed]))
+      .then((data) => resolve(data))
+      .catch((err) => reject(generateError(500, err)));
   });
 };
 
@@ -849,17 +826,17 @@ function mergeOneFileResult (fpr, fqc) {
  * this returns all results sorted by fileswid */
 function mergeFprsAndFqcs (fprs, fqcs, includeRunInfo) {
   // first, remove run info if necessary
-  fprs = fprs.map(fpr => maybeRemoveRunInfo(includeRunInfo, fpr));
+  fprs = fprs.map((fpr) => maybeRemoveRunInfo(includeRunInfo, fpr));
   // merge the FileQCs with FPRs first...
-  const fqcswids = fqcs.map(fqc => parseInt(fqc.fileswid));
-  const mergedFqcs = fqcs.map(fqc => {
-    const filteredFprs = fprs.filter(fpr => fpr.fileswid == fqc.fileswid);
+  const fqcswids = fqcs.map((fqc) => parseInt(fqc.fileswid));
+  const mergedFqcs = fqcs.map((fqc) => {
+    const filteredFprs = fprs.filter((fpr) => fpr.fileswid == fqc.fileswid);
     return maybeMergeResult(filteredFprs, [fqc], fqc.fileswid);
   });
   // ...then the requested FPRs with no associated FileQCs...
   const bareFprs = fprs
-    .filter(fpr => !fqcswids.includes(fpr.fileswid))
-    .map(fpr => yesFprNoFqc(fpr));
+    .filter((fpr) => !fqcswids.includes(fpr.fileswid))
+    .map((fpr) => yesFprNoFqc(fpr));
   const all = mergedFqcs.concat(bareFprs);
   //...then order them all by swid (or date, if two swids have same date)
   all.sort(sortBySwidOrDate);
@@ -945,7 +922,7 @@ function parseUpstream (upstream) {
   } else if (Array.isArray(upstream)) {
     return upstream;
   } else {
-    return upstream.split(';').map(us => parseInt(us));
+    return upstream.split(';').map((us) => parseInt(us));
   }
 }
 
@@ -957,5 +934,5 @@ module.exports = {
   addManyFileQcs: addManyFileQcs,
   getAvailableConstants: getAvailableConstants,
   deleteFileQcs: deleteManyFileQcs,
-  getMostRecentFprImportTime: getMostRecentFprImportTime
+  getMostRecentFprImportTime: getMostRecentFprImportTime,
 };
