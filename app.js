@@ -21,7 +21,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 const httpsPort = process.env.HTTPS_PORT || 8443;
 const logger = log.logger;
- 
+
 const errorHandler = (err, req, res, next) => {
   if (res.headersSent) {
     return next(err);
@@ -29,14 +29,14 @@ const errorHandler = (err, req, res, next) => {
   if (err.status) {
     res.status(err.status);
     res.json({
-      errors: err.errors || err.message || err
+      errors: err.errors || err.message || err,
     });
   } else {
     // unexpected error, so log it
     logger.error({
       error: 'Unexpected error',
       details: err,
-      endpoint: req.originalUrl
+      endpoint: req.originalUrl,
     });
     res.status(500);
     res.json({ errors: ['An unexpected error has occurred.'] });
@@ -83,12 +83,20 @@ app.get('/fileqc/:identifier', fileQc.getFileQc);
 app.get('/fileqcs-only', fileQc.getAllBareFileQcs);
 app.post('/fileqcs', fileQc.addFileQc);
 app.post('/fileqcs/batch', fileQc.addManyFileQcs);
-app.post(
-  '/fileqcs/run-report',
-  ad.isUserAuthorized,
-  ad.authenticateADUser,
-  fileQc.addManyFileQcs
-);
+// deliberate indirection here so as to not turn it on by accident
+if (process.env.DEACTIVATE_AD_AUTH === 'false') {
+  app.post(
+    '/fileqcs/batch-signed',
+    ad.isUserAuthorized,
+    ad.authenticateADUser,
+    // if user is authenticated by this point, add the signed bit to the request
+    (req, res, next) => {
+      req.query.signed = true;
+      next();
+    },
+    fileQc.addManyFileQcs
+  );
+}
 
 app.post('/delete-fileqcs', fileQc.deleteFileQcs);
 app.get('/metrics', async (req, res) => {
@@ -99,7 +107,7 @@ app.get('/metrics', async (req, res) => {
     logger.error({
       error: 'Error getting most recent File Provenance Report import time',
       details: e,
-      method: '/metrics endpoint'
+      method: '/metrics endpoint',
     });
   }
   res.set('Content-Type', prom.prometheus.register.contentType);
@@ -109,7 +117,7 @@ app.get('/metrics', async (req, res) => {
 app.use(errorHandler);
 app.use(prom.monitorAfterRequest);
 
-const getSslFilesOrYell = filepath => {
+const getSslFilesOrYell = (filepath) => {
   try {
     return fs.readFileSync(filepath);
   } catch (e) {
@@ -121,7 +129,7 @@ const getSslFilesOrYell = filepath => {
 
 const httpsOptions = {
   key: getSslFilesOrYell(process.env.HTTPS_KEY),
-  cert: getSslFilesOrYell(process.env.HTTPS_CERT)
+  cert: getSslFilesOrYell(process.env.HTTPS_CERT),
 };
 // Start server and listen on port
 app.set('port', port);
@@ -136,7 +144,9 @@ const httpsServer = https
   .createServer(httpsOptions, app)
   .listen(httpsPort, () => {
     logger.info(
-      `Encrypted server listening at https://${server.address().address}:${httpsPort}`
+      `Encrypted server listening at https://${
+        server.address().address
+      }:${httpsPort}`
     );
   });
 
