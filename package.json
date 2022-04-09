@@ -34,7 +34,7 @@
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "helmet": "^4.4.1",
-    "moment": "^2.29.1",
+    "moment": "^2.29.2",
     "node-flywaydb": "^3.0.5",
     "pg-promise": "^10.10.1",
     "pg-query-stream": "^4.1.0",
