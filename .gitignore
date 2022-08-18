@@ -2,6 +2,7 @@
 conf/flyway.conf
 # environment variables file
 .env
+!test/.env
 # node modules (they'll all be unpacked with npm install anyway)
 node_modules/
 # EXCEPT keep the Flyway directory because the flywaydb-cli package

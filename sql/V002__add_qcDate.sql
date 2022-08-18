@@ -9,5 +9,5 @@ CREATE FUNCTION update_qcDate() RETURNS trigger
   END;
 $$;
 
-DROP TRIGGER IF EXISTS fileQc_add_qcDate_timestamp ON qcdb.FileQc;
+DROP TRIGGER IF EXISTS fileQc_add_qcDate_timestamp ON FileQc;
 CREATE TRIGGER fileQc_add_qcDate_timestamp BEFORE INSERT OR UPDATE ON FileQc FOR EACH ROW EXECUTE PROCEDURE update_qcDate();

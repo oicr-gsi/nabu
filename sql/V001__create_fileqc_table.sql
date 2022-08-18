@@ -1,6 +1,3 @@
--- Host: localhost        Database: qcdb
-
-
 DROP TABLE IF EXISTS FileQc;
 CREATE TABLE FileQc (
   fileswid bigint PRIMARY KEY,
