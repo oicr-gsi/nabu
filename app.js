@@ -1,6 +1,5 @@
 'use strict';
 
-require('dotenv').config();
 const ad = require('./utils/activeDirectory');
 const bodyParser = require('body-parser');
 const compression = require('compression');
@@ -127,10 +126,6 @@ const getSslFilesOrYell = (filepath) => {
   }
 };
 
-const httpsOptions = {
-  key: getSslFilesOrYell(process.env.HTTPS_KEY),
-  cert: getSslFilesOrYell(process.env.HTTPS_CERT),
-};
 // Start server and listen on port
 app.set('port', port);
 const server = app.listen(app.get('port'), () => {
@@ -140,14 +135,5 @@ const server = app.listen(app.get('port'), () => {
     `Unencrypted redirecting server listening at http://${host}:${port}`
   );
 });
-const httpsServer = https
-  .createServer(httpsOptions, app)
-  .listen(httpsPort, () => {
-    logger.info(
-      `Encrypted server listening at https://${
-        server.address().address
-      }:${httpsPort}`
-    );
-  });
 
 module.exports = app;

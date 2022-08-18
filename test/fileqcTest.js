@@ -1,7 +1,6 @@
 'use strict';
 
-process.env.NODE_ENV = 'test';
-
+require('dotenv').config({ path: __dirname + '/.env' }); // Use test-specific .env file
 const chai = require('chai');
 const expect = chai.expect;
 const chaiExclude = require('chai-exclude');
@@ -22,7 +21,7 @@ const revertFprDb = controller.__set__('fpr', {});
 chai.use(chaiHttp);
 chai.use(chaiExclude);
 
-const recreateFprDb = async cmd => {
+const recreateFprDb = async (cmd) => {
   await cmd.run(
     'sqlite3 ' +
       process.env.SQLITE_LOCATION +
@@ -57,7 +56,7 @@ describe('Unit test FileQcController', () => {
       skip: 'false',
       stalestatus: 'OKAY',
       project: 'IPSCellLineReprogramming',
-      upstream: []
+      upstream: [],
     },
     12019: {
       fileswid: 12019,
@@ -66,7 +65,7 @@ describe('Unit test FileQcController', () => {
       skip: 'false',
       stalestatus: 'OKAY',
       project: 'IPSCellLineReprogramming',
-      upstream: []
+      upstream: [],
     },
     12025: {
       fileswid: 12025,
@@ -75,8 +74,8 @@ describe('Unit test FileQcController', () => {
       skip: 'false',
       stalestatus: 'OKAY',
       project: 'IPSCellLineReprogramming',
-      upstream: []
-    }
+      upstream: [],
+    },
   };
   const fqcs = {
     12017: {
@@ -86,7 +85,7 @@ describe('Unit test FileQcController', () => {
       project: 'IPSCellLineReprogramming',
       qcpassed: false,
       username: 'test',
-      comment: 'failed for test'
+      comment: 'failed for test',
     },
     12018: {
       fileswid: 12018,
@@ -94,7 +93,7 @@ describe('Unit test FileQcController', () => {
       filepath: '/oicr/deleted/items',
       username: 'me',
       comment: null,
-      qcpassed: false
+      qcpassed: false,
     },
     12025: {
       fileswid: 12025,
@@ -103,13 +102,13 @@ describe('Unit test FileQcController', () => {
         '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11714/11714_ACTTGA_L002_R1_001.fastq.gz',
       username: 'me',
       comment: null,
-      qcpassed: true
-    }
+      qcpassed: true,
+    },
   };
   const mergeOne = controller.__get__('mergeOneFileResult');
   const mergeFileResults = controller.__get__('mergeFprsAndFqcs');
 
-  it('should return all data when some inputs are present in FPR, others in FQC, and some in both', done => {
+  it('should return all data when some inputs are present in FPR, others in FQC, and some in both', (done) => {
     const expected = [
       {
         fileswid: 12017,
@@ -121,7 +120,7 @@ describe('Unit test FileQcController', () => {
         comment: 'failed for test',
         upstream: [],
         skip: 'false',
-        stalestatus: 'OKAY'
+        stalestatus: 'OKAY',
       },
       {
         fileswid: 12018,
@@ -129,7 +128,7 @@ describe('Unit test FileQcController', () => {
         filepath: '/oicr/deleted/items',
         username: 'me',
         qcstatus: 'FAIL',
-        stalestatus: 'NOT IN FILE PROVENANCE'
+        stalestatus: 'NOT IN FILE PROVENANCE',
       },
       {
         fileswid: 12019,
@@ -139,7 +138,7 @@ describe('Unit test FileQcController', () => {
         stalestatus: 'OKAY',
         project: 'IPSCellLineReprogramming',
         upstream: [],
-        qcstatus: 'PENDING'
+        qcstatus: 'PENDING',
       },
       {
         fileswid: 12025,
@@ -150,8 +149,8 @@ describe('Unit test FileQcController', () => {
         qcstatus: 'PASS',
         upstream: [],
         skip: 'false',
-        stalestatus: 'OKAY'
-      }
+        stalestatus: 'OKAY',
+      },
     ];
     const actual = mergeFileResults(
       [fprs['12017'], fprs['12019'], fprs['12025']],
@@ -166,7 +165,7 @@ describe('Unit test FileQcController', () => {
     done();
   });
 
-  it('should merge file results when item is found in both FPR and FQC', done => {
+  it('should merge file results when item is found in both FPR and FQC', (done) => {
     const expected = {
       fileswid: 12017,
       filepath:
@@ -177,7 +176,7 @@ describe('Unit test FileQcController', () => {
       upstream: [],
       qcstatus: 'FAIL',
       username: 'test',
-      comment: 'failed for test'
+      comment: 'failed for test',
     };
     const actual = mergeOne(fprs['12017'], fqcs['12017']);
     expect(actual)
@@ -187,7 +186,7 @@ describe('Unit test FileQcController', () => {
     done();
   });
 
-  it('should return FileQc results with "NOT IN PROVENANCE" when there is no FPR record', done => {
+  it('should return FileQc results with "NOT IN PROVENANCE" when there is no FPR record', (done) => {
     const expected = {
       fileswid: 12017,
       filepath:
@@ -196,7 +195,7 @@ describe('Unit test FileQcController', () => {
       stalestatus: 'NOT IN FILE PROVENANCE',
       qcstatus: 'FAIL',
       username: 'test',
-      comment: 'failed for test'
+      comment: 'failed for test',
     };
     const actual = mergeOne({}, fqcs['12017']);
     expect(actual)
@@ -206,7 +205,7 @@ describe('Unit test FileQcController', () => {
     done();
   });
 
-  it('should return FPR result with qcstatus "PENDING" when there is no FQC record', done => {
+  it('should return FPR result with qcstatus "PENDING" when there is no FQC record', (done) => {
     const expected = {
       fileswid: 12017,
       filepath:
@@ -215,7 +214,7 @@ describe('Unit test FileQcController', () => {
       skip: 'false',
       stalestatus: 'OKAY',
       qcstatus: 'PENDING',
-      upstream: []
+      upstream: [],
     };
     const actual = mergeOne(fprs['12017'], {});
     expect(actual)
@@ -234,7 +233,7 @@ describe('available constants', () => {
     await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
   });
   describe('GET available constants', () => {
-    it('it should list available projects and workflows', done => {
+    it('it should list available projects and workflows', (done) => {
       chai
         .request(server)
         .get('/available')
@@ -259,7 +258,7 @@ describe('FileQC', () => {
   });
 
   describe('GET fileQc by id', () => {
-    it('it should GET one PENDING FileQC', done => {
+    it('it should GET one PENDING FileQC', (done) => {
       chai
         .request(server)
         .get('/fileqc/12019')
@@ -278,7 +277,7 @@ describe('FileQC', () => {
         });
     });
 
-    it('it should GET one PASS FileQC', done => {
+    it('it should GET one PASS FileQC', (done) => {
       chai
         .request(server)
         .get('/fileqc/12017')
@@ -294,7 +293,7 @@ describe('FileQC', () => {
         });
     });
 
-    it('it should GET one FAIL FileQC not in File Provenance', done => {
+    it('it should GET one FAIL FileQC not in File Provenance', (done) => {
       chai
         .request(server)
         .get('/fileqc/12018')
@@ -311,7 +310,7 @@ describe('FileQC', () => {
         });
     });
 
-    it('it should GET zero results for one unknown FileQC', done => {
+    it('it should GET zero results for one unknown FileQC', (done) => {
       chai
         .request(server)
         .get('/fileqc/11')
@@ -325,19 +324,19 @@ describe('FileQC', () => {
   });
 
   describe('GET FileQCs', () => {
-    it('it should error on invalid parameters', done => {
+    it('it should error on invalid parameters', (done) => {
       chai
         .request(server)
         .get('/fileqcs?nonsense=param&project=IPSCellLineReprogramming')
         .end((err, res) => {
           expect(res.status).to.equal(400);
-          expect(res.body.errors).to.not.be.empty;
+          expect(res.body.errors[0]).to.not.be.null;
           expect(res.body.errors[0].includes('Invalid parameter')).to.be.true;
           done();
         });
     });
 
-    it('it should GET all FileQCs for a given project', done => {
+    it('it should GET all FileQCs for a given project', (done) => {
       chai
         .request(server)
         .get('/fileqcs?project=IPSCellLineReprogramming')
@@ -350,7 +349,7 @@ describe('FileQC', () => {
         });
     });
 
-    it('it should GET all FileQCs for given file SWIDs', done => {
+    it('it should GET all FileQCs for given file SWIDs', (done) => {
       chai
         .request(server)
         .get('/fileqcs?fileswids=12017,12018')
@@ -364,7 +363,7 @@ describe('FileQC', () => {
         });
     });
 
-    it('it should GET multiple FileQCs for a single SWID if extra param is added', done => {
+    it('it should GET multiple FileQCs for a single SWID if extra param is added', (done) => {
       chai
         .request(server)
         .get('/fileqcs?fileswids=12020&showall=true')
@@ -385,7 +384,7 @@ describe('FileQC', () => {
         });
     });
 
-    it('it should GET one FileQC for a single SWID if no extra param is added', done => {
+    it('it should GET one FileQC for a single SWID if no extra param is added', (done) => {
       chai
         .request(server)
         .get('/fileqcs?fileswids=12020')
@@ -397,7 +396,7 @@ describe('FileQC', () => {
         });
     });
 
-    it('it should not return files for gibberish projects', done => {
+    it('it should not return files for gibberish projects', (done) => {
       chai
         .request(server)
         .get('/fileqcs?project=UNKNOWN')
@@ -421,7 +420,7 @@ describe('FileQC', () => {
     }
     const params = ['fileswid=12019', 'username=me', 'qcstatus=PASS'];
     for (let counter = 0; counter < params.length; counter++) {
-      it('it should not POST a FileQC with any of the following missing: fileswid, username, qcstatus', done => {
+      it('it should not POST a FileQC with any of the following missing: fileswid, username, qcstatus', (done) => {
         const currentParams = params
           .filter((param, index) => index !== counter)
           .join('&');
@@ -429,7 +428,7 @@ describe('FileQC', () => {
       });
     }
 
-    it('it should create a new FileQC for a new SWID with a status PENDING', done => {
+    it('it should create a new FileQC for a new SWID with a status PENDING', (done) => {
       chai
         .request(server)
         .post('/fileqcs?fileswid=12022&username=me&qcstatus=PENDING')
@@ -440,7 +439,7 @@ describe('FileQC', () => {
         });
     });
 
-    it('it should create a new FileQC for a new SWID', done => {
+    it('it should create a new FileQC for a new SWID', (done) => {
       chai
         .request(server)
         .post('/fileqcs?' + params.join('&'))
@@ -452,7 +451,7 @@ describe('FileQC', () => {
         });
     });
 
-    it('it should create a new FileQC for the same SWID', done => {
+    it('it should create a new FileQC for the same SWID', (done) => {
       const getFor12017 = '/fileqcs?fileswids=12017';
       chai
         .request(server)
@@ -490,7 +489,7 @@ describe('FileQC', () => {
   });
 
   describe('batch POST FileQCs', () => {
-    it('it should succeed in creating multiple FileQCs for one request', done => {
+    it('it should succeed in creating multiple FileQCs for one request', (done) => {
       chai
         .request(server)
         .post('/fileqcs/batch')
@@ -500,14 +499,14 @@ describe('FileQC', () => {
             {
               fileswid: 12019,
               qcstatus: 'PASS',
-              username: 'me'
+              username: 'me',
             },
             {
               fileswid: 12025,
               qcstatus: 'PASS',
-              username: 'me'
-            }
-          ]
+              username: 'me',
+            },
+          ],
         })
         .end((err, res) => {
           expect(res.status).to.equal(200);
@@ -520,7 +519,7 @@ describe('FileQC', () => {
   });
 
   describe('batch DELETE FileQCs', () => {
-    it('it should succeed in deleting a FileQC', done => {
+    it('it should succeed in deleting a FileQC', (done) => {
       chai
         .request(server)
         .get('/fileqcs?fileswids=12016')
@@ -532,7 +531,7 @@ describe('FileQC', () => {
             .set('content-type', 'application/json')
             .send({
               fileqcids: [fqcId],
-              username: 'me'
+              username: 'me',
             })
             .end((err, res) => {
               expect(res.status).to.equal(200);
@@ -543,14 +542,14 @@ describe('FileQC', () => {
         });
     });
 
-    it('it should fail to delete a non-existent FileQC', done => {
+    it('it should fail to delete a non-existent FileQC', (done) => {
       chai
         .request(server)
         .post('/delete-fileqcs')
         .set('content-type', 'application/json')
         .send({
           fileqcids: [21221008773217],
-          username: 'mistaken'
+          username: 'mistaken',
         })
         .end((err, res) => {
           expect(res.status).to.equal(200);

@@ -1,7 +1,8 @@
 'use strict';
 
+const dbConnectionString = `postgres://${process.env.DB_USER}:${process.env.DB_PW}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`;
 const pgp = require('pg-promise')({});
-const pg = pgp(process.env.DB_CONNECTION);
+const pg = pgp(dbConnectionString);
 const queryStream = require('pg-query-stream');
 const JSONStream = require('JSONStream');
 const moment = require('moment');
