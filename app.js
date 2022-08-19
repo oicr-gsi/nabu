@@ -1,5 +1,10 @@
 'use strict';
 
+if (process.env.NODE_ENV != 'TEST') {
+  // Only read dotenv config here if this is not running tests
+  // Tests run their own dotenv config
+  require('dotenv').config();
+}
 const ad = require('./utils/activeDirectory');
 const bodyParser = require('body-parser');
 const compression = require('compression');
@@ -51,10 +56,11 @@ app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(bodyParser.json({ type: 'application/json', limit: '50mb' }));
 // redirect http requests to https in production
 app.use((req, res, next) => {
+  // Only /metrics can be accessed via HTTP, unless NO_SSL is 'true' in .env file (not for production!)
   if (
     !req.secure &&
     req.originalUrl !== '/metrics' &&
-    process.env.NODE_ENV === 'production'
+    (process.env.NODE_ENV === 'production' || process.env.NO_SSL != 'true')
   ) {
     const host = req.get('Host').split(':')[0];
     // using 307 Temporary Redirect preserves the original HTTP method in the request.
@@ -116,16 +122,6 @@ app.get('/metrics', async (req, res) => {
 app.use(errorHandler);
 app.use(prom.monitorAfterRequest);
 
-const getSslFilesOrYell = (filepath) => {
-  try {
-    return fs.readFileSync(filepath);
-  } catch (e) {
-    throw new Error(
-      `Could not read file path '${filepath}' to SSL key or certificate. Are they set correctly in .env?`
-    );
-  }
-};
-
 // Start server and listen on port
 app.set('port', port);
 const server = app.listen(app.get('port'), () => {
@@ -135,5 +131,33 @@ const server = app.listen(app.get('port'), () => {
     `Unencrypted redirecting server listening at http://${host}:${port}`
   );
 });
+
+if (process.env.NODE_ENV == 'production' || process.env.NO_SSL != 'true') {
+  // Run https server as well in production or if NO_SSL has been disabled in dev
+  const getSslFilesOrYell = (filepath) => {
+    try {
+      return fs.readFileSync(filepath);
+    } catch (e) {
+      console.log(e);
+      throw new Error(
+        `Could not read file path '${filepath}'. Are HTTPS_KEY and HTTPS_CERT set correctly in .env?`
+      );
+    }
+  };
+
+  const httpsOptions = {
+    key: getSslFilesOrYell(process.env.HTTPS_KEY),
+    cert: getSslFilesOrYell(process.env.HTTPS_CERT),
+  };
+  const httpsServer = https
+    .createServer(httpsOptions, app)
+    .listen(httpsPort, () => {
+      logger.info(
+        `Encrypted server listening at https://${
+          server.address().address
+        }:${httpsPort}`
+      );
+    });
+}
 
 module.exports = app;
