@@ -442,9 +442,11 @@ function handleErrors (e, defaultMessage, next) {
     logger.info({ error: e.errors });
     return next(e); // generateError has already been called, usually because it's a user error
   } else if (defaultMessage) {
+    if (process.env.DEBUG) console.log(e);
     logger.error({ error: e, method: 'handleErrors' });
     next(generateError(500, defaultMessage));
   } else {
+    if (process.env.DEBUG) console.log(e);
     logger.error({ error: e, method: 'handleErrors' });
     next(generateError(500, 'Error'));
   }
