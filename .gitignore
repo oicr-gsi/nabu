@@ -20,7 +20,8 @@ components/fpr/backups/*fpr.tsv
 components/fpr/fpr-latest.tsv
 # sqlite database
 components/fpr/fpr.db*
-test/fpr.db-*
+test/fpr.db*
+test/migrations/create_fpr_table.sql
 # logs
 logs/*.log
 # any future tokens or other config items
