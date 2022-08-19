@@ -12,11 +12,12 @@ docker run -d --rm --name "${PG_DB_CONTAINER_NAME}" -p 5436:5432 -e POSTGRES_USE
 mkdir -p test/sql
 cp sql/V*.sql test/sql/
 cp test/migrations/V9*.sql test/sql/
+cp components/fpr/create_fpr_table.sql test/migrations/
 
 CURRENT=$(pwd)
 cd test/
 export SQLITE_LOCATION=$(pwd)
-sqlite3 fpr.db < migrations/create_test_fpr.sql
+sqlite3 fpr.db < migrations/create_fpr_table.sql
 echo "Recreated FPR test table"
 cd "${CURRENT}"
 
@@ -24,4 +25,4 @@ docker run --rm -v $(pwd)/test:/flyway/conf -v $(pwd)/test/sql:/flyway/sql --net
 		docker run --rm -v $(pwd)/test:/flyway/conf -v $(pwd)/test/sql:/flyway/sql --network=host flyway/flyway migrate
 
 rm -r $(pwd)/test/sql
-
+rm $(pwd)/test/migrations/create_fpr_table.sql
