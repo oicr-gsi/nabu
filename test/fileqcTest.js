@@ -225,6 +225,17 @@ describe('Unit test FileQcController', () => {
   });
 });
 
+const get = (server, path) => {
+  return chai.request(server).get(path);
+};
+const post = (server, path, requestBody = {}) => {
+  return chai
+    .request(server)
+    .post(path)
+    .set('content-type', 'application/json')
+    .send(requestBody);
+};
+
 describe('available constants', () => {
   before(async () => {
     recreateFprDb(cmd);
@@ -234,17 +245,14 @@ describe('available constants', () => {
   });
   describe('GET available constants', () => {
     it('it should list available projects and workflows', (done) => {
-      chai
-        .request(server)
-        .get('/available')
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body).to.be.a('object');
-          expect(res.body).to.have.keys('workflows', 'projects');
-          expect(res.body.workflows).to.not.be.empty;
-          expect(res.body.projects).to.not.be.empty;
-          done();
-        });
+      get(server, '/available').end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body).to.be.a('object');
+        expect(res.body).to.have.keys('workflows', 'projects');
+        expect(res.body.workflows).to.not.be.empty;
+        expect(res.body.projects).to.not.be.empty;
+        done();
+      });
     });
   });
 });
@@ -259,164 +267,133 @@ describe('FileQC', () => {
 
   describe('GET fileQc by id', () => {
     it('it should GET one PENDING FileQC', (done) => {
-      chai
-        .request(server)
-        .get('/fileqc/12019')
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body).to.be.a('object');
-          expect(res.body.fileqcs).to.be.a('array');
-          expect(res.body.fileqcs).to.have.length(1);
-          expect(res.body.fileqcs[0].fileswid).to.equal(12019);
-          expect(res.body.fileqcs[0].qcstatus).to.equal('PENDING');
-          expect(res.body.fileqcs[0]).to.not.have.any.keys(
-            'username',
-            'comment'
-          );
-          done();
-        });
+      get(server, '/fileqc/12019').end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body).to.be.a('object');
+        expect(res.body.fileqcs).to.be.a('array');
+        expect(res.body.fileqcs).to.have.length(1);
+        expect(res.body.fileqcs[0].fileswid).to.equal(12019);
+        expect(res.body.fileqcs[0].qcstatus).to.equal('PENDING');
+        expect(res.body.fileqcs[0]).to.not.have.any.keys('username', 'comment');
+        done();
+      });
     });
 
     it('it should GET one PASS FileQC', (done) => {
-      chai
-        .request(server)
-        .get('/fileqc/12017')
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body).to.be.a('object');
-          expect(res.body.fileqcs).to.be.a('array');
-          expect(res.body.fileqcs[0].fileswid).to.equal(12017);
-          expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
-          expect(res.body.fileqcs[0].username).to.equal('me');
-          expect(res.body.fileqcs[0]).to.have.property('comment');
-          done();
-        });
+      get(server, '/fileqc/12017').end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body).to.be.a('object');
+        expect(res.body.fileqcs).to.be.a('array');
+        expect(res.body.fileqcs[0].fileswid).to.equal(12017);
+        expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
+        expect(res.body.fileqcs[0].username).to.equal('me');
+        expect(res.body.fileqcs[0]).to.have.property('comment');
+        done();
+      });
     });
 
     it('it should GET one FAIL FileQC not in File Provenance', (done) => {
-      chai
-        .request(server)
-        .get('/fileqc/12018')
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body).to.be.a('object');
-          expect(res.body.fileqcs).to.be.a('array');
-          expect(res.body.fileqcs[0].fileswid).to.equal(12018);
-          expect(res.body.fileqcs[0].qcstatus).to.equal('FAIL');
-          expect(res.body.fileqcs[0].stalestatus).to.equal(
-            'NOT IN FILE PROVENANCE'
-          );
-          done();
-        });
+      get(server, '/fileqc/12018').end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body).to.be.a('object');
+        expect(res.body.fileqcs).to.be.a('array');
+        expect(res.body.fileqcs[0].fileswid).to.equal(12018);
+        expect(res.body.fileqcs[0].qcstatus).to.equal('FAIL');
+        expect(res.body.fileqcs[0].stalestatus).to.equal(
+          'NOT IN FILE PROVENANCE'
+        );
+        done();
+      });
     });
 
     it('it should GET zero results for one unknown FileQC', (done) => {
-      chai
-        .request(server)
-        .get('/fileqc/11')
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body).to.be.a('object');
-          expect(res.body.fileqcs).to.be.empty;
-          done();
-        });
+      get(server, '/fileqc/11').end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body).to.be.a('object');
+        expect(res.body.fileqcs).to.be.empty;
+        done();
+      });
     });
   });
 
   describe('GET FileQCs', () => {
     it('it should error on invalid parameters', (done) => {
-      chai
-        .request(server)
-        .get('/fileqcs?nonsense=param&project=IPSCellLineReprogramming')
-        .end((err, res) => {
-          expect(res.status).to.equal(400);
-          expect(res.body.errors[0]).to.not.be.null;
-          expect(res.body.errors[0].includes('Invalid parameter')).to.be.true;
-          done();
-        });
+      get(
+        server,
+        '/fileqcs?nonsense=param&project=IPSCellLineReprogramming'
+      ).end((err, res) => {
+        expect(res.status).to.equal(400);
+        expect(res.body.errors[0]).to.not.be.null;
+        expect(res.body.errors[0].includes('Invalid parameter')).to.be.true;
+        done();
+      });
     });
 
     it('it should GET all FileQCs for a given project', (done) => {
-      chai
-        .request(server)
-        .get('/fileqcs?project=IPSCellLineReprogramming')
-        .end((err, res) => {
+      get(server, '/fileqcs?project=IPSCellLineReprogramming').end(
+        (err, res) => {
           expect(res.status).to.equal(200);
           expect(res.body).to.be.a('object');
           expect(res.body.fileqcs).to.be.a('array');
           expect(res.body.fileqcs).to.have.lengthOf(4);
           done();
-        });
+        }
+      );
     });
 
     it('it should GET all FileQCs for given file SWIDs', (done) => {
-      chai
-        .request(server)
-        .get('/fileqcs?fileswids=12017,12018')
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body.fileqcs).to.be.a('array');
-          expect(res.body.fileqcs).to.have.lengthOf(2);
-          expect(res.body.fileqcs[0].fileswid).to.equal(12017);
-          expect(res.body.fileqcs[1].fileswid).to.equal(12018);
-          done();
-        });
+      get(server, '/fileqcs?fileswids=12017,12018').end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body.fileqcs).to.be.a('array');
+        expect(res.body.fileqcs).to.have.lengthOf(2);
+        expect(res.body.fileqcs[0].fileswid).to.equal(12017);
+        expect(res.body.fileqcs[1].fileswid).to.equal(12018);
+        done();
+      });
     });
 
     it('it should GET multiple FileQCs for a single SWID if extra param is added', (done) => {
-      chai
-        .request(server)
-        .get('/fileqcs?fileswids=12020&showall=true')
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body.fileqcs).to.be.a('array');
-          expect(res.body.fileqcs).to.have.lengthOf(2);
-          expect(res.body.fileqcs[0].fileswid).to.equal(
-            res.body.fileqcs[1].fileswid
-          );
-          expect(res.body.fileqcs[0].workflow).to.equal(
-            res.body.fileqcs[1].workflow
-          );
-          expect(res.body.fileqcs[0].qcstatus).to.not.equal(
-            res.body.fileqcs[1].qcstatus
-          );
-          done();
-        });
+      get(server, '/fileqcs?fileswids=12020&showall=true').end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body.fileqcs).to.be.a('array');
+        expect(res.body.fileqcs).to.have.lengthOf(2);
+        expect(res.body.fileqcs[0].fileswid).to.equal(
+          res.body.fileqcs[1].fileswid
+        );
+        expect(res.body.fileqcs[0].workflow).to.equal(
+          res.body.fileqcs[1].workflow
+        );
+        expect(res.body.fileqcs[0].qcstatus).to.not.equal(
+          res.body.fileqcs[1].qcstatus
+        );
+        done();
+      });
     });
 
     it('it should GET one FileQC for a single SWID if no extra param is added', (done) => {
-      chai
-        .request(server)
-        .get('/fileqcs?fileswids=12020')
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body.fileqcs).to.be.a('array');
-          expect(res.body.fileqcs).to.have.lengthOf(1);
-          done();
-        });
+      get(server, '/fileqcs?fileswids=12020').end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body.fileqcs).to.be.a('array');
+        expect(res.body.fileqcs).to.have.lengthOf(1);
+        done();
+      });
     });
 
     it('it should not return files for gibberish projects', (done) => {
-      chai
-        .request(server)
-        .get('/fileqcs?project=UNKNOWN')
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body.fileqcs).to.be.empty;
-          done();
-        });
+      get(server, '/fileqcs?project=UNKNOWN').end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body.fileqcs).to.be.empty;
+        done();
+      });
     });
   });
 
   describe('POST FileQC', () => {
     function assertNotSaved (parms, done, missing) {
-      chai
-        .request(server)
-        .post('/fileqcs?' + parms)
-        .end((err, res) => {
-          expect(res.status, 'creating without param ' + missing).to.equal(400);
-          done();
-        });
+      post(server, '/fileqcs?' + parms).end((err, res) => {
+        expect(res.status, 'creating without param ' + missing).to.equal(400);
+        done();
+      });
     }
     const params = ['fileswid=12019', 'username=me', 'qcstatus=PASS'];
     for (let counter = 0; counter < params.length; counter++) {
@@ -429,134 +406,104 @@ describe('FileQC', () => {
     }
 
     it('it should create a new FileQC for a new SWID with a status PENDING', (done) => {
-      chai
-        .request(server)
-        .post('/fileqcs?fileswid=12022&username=me&qcstatus=PENDING')
-        .end((err, res) => {
+      post(server, '/fileqcs?fileswid=12022&username=me&qcstatus=PENDING').end(
+        (err, res) => {
           expect(res.status).to.equal(201);
           expect(res.body.fileqc.qcstatus).to.equal('PENDING');
           done();
-        });
+        }
+      );
     });
 
     it('it should create a new FileQC for a new SWID', (done) => {
-      chai
-        .request(server)
-        .post('/fileqcs?' + params.join('&'))
-        .end((err, res) => {
-          expect(res.status).to.equal(201);
-          expect(res.body.fileqc).to.have.property('upstream');
-          expect(res.body.fileqc.qcstatus).to.equal('PASS');
-          done();
-        });
+      post(server, '/fileqcs?' + params.join('&')).end((err, res) => {
+        expect(res.status).to.equal(201);
+        expect(res.body.fileqc).to.have.property('upstream');
+        expect(res.body.fileqc.qcstatus).to.equal('PASS');
+        done();
+      });
     });
 
     it('it should create a new FileQC for the same SWID', (done) => {
       const getFor12017 = '/fileqcs?fileswids=12017';
-      chai
-        .request(server)
-        .get(getFor12017)
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body.fileqcs).to.have.lengthOf(1);
-          chai
-            .request(server)
-            .post(
-              '/fileqcs?fileswid=12017&qcstatus=FAIL&username=test&comment=failed%20for%20test'
-            )
-            .end((err, res) => {
-              expect(res.status).to.equal(201);
-              expect(res.body.fileqc).to.have.property('upstream');
-              expect(res.body.fileqc.qcstatus).to.equal('FAIL');
-              chai
-                .request(server)
-                .get(getFor12017)
-                .end((err, res) => {
-                  expect(res.status).to.equal(200);
-                  expect(res.body.fileqcs).to.have.lengthOf(1);
-                });
-              chai
-                .request(server)
-                .get(getFor12017 + '&showall=true')
-                .end((err, res) => {
-                  expect(res.status).to.equal(200);
-                  expect(res.body.fileqcs).to.have.lengthOf(2);
-                });
-            });
-          done();
+      get(server, getFor12017).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body.fileqcs).to.have.lengthOf(1);
+        post(
+          server,
+          '/fileqcs?fileswid=12017&qcstatus=FAIL&username=test&comment=failed%20for%20test'
+        ).end((err, res) => {
+          expect(res.status).to.equal(201);
+          expect(res.body.fileqc).to.have.property('upstream');
+          expect(res.body.fileqc.qcstatus).to.equal('FAIL');
+          get(server, getFor12017).end((err, res) => {
+            expect(res.status).to.equal(200);
+            expect(res.body.fileqcs).to.have.lengthOf(1);
+          });
+          get(server, getFor12017 + '&showall=true').end((err, res) => {
+            expect(res.status).to.equal(200);
+            expect(res.body.fileqcs).to.have.lengthOf(2);
+          });
         });
+        done();
+      });
     });
   });
 
   describe('batch POST FileQCs', () => {
     it('it should succeed in creating multiple FileQCs for one request', (done) => {
-      chai
-        .request(server)
-        .post('/fileqcs/batch')
-        .set('content-type', 'application/json')
-        .send({
-          fileqcs: [
-            {
-              fileswid: 12019,
-              qcstatus: 'PASS',
-              username: 'me',
-            },
-            {
-              fileswid: 12025,
-              qcstatus: 'PASS',
-              username: 'me',
-            },
-          ],
-        })
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body.fileqcs).to.have.lengthOf(2);
-          expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
-          expect(res.body.fileqcs[1].qcstatus).to.equal('PASS');
-          done();
-        });
+      const postBody = {
+        fileqcs: [
+          {
+            fileswid: 12019,
+            qcstatus: 'PASS',
+            username: 'me',
+          },
+          {
+            fileswid: 12025,
+            qcstatus: 'PASS',
+            username: 'me',
+          },
+        ],
+      };
+      post(server, '/fileqcs/batch', postBody).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body.fileqcs).to.have.lengthOf(2);
+        expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
+        expect(res.body.fileqcs[1].qcstatus).to.equal('PASS');
+        done();
+      });
     });
   });
 
   describe('batch DELETE FileQCs', () => {
     it('it should succeed in deleting a FileQC', (done) => {
-      chai
-        .request(server)
-        .get('/fileqcs?fileswids=12016')
-        .end((err, res) => {
-          const fqcId = res.body.fileqcs[0].fileqcid;
-          chai
-            .request(server)
-            .post('/delete-fileqcs')
-            .set('content-type', 'application/json')
-            .send({
-              fileqcids: [fqcId],
-              username: 'me',
-            })
-            .end((err, res) => {
-              expect(res.status).to.equal(200);
-              expect(res.body.success).not.to.be.empty;
-              expect(res.body.success[0]).to.match(/^Deleted FileQC.*/);
-            });
-          done();
+      get(server, '/fileqcs?fileswids=12016').end((err, res) => {
+        const fqcId = res.body.fileqcs[0].fileqcid;
+        const deleteRequest = {
+          fileqcids: [fqcId],
+          username: 'me',
+        };
+        post(server, '/delete-fileqcs', deleteRequest).end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.body.success).not.to.be.empty;
+          expect(res.body.success[0]).to.match(/^Deleted FileQC.*/);
         });
+        done();
+      });
     });
 
     it('it should fail to delete a non-existent FileQC', (done) => {
-      chai
-        .request(server)
-        .post('/delete-fileqcs')
-        .set('content-type', 'application/json')
-        .send({
-          fileqcids: [21221008773217],
-          username: 'mistaken',
-        })
-        .end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body.errors).not.to.be.empty;
-          expect(res.body.errors[0]).to.match(/^Failed to delete FileQC.*/);
-          done();
-        });
+      const deleteBody = {
+        fileqcids: [21221008773217],
+        username: 'mistaken',
+      };
+      post(server, '/delete-fileqcs', deleteBody).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body.errors).not.to.be.empty;
+        expect(res.body.errors[0]).to.match(/^Failed to delete FileQC.*/);
+        done();
+      });
     });
   });
 });
