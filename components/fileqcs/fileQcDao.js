@@ -136,6 +136,45 @@ const getByProject = (projects) => {
   });
 };
 
+const get = (projects, qcStatus, workflow, fileids, swids) => {
+  let offset = 0;
+  let query = 'SELECT * FROM fileqc ';
+  let queryParts = [];
+  let realValues = [];
+  let buildQuery = (param, appendFn) => {
+    // don't run if param is falsey
+    if (param) {
+      queryParts.push(appendFn());
+      realValues.push(param);
+      offset += Array.isArray(param) ? param.length : 1;
+    }
+  };
+  //    buildQuery(projects, () => {
+  //      return ' project IN (' + getIndexedPlaceholders(projects, offset) + ') ';
+  //    }
+  buildQuery(fileids, () => {
+    return ' fileid IN (' + getIndexedPlaceholders(fileids, offset) + ') ';
+  });
+  const fullQuery =
+    query + ' WHERE ' + queryParts.filter((a) => a).join(' AND ');
+
+  console.log('full query: ' + fullQuery);
+
+  if (realValues.length == 0) {
+    // no data requested, no data returned
+    return Promise.resolve([]);
+  }
+
+  return new Promise((resolve, reject) => {
+    pg.any(
+      fullQuery,
+      realValues.flatMap((a) => a)
+    )
+      .then((data) => resolve(data))
+      .catch((err) => reject(generateError(500, err)));
+  });
+};
+
 const getByProjectAndQcStatus = (projects, qcpassed) => {
   let select =
     'SELECT * FROM FileQC WHERE project IN (' +
@@ -193,6 +232,7 @@ const getBySwids = (swids) => {
 
 module.exports = {
   streamAllFileQcs: streamAllFileQcs,
+  getFileQcs: get,
   getByProject: getByProject,
   getByProjectAndQcStatus: getByProjectAndQcStatus,
   getBySwid: getBySwid,

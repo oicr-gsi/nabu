@@ -83,6 +83,7 @@ app.get('/', (req, res) => {
 app.get('/available', fileQc.getAvailableConstants);
 
 // routes to fileQC records
+app.post('/get-fileqcs', fileQc.getFileQcs);
 app.get('/fileqcs', fileQc.getAllFileQcs);
 app.get('/fileqc/:identifier', fileQc.getFileQc);
 app.get('/fileqcs-only', fileQc.streamFileQcs);
