@@ -14,9 +14,6 @@ const path = require('path');
 // but then we mock the databases so that it should never be an issue.
 const rewire = require('rewire');
 const controller = rewire('../components/fileqcs/fileQcsController');
-// __set__ returns a function which reverts the changes introduced by this particular __set__ call
-const revertPgDb = controller.__set__('pg', {});
-const revertFprDb = controller.__set__('fpr', {});
 
 chai.use(chaiHttp);
 chai.use(chaiExclude);
@@ -28,24 +25,17 @@ const recreateFprDb = async (cmd) => {
       '/fpr.db < ' +
       path.resolve(__dirname, './migrations/create_test_fpr.sql')
   );
-  await cmd.run(
-    'sqlite3 ' +
-      process.env.SQLITE_LOCATION +
-      '/fpr.db < ' +
-      path.resolve(__dirname, './migrations/V9000__test_data.sql')
-  );
 };
 
 describe('Unit test FileQcController', () => {
   before(async () => {
     recreateFprDb(cmd);
-  });
-  beforeEach(async () => {
     await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
   });
-  after(() => {
-    revertPgDb();
-    revertFprDb();
+  beforeEach(async () => {
+    await cmd.run(
+      `export PGPASSWORD=${process.env.DB_PW}; psql -U ${process.env.DB_USER} -h ${process.env.localhost} -p ${process.env.port} ${process.env.DB_NAME} -f ./test/migrations/V9000__test_data.sql`
+    );
   });
 
   const fprs = {
@@ -265,7 +255,7 @@ describe('FileQC', () => {
     await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
   });
 
-  describe('GET fileQc by id', () => {
+  describe('GET fileQc by swid', () => {
     it('it should GET one PENDING FileQC', (done) => {
       get(server, '/fileqc/12019').end((err, res) => {
         expect(res.status).to.equal(200);
@@ -404,16 +394,6 @@ describe('FileQC', () => {
         assertNotSaved(currentParams, done, params[counter]);
       });
     }
-
-    it('it should create a new FileQC for a new SWID with a status PENDING', (done) => {
-      post(server, '/fileqcs?fileswid=12022&username=me&qcstatus=PENDING').end(
-        (err, res) => {
-          expect(res.status).to.equal(201);
-          expect(res.body.fileqc.qcstatus).to.equal('PENDING');
-          done();
-        }
-      );
-    });
 
     it('it should create a new FileQC for a new SWID', (done) => {
       post(server, '/fileqcs?' + params.join('&')).end((err, res) => {

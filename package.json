@@ -7,11 +7,13 @@
     "start": "node app.js",
     "start:dev": "nodemon app.js",
     "start:prod": "NODE_ENV=production node --abort-on-uncaught-exception app.js",
-    "test": "mocha --exit && docker stop pgtestdb",
+    "test": "mocha --exit",
     "lint": "eslint .",
     "pre-commit": "lint-staged",
     "fw:clean": "docker run --rm -v $(pwd)/conf:/flyway/conf -v $(pwd)/sql:/flyway/sql --network=host flyway/flyway -cleanDisabled=false clean",
     "fw:migrate": "docker run --rm -v $(pwd)/conf:/flyway/conf -v $(pwd)/sql:/flyway/sql --network=host flyway/flyway migrate",
+    "fw:test-clean": "docker run --rm -v $(pwd)/test:/flyway/conf -v $(pwd)/test/migrations:/flyway/sql --network=host -cleanDisabled=false flyway/flyway clean",
+    "fw:test-migrate": "docker run --rm -v $(pwd)/test:/flyway/conf -v $(pwd)/test/migrations:/flyway/sql --network=host flyway/flyway migrate",
     "pretest": ". test/setup_test_dbs.sh"
   },
   "lint-staged": {
