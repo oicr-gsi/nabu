@@ -30,16 +30,15 @@ const recreateFprDb = async (cmd) => {
 describe('Unit test FileQcController', () => {
   before(async () => {
     recreateFprDb(cmd);
-    await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
   });
   beforeEach(async () => {
-    await cmd.run(
-      `export PGPASSWORD=${process.env.DB_PW}; psql -U ${process.env.DB_USER} -h ${process.env.localhost} -p ${process.env.port} ${process.env.DB_NAME} -f ./test/migrations/V9000__test_data.sql`
-    );
+    await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
   });
 
   const fprs = {
     12017: {
+      fileid: 'vidarr:research/file/123',
+      md5sum: 'aabb',
       fileswid: 12017,
       filepath:
         '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R1_001.fastq.gz',
@@ -58,6 +57,8 @@ describe('Unit test FileQcController', () => {
       upstream: [],
     },
     12025: {
+      fileid: 'vidarr:research/file/456',
+      md5sum: 'ccdd',
       fileswid: 12025,
       filepath:
         '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11714/11714_ACTTGA_L002_R1_001.fastq.gz',
@@ -69,6 +70,8 @@ describe('Unit test FileQcController', () => {
   };
   const fqcs = {
     12017: {
+      fileid: 'vidarr:research/file/123',
+      md5sum: 'aabb',
       fileswid: 12017,
       filepath:
         '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R1_001.fastq.gz',
@@ -86,6 +89,8 @@ describe('Unit test FileQcController', () => {
       qcpassed: false,
     },
     12025: {
+      fileid: 'vidarr:research/file/456',
+      md5sum: 'ccdd',
       fileswid: 12025,
       project: 'IPSCellLineReprogramming',
       filepath:
@@ -101,6 +106,8 @@ describe('Unit test FileQcController', () => {
   it('should return all data when some inputs are present in FPR, others in FQC, and some in both', (done) => {
     const expected = [
       {
+        fileid: 'vidarr:research/file/123',
+        md5sum: 'aabb',
         fileswid: 12017,
         filepath:
           '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R1_001.fastq.gz',
@@ -131,6 +138,8 @@ describe('Unit test FileQcController', () => {
         qcstatus: 'PENDING',
       },
       {
+        fileid: 'vidarr:research/file/456',
+        md5sum: 'ccdd',
         fileswid: 12025,
         project: 'IPSCellLineReprogramming',
         filepath:
@@ -157,6 +166,8 @@ describe('Unit test FileQcController', () => {
 
   it('should merge file results when item is found in both FPR and FQC', (done) => {
     const expected = {
+      fileid: 'vidarr:research/file/123',
+      md5sum: 'aabb',
       fileswid: 12017,
       filepath:
         '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R1_001.fastq.gz',
@@ -178,6 +189,8 @@ describe('Unit test FileQcController', () => {
 
   it('should return FileQc results with "NOT IN PROVENANCE" when there is no FPR record', (done) => {
     const expected = {
+      fileid: 'vidarr:research/file/123',
+      md5sum: 'aabb',
       fileswid: 12017,
       filepath:
         '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R1_001.fastq.gz',
@@ -197,6 +210,8 @@ describe('Unit test FileQcController', () => {
 
   it('should return FPR result with qcstatus "PENDING" when there is no FQC record', (done) => {
     const expected = {
+      fileid: 'vidarr:research/file/123',
+      md5sum: 'aabb',
       fileswid: 12017,
       filepath:
         '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R1_001.fastq.gz',
