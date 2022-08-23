@@ -85,7 +85,7 @@ app.get('/available', fileQc.getAvailableConstants);
 // routes to fileQC records
 app.get('/fileqcs', fileQc.getAllFileQcs);
 app.get('/fileqc/:identifier', fileQc.getFileQc);
-app.get('/fileqcs-only', fileQc.getAllBareFileQcs);
+app.get('/fileqcs-only', fileQc.streamFileQcs);
 app.post('/fileqcs', fileQc.addFileQc);
 app.post('/fileqcs/batch', fileQc.addManyFileQcs);
 // deliberate indirection here so as to not turn it on by accident
@@ -138,7 +138,6 @@ if (process.env.NODE_ENV == 'production' || process.env.NO_SSL != 'true') {
     try {
       return fs.readFileSync(filepath);
     } catch (e) {
-      console.log(e);
       throw new Error(
         `Could not read file path '${filepath}'. Are HTTPS_KEY and HTTPS_CERT set correctly in .env?`
       );
@@ -149,15 +148,13 @@ if (process.env.NODE_ENV == 'production' || process.env.NO_SSL != 'true') {
     key: getSslFilesOrYell(process.env.HTTPS_KEY),
     cert: getSslFilesOrYell(process.env.HTTPS_CERT),
   };
-  const httpsServer = https
-    .createServer(httpsOptions, app)
-    .listen(httpsPort, () => {
-      logger.info(
-        `Encrypted server listening at https://${
-          server.address().address
-        }:${httpsPort}`
-      );
-    });
+  https.createServer(httpsOptions, app).listen(httpsPort, () => {
+    logger.info(
+      `Encrypted server listening at https://${
+        server.address().address
+      }:${httpsPort}`
+    );
+  });
 }
 
 module.exports = app;

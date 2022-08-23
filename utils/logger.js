@@ -46,7 +46,7 @@ const logger = createLogger({
   transports: transportsForEnvironment,
 });
 
-if (process.env.NODE_ENV !== 'production' || process.env.LOG_LEVEL != 'prod') {
+if (process.env.NODE_ENV !== 'production' && process.env.LOG_LEVEL != 'prod') {
   logger.add(new transports.Console(), {
     level: 'debug',
   });
