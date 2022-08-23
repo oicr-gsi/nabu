@@ -58,7 +58,7 @@ const getFileQcBySwid = async (req, res, next) => {
     const showAll = validateShowAll(req.query.showall);
 
     const results = await Promise.all([
-      fprDao.getBySwids([swid]),
+      fprDao.getByIds([swid], []),
       fileQcDao.getBySwid(swid),
     ]);
     if (results[1].errors && results[1].errors.length)
@@ -72,14 +72,61 @@ const getFileQcBySwid = async (req, res, next) => {
   }
 };
 
+const getFileQcs = async (req, res, next) => {
+  try {
+    let proj, fileids, swids, run, workflow, qcStatus, showAll;
+    const validQueryParams = [
+      'project',
+      'fileids',
+      'fileswids',
+      'workflow',
+      'qcstatus',
+      'run',
+      'showall',
+    ];
+    validateQueryParams(validQueryParams, req.body);
+    proj = nullifyIfBlank(validateProject(req.body.project));
+    qcStatus = nullifyIfBlank(req.body.qcstatus);
+    workflow = nullifyIfBlank(req.body.workflow);
+    fileids = nullifyIfBlank(req.body.fileids);
+    swids = validateIntegers(req.body.fileswids, 'fileswid');
+    run = nullifyIfBlank(req.body.run);
+    showAll = validateShowAll(req.body.showall);
+
+    let fqcResults = await fileQcDao.getFileQcs(
+      proj,
+      qcStatus,
+      workflow,
+      fileids,
+      swids
+    );
+    let fprResults;
+    if ((fileids && fileids.length > 0) || (swids && swids.length > 0)) {
+      // search by IDs
+      fprResults = await fprDao.getByIds(swids, fileids);
+    } else {
+      // search by projects, workflows
+      fprResults = await fprDao.getByProjects(proj, workflow);
+    }
+    // TODO: filter by run
+    const fileqcs = maybeReduceToMostRecent(fqcResults, showAll);
+    const merged = mergeFprsAndFqcs(fprResults, fileqcs, false);
+    res.status(200).json({ fileqcs: merged });
+    next();
+  } catch (e) {
+    handleErrors(e, 'Error getting records', next);
+  }
+};
+
 /**
  * Get all FileQCs restricted by Project (with optional QC Status or Workflow), or File SWIDs, or Run
  */
 const getAllFileQcs = async (req, res, next) => {
   try {
-    let proj, swids, run, workflow, qcStatus, showAll;
+    let proj, fileids, swids, run, workflow, qcStatus, showAll;
     const validQueryParams = [
       'project',
+      'fileids',
       'fileswids',
       'workflow',
       'qcstatus',
@@ -88,6 +135,7 @@ const getAllFileQcs = async (req, res, next) => {
     ];
     validateQueryParams(validQueryParams, req.query);
     proj = nullifyIfBlank(validateProject(req.query.project));
+    fileids = nullifyIfBlank(req.query.fileids);
     swids = validateIntegers(req.query.fileswids, 'fileswid');
     run = nullifyIfBlank(req.query.run);
     workflow = nullifyIfBlank(req.query.workflow);
@@ -115,7 +163,7 @@ const getAllFileQcs = async (req, res, next) => {
 
 const getBySwids = async (swids, showAll) => {
   const results = await Promise.all([
-    fprDao.getBySwids(swids),
+    fprDao.getByIds(swids, []),
     fileQcDao.getBySwids(swids),
   ]);
   // merge the results from the File Provenance report and the FileQC database
@@ -163,7 +211,10 @@ const getByProjAndQcStatus = async (proj, qcStatus, showAll) => {
     });
   } else {
     // get only the FPRs for the PASS/FAIL records requested
-    fprs = await fprDao.getBySwids(swids);
+    fprs = await fprDao.getByIds(
+      swids,
+      fileqcs.map((f) => f.fileid)
+    );
   }
   return mergeFprsAndFqcs(fprs, fileqcs, false);
 };
@@ -186,13 +237,14 @@ const addFileQc = async (req, res, next) => {
   try {
     const fqc = {
       project: validateProject(req.query.project),
-      fileswid: validateInteger(req.query.fileswid, 'fileswid', true),
+      fileid: req.query.fileid,
+      fileswid: validateInteger(req.query.fileswid, 'fileswid'),
       username: validateUsername(req.query.username),
       comment: validateComment(req.query.comment),
       qcpassed: validateQcStatus(req.query.qcstatus),
     };
 
-    const fpr = await fprDao.getBySwids([fqc.fileswid]);
+    const fpr = await fprDao.getByIds([fqc.fileswid], [fqc.fileid]);
     if (!fpr.length) fpr[0] = {};
     const hydratedFqc = hydrateOneFqcPreSave(fpr[0], fqc);
     const fqcInsert = await fileQcDao.addFileQc(hydratedFqc);
@@ -236,7 +288,10 @@ const addManyFileQcs = async (req, res, next) => {
       throw new ValidationError(validationResults.errors);
     const toSave = validationResults.validated;
     const swids = toSave.map((record) => record.fileswid);
-    const fprs = await fprDao.getBySwids(swids);
+    const fprs = await fprDao.getByIds(
+      swids,
+      toSave.map((f) => f.fileid)
+    );
     const hydratedFqcs = hydrateFqcsPreSave(fprs, toSave);
     const fqcInserts = await fileQcDao.addFileQcs(hydratedFqcs);
     if (fqcInserts.errors && fqcInserts.errors.length)
@@ -632,6 +687,7 @@ function parseUpstream (upstream) {
 
 module.exports = {
   getFileQc: getFileQcBySwid,
+  getFileQcs: getFileQcs,
   getAllFileQcs: getAllFileQcs,
   streamFileQcs: streamFileQcs,
   addFileQc: addFileQc,

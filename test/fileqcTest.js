@@ -28,13 +28,6 @@ const recreateFprDb = async (cmd) => {
 };
 
 describe('Unit test FileQcController', () => {
-  before(async () => {
-    recreateFprDb(cmd);
-  });
-  beforeEach(async () => {
-    await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
-  });
-
   const fprs = {
     12017: {
       fileid: 'vidarr:research/file/123',
@@ -109,14 +102,14 @@ describe('Unit test FileQcController', () => {
         fileid: 'vidarr:research/file/123',
         md5sum: 'aabb',
         fileswid: 12017,
+        project: 'IPSCellLineReprogramming',
         filepath:
           '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R1_001.fastq.gz',
-        project: 'IPSCellLineReprogramming',
-        qcstatus: 'FAIL',
+        skip: 'false',
+        upstream: [],
         username: 'test',
         comment: 'failed for test',
-        upstream: [],
-        skip: 'false',
+        qcstatus: 'FAIL',
         stalestatus: 'OKAY',
       },
       {
@@ -129,13 +122,13 @@ describe('Unit test FileQcController', () => {
       },
       {
         fileswid: 12019,
+        project: 'IPSCellLineReprogramming',
         filepath:
           '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11720/11720_TAGCTT_L002_R2_001.fastq.gz',
         skip: 'false',
-        stalestatus: 'OKAY',
-        project: 'IPSCellLineReprogramming',
         upstream: [],
         qcstatus: 'PENDING',
+        stalestatus: 'OKAY',
       },
       {
         fileid: 'vidarr:research/file/456',
@@ -144,10 +137,10 @@ describe('Unit test FileQcController', () => {
         project: 'IPSCellLineReprogramming',
         filepath:
           '/oicr/data/archive/seqware/seqware_analysis/results/seqware-0.10.0_IlluminaBaseCalling-1.8.2/70453881/Unaligned_111028_SN393_0192_BC0AAKACXX_2/Project_na/Sample_11714/11714_ACTTGA_L002_R1_001.fastq.gz',
+        skip: 'false',
+        upstream: [],
         username: 'me',
         qcstatus: 'PASS',
-        upstream: [],
-        skip: 'false',
         stalestatus: 'OKAY',
       },
     ];
@@ -233,6 +226,13 @@ describe('Unit test FileQcController', () => {
 const get = (server, path) => {
   return chai.request(server).get(path);
 };
+const getNew = (server, path, requestBody = {}) => {
+  return chai
+    .request(server)
+    .post(path)
+    .set('content-type', 'application/json')
+    .send(requestBody);
+};
 const post = (server, path, requestBody = {}) => {
   return chai
     .request(server)
@@ -270,13 +270,21 @@ describe('FileQC', () => {
     await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
   });
 
-  describe('GET fileQc by swid', () => {
-    it('it should GET one PENDING FileQC', (done) => {
-      get(server, '/fileqc/12019').end((err, res) => {
+  describe('get fileQc by fileid or fileswid', () => {
+    it('it should get one PENDING FileQC by fileid', (done) => {
+      let requestBody = {
+        fileids: [
+          'vidarr:research/file/ffffed20becc81abd6b61c9972599985926eb2928303f7ee4c48e9076d443447',
+        ],
+      };
+      getNew(server, '/get-fileqcs', requestBody).end((err, res) => {
         expect(res.status).to.equal(200);
         expect(res.body).to.be.a('object');
         expect(res.body.fileqcs).to.be.a('array');
         expect(res.body.fileqcs).to.have.length(1);
+        expect(res.body.fileqcs[0].fileid).to.equal(
+          'vidarr:research/file/ffffed20becc81abd6b61c9972599985926eb2928303f7ee4c48e9076d443447'
+        );
         expect(res.body.fileqcs[0].fileswid).to.equal(12019);
         expect(res.body.fileqcs[0].qcstatus).to.equal('PENDING');
         expect(res.body.fileqcs[0]).to.not.have.any.keys('username', 'comment');
@@ -284,7 +292,20 @@ describe('FileQC', () => {
       });
     });
 
-    it('it should GET one PASS FileQC', (done) => {
+    it('it should GET one PASS FileQC by file id', (done) => {
+      get(server, '/fileqc/12017').end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body).to.be.a('object');
+        expect(res.body.fileqcs).to.be.a('array');
+        expect(res.body.fileqcs[0].fileswid).to.equal(12017);
+        expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
+        expect(res.body.fileqcs[0].username).to.equal('me');
+        expect(res.body.fileqcs[0]).to.have.property('comment');
+        done();
+      });
+    });
+
+    it('it should GET one PASS FileQC by file swid', (done) => {
       get(server, '/fileqc/12017').end((err, res) => {
         expect(res.status).to.equal(200);
         expect(res.body).to.be.a('object');

@@ -90,17 +90,33 @@ const getByRun = (run) => {
   });
 };
 
-const getBySwids = (swids) => {
-  const select =
-    'SELECT * FROM fpr WHERE fileswid IN (' +
-    swids.join() +
-    ')' +
-    ' ORDER BY fileswid ASC';
+const getByIds = (swids = [], fileids = []) => {
+  let query = 'SELECT * FROM fpr ';
+  let queryParts = [];
+  let realValues = [];
+  let buildQuery = (param, appendFn) => {
+    if (param) {
+      queryParts.push(appendFn());
+      realValues.push(param);
+    }
+  };
+  buildQuery(swids, () => {
+    return ' fileswid IN (' + getQuestionMarkPlaceholders(swids) + ') ';
+  });
+  buildQuery(fileids, () => {
+    return ' fileid IN (' + getQuestionMarkPlaceholders(fileids) + ') ';
+  });
+  const fullQuery =
+    query + ' WHERE ' + queryParts.filter((a) => a).join(' OR ');
   return new Promise((resolve, reject) => {
-    fpr.all(select, (err, data) => {
-      if (err) reject(generateError(500, err));
-      resolve(data ? data : []);
-    });
+    fpr.all(
+      fullQuery,
+      realValues.flatMap((a) => a),
+      (err, data) => {
+        if (err) reject(generateError(500, err));
+        resolve(data ? data : []);
+      }
+    );
   });
 };
 
@@ -120,7 +136,7 @@ const getMostRecentImportTime = () => {
 module.exports = {
   getByProjects: getByProjects,
   getByRun: getByRun,
-  getBySwids: getBySwids,
+  getByIds: getByIds,
   listProjects: listProjects,
   listWorkflows: listWorkflows,
   getMostRecentImportTime: getMostRecentImportTime,
