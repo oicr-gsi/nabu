@@ -293,23 +293,18 @@ describe('FileQC', () => {
     });
 
     it('it should GET one PASS FileQC by file id', (done) => {
-      get(server, '/fileqc/12017').end((err, res) => {
+      let requestBody = {
+        fileids: [
+          'vidarr:research/file/00000c255a2acbdd9ee34169925d2e106c2e09c8ce82c4345dd633597b664c9f',
+        ],
+      };
+      getNew(server, '/get-fileqcs', requestBody).end((err, res) => {
         expect(res.status).to.equal(200);
         expect(res.body).to.be.a('object');
         expect(res.body.fileqcs).to.be.a('array');
-        expect(res.body.fileqcs[0].fileswid).to.equal(12017);
-        expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
-        expect(res.body.fileqcs[0].username).to.equal('me');
-        expect(res.body.fileqcs[0]).to.have.property('comment');
-        done();
-      });
-    });
-
-    it('it should GET one PASS FileQC by file swid', (done) => {
-      get(server, '/fileqc/12017').end((err, res) => {
-        expect(res.status).to.equal(200);
-        expect(res.body).to.be.a('object');
-        expect(res.body.fileqcs).to.be.a('array');
+        expect(res.body.fileqcs[0].fileid).to.equal(
+          'vidarr:research/file/00000c255a2acbdd9ee34169925d2e106c2e09c8ce82c4345dd633597b664c9f'
+        );
         expect(res.body.fileqcs[0].fileswid).to.equal(12017);
         expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
         expect(res.body.fileqcs[0].username).to.equal('me');
@@ -319,10 +314,18 @@ describe('FileQC', () => {
     });
 
     it('it should GET one FAIL FileQC not in File Provenance', (done) => {
-      get(server, '/fileqc/12018').end((err, res) => {
+      let requestBody = {
+        fileids: [
+          'vidarr:research/file/000011481286954345f40be3bb7fe192715d98f4bc76d9e25e782c9ab0ae9ead',
+        ],
+      };
+      getNew(server, '/get-fileqcs', requestBody).end((err, res) => {
         expect(res.status).to.equal(200);
         expect(res.body).to.be.a('object');
         expect(res.body.fileqcs).to.be.a('array');
+        expect(res.body.fileqcs[0].fileid).to.equal(
+          'vidarr:research/file/000011481286954345f40be3bb7fe192715d98f4bc76d9e25e782c9ab0ae9ead'
+        );
         expect(res.body.fileqcs[0].fileswid).to.equal(12018);
         expect(res.body.fileqcs[0].qcstatus).to.equal('FAIL');
         expect(res.body.fileqcs[0].stalestatus).to.equal(
@@ -333,7 +336,12 @@ describe('FileQC', () => {
     });
 
     it('it should GET zero results for one unknown FileQC', (done) => {
-      get(server, '/fileqc/11').end((err, res) => {
+      let requestBody = {
+        fileids: [
+          'vidarr:research/file/00000000000000000000000000000000000000000000000000000000000000000',
+        ],
+      };
+      getNew(server, '/get-fileqcs', requestBody).end((err, res) => {
         expect(res.status).to.equal(200);
         expect(res.body).to.be.a('object');
         expect(res.body.fileqcs).to.be.empty;
