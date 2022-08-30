@@ -93,8 +93,9 @@ const getFileQcs = async (req, res, next) => {
     run = nullifyIfBlank(req.body.run);
     showAll = validateShowAll(req.body.showall);
 
+    const projects = getAllProjectNames(proj);
     let fqcResults = await fileQcDao.getFileQcs(
-      proj,
+      projects,
       qcStatus,
       workflow,
       fileids,
@@ -106,7 +107,7 @@ const getFileQcs = async (req, res, next) => {
       fprResults = await fprDao.getByIds(swids, fileids);
     } else {
       // search by projects, workflows
-      fprResults = await fprDao.getByProjects(proj, workflow);
+      fprResults = await fprDao.getByProjects(projects, workflow);
     }
     // TODO: filter by run
     const fileqcs = maybeReduceToMostRecent(fqcResults, showAll);
@@ -380,13 +381,22 @@ function validateInteger (param, paramLabel, required) {
   return swid;
 }
 
-/** Expects a comma-separated list of File SWIDs and returns the valid numbers within */
+/** Expects an array of File SWIDs and returns the valid numbers within */
 function validateIntegers (param, paramLabel) {
-  if (nullifyIfBlank(param) == null) return null;
-  return param
-    .split(',')
-    .map((num) => validateInteger(num, paramLabel))
-    .filter((num) => !Number.isNaN(num));
+  if (nullifyIfBlank(param) == null || param.length == 0) return null;
+  console.log('integer param');
+  console.log(param);
+  if (Array.isArray(param)) {
+    return param
+      .map((num) => validateInteger(num, paramLabel))
+      .filter((num) => !Number.isNaN(num));
+  } else {
+    // TODO: delete me
+    return param
+      .split(',')
+      .map((num) => validateInteger(num, paramLabel))
+      .filter((num) => !Number.isNaN(num));
+  }
 }
 
 function validateUsername (param) {
@@ -422,10 +432,10 @@ function validateQcStatus (param) {
 
 function validateShowAll (param) {
   let showAll = nullifyIfBlank(param);
-  if (showAll == null || showAll == 'false') return false;
-  if (showAll == 'true') return true;
+  if (showAll == null || showAll == 'false' || showAll == false) return false;
+  if (showAll == 'true' || showAll == true) return true;
   throw new ValidationError(
-    `Unknown value "${param}" for parameter showall. Expected values are: "true", "false", empty string`
+    `Unknown value "${param}" for parameter showall. Expected values are: true, false, empty string`
   );
 }
 

@@ -64,7 +64,7 @@ const getByProjects = (projects, workflows) => {
     'SELECT * FROM fpr WHERE project IN (' +
     getQuestionMarkPlaceholders(projects) +
     ')' +
-    (workflows == null
+    (workflows == undefined || workflows == null
       ? ''
       : ' AND workflow IN (' + getQuotedPlaceholders(workflows) + ')') +
     ' ORDER BY fileswid ASC';

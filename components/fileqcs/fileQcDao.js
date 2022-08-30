@@ -143,22 +143,44 @@ const get = (projects, qcStatus, workflow, fileids, swids) => {
   let realValues = [];
   let buildQuery = (param, appendFn) => {
     // don't run if param is falsey
-    if (param) {
+    if (Array.isArray(param) && param.length > 0) {
+      // only operate on non-null array members
+      let nonNull = param.filter((p) => p);
+      if (nonNull.length == 0) return;
+
+      queryParts.push(appendFn(nonNull));
+      nonNull.forEach((p) => realValues.push(p));
+      offset += nonNull.length;
+    } else if (param) {
       queryParts.push(appendFn());
       realValues.push(param);
-      offset += Array.isArray(param) ? param.length : 1;
+      offset += 1;
     }
+    // do nothing if param isn't really present
   };
-  //    buildQuery(projects, () => {
-  //      return ' project IN (' + getIndexedPlaceholders(projects, offset) + ') ';
-  //    }
-  buildQuery(fileids, () => {
-    return ' fileid IN (' + getIndexedPlaceholders(fileids, offset) + ') ';
+  buildQuery(projects, (nonNullProjects) => {
+    return (
+      ' project IN (' + getIndexedPlaceholders(nonNullProjects, offset) + ') '
+    );
+  });
+  buildQuery(qcStatus, () => {
+    return ' qcStatus == \'' + getIndexedPlaceholders([qcStatus], offset) + '\' ';
+  });
+  buildQuery(workflow, () => {
+    return ' workflow == \'' + getIndexedPlaceholders([workflow], offset) + '\' ';
+  });
+  buildQuery(fileids, (nonNullFileIds) => {
+    return (
+      ' fileid IN (' + getIndexedPlaceholders(nonNullFileIds, offset) + ') '
+    );
+  });
+  buildQuery(swids, (nonNullFileSwids) => {
+    return (
+      ' fileswid IN (' + getIndexedPlaceholders(nonNullFileSwids, offset) + ') '
+    );
   });
   const fullQuery =
     query + ' WHERE ' + queryParts.filter((a) => a).join(' AND ');
-
-  console.log('full query: ' + fullQuery);
 
   if (realValues.length == 0) {
     // no data requested, no data returned
