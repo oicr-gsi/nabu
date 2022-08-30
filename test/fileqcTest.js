@@ -323,6 +323,7 @@ describe('FileQC', () => {
         expect(res.status).to.equal(200);
         expect(res.body).to.be.a('object');
         expect(res.body.fileqcs).to.be.a('array');
+        expect(res.body.fileqcs).to.have.lengthOf(1);
         expect(res.body.fileqcs[0].fileid).to.equal(
           'vidarr:research/file/000011481286954345f40be3bb7fe192715d98f4bc76d9e25e782c9ab0ae9ead'
         );
@@ -352,10 +353,11 @@ describe('FileQC', () => {
 
   describe('GET FileQCs', () => {
     it('it should error on invalid parameters', (done) => {
-      get(
-        server,
-        '/fileqcs?nonsense=param&project=IPSCellLineReprogramming'
-      ).end((err, res) => {
+      let requestBody = {
+        nonsense: 'param',
+        project: 'IPSCellLineReprogramming',
+      };
+      getNew(server, '/get-fileqcs', requestBody).end((err, res) => {
         expect(res.status).to.equal(400);
         expect(res.body.errors[0]).to.not.be.null;
         expect(res.body.errors[0].includes('Invalid parameter')).to.be.true;
@@ -364,19 +366,40 @@ describe('FileQC', () => {
     });
 
     it('it should GET all FileQCs for a given project', (done) => {
-      get(server, '/fileqcs?project=IPSCellLineReprogramming').end(
-        (err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body).to.be.a('object');
-          expect(res.body.fileqcs).to.be.a('array');
-          expect(res.body.fileqcs).to.have.lengthOf(4);
-          done();
-        }
-      );
+      let requestBody = {
+        project: 'IPSCellLineReprogramming',
+      };
+      getNew(server, '/get-fileqcs', requestBody).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body).to.be.a('object');
+        expect(res.body.fileqcs).to.be.a('array');
+        expect(res.body.fileqcs).to.have.lengthOf(4);
+        done();
+      });
+    });
+
+    it('it should GET all FileQCs for given file IDs', (done) => {
+      let requestBody = {
+        fileids: [
+          'vidarr:research/file/00000c255a2acbdd9ee34169925d2e106c2e09c8ce82c4345dd633597b664c9f',
+          'vidarr:research/file/000011481286954345f40be3bb7fe192715d98f4bc76d9e25e782c9ab0ae9ead',
+        ],
+      };
+      getNew(server, '/get-fileqcs', requestBody).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body.fileqcs).to.be.a('array');
+        expect(res.body.fileqcs).to.have.lengthOf(2);
+        expect(res.body.fileqcs[0].fileswid).to.equal(12017);
+        expect(res.body.fileqcs[1].fileswid).to.equal(12018);
+        done();
+      });
     });
 
     it('it should GET all FileQCs for given file SWIDs', (done) => {
-      get(server, '/fileqcs?fileswids=12017,12018').end((err, res) => {
+      let requestBody = {
+        fileswids: [12017, 12018],
+      };
+      getNew(server, '/get-fileqcs', requestBody).end((err, res) => {
         expect(res.status).to.equal(200);
         expect(res.body.fileqcs).to.be.a('array');
         expect(res.body.fileqcs).to.have.lengthOf(2);
@@ -387,7 +410,13 @@ describe('FileQC', () => {
     });
 
     it('it should GET multiple FileQCs for a single SWID if extra param is added', (done) => {
-      get(server, '/fileqcs?fileswids=12020&showall=true').end((err, res) => {
+      let requestBody = {
+        fileids: [
+          'vidarr:research/file/000020f1ddaa79c72ca761b6fbc919a192c41f88062863757495774bbf9a6235',
+        ],
+        showall: true,
+      };
+      getNew(server, '/get-fileqcs', requestBody).end((err, res) => {
         expect(res.status).to.equal(200);
         expect(res.body.fileqcs).to.be.a('array');
         expect(res.body.fileqcs).to.have.lengthOf(2);
@@ -405,7 +434,12 @@ describe('FileQC', () => {
     });
 
     it('it should GET one FileQC for a single SWID if no extra param is added', (done) => {
-      get(server, '/fileqcs?fileswids=12020').end((err, res) => {
+      let requestBody = {
+        fileids: [
+          'vidarr:research/file/000020f1ddaa79c72ca761b6fbc919a192c41f88062863757495774bbf9a6235',
+        ],
+      };
+      getNew(server, '/get-fileqcs', requestBody).end((err, res) => {
         expect(res.status).to.equal(200);
         expect(res.body.fileqcs).to.be.a('array');
         expect(res.body.fileqcs).to.have.lengthOf(1);
@@ -413,8 +447,11 @@ describe('FileQC', () => {
       });
     });
 
-    it('it should not return files for gibberish projects', (done) => {
-      get(server, '/fileqcs?project=UNKNOWN').end((err, res) => {
+    it('it should not return files for unknown projects', (done) => {
+      let requestBody = {
+        project: 'UNKNOWN',
+      };
+      getNew(server, '/get-fileqcs', requestBody).end((err, res) => {
         expect(res.status).to.equal(200);
         expect(res.body.fileqcs).to.be.empty;
         done();
