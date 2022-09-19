@@ -84,11 +84,7 @@ app.get('/available', fileQc.getAvailableConstants);
 
 // routes to fileQC records
 app.post('/get-fileqcs', fileQc.getFileQcs);
-app.get('/fileqcs', fileQc.getAllFileQcs);
-app.get('/fileqc/:identifier', fileQc.getFileQc);
-app.get('/fileqcs-only', fileQc.streamFileQcs);
-app.post('/fileqcs', fileQc.addFileQc);
-app.post('/fileqcs/batch', fileQc.addManyFileQcs);
+app.post('/add-fileqcs', fileQc.addFileQcs);
 // deliberate indirection here so as to not turn it on by accident
 if (process.env.DEACTIVATE_AD_AUTH === 'false') {
   app.post(

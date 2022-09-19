@@ -38,30 +38,26 @@ const streamAllFileQcs = (fn) => {
   return pg.stream(query, fn);
 };
 
-const addFileQc = (fileqcs) => {
-  return new Promise((resolve, reject) => {
-    pg.task('add-many', (tx) => {
-      // wrapping in a transaction for error handling
-      const insert = pgp.helpers.insert(fileqcs, fqcCols);
-      return tx.none(insert);
-    })
-      .then(() => {
-        return resolve(fileqcs);
-      })
-      .catch((err) => {
-        reject(err);
-      });
-  });
-};
-
 const addFileQcs = (fileqcs) => {
   return new Promise((resolve, reject) => {
     pg.task('add-many', (tx) => {
       // wrapping in a transaction for error handling
+ let fileids = fileqcs.map(f => f.fileid)
+ console.log("before add to db")
+ pg.any("select * from fileqc where fileid in " + getIndexedPlaceholders(fileids), fileids)
+  .then(data => {console.log("selcet before insert"); console.log(data)});
+ console.log("here's what should be added to the database:")
+console.log(fileqcs)
+console.log("adding it to the database")
+      let query = pgp.helpers.insert(fileqcs, fqcCols) + ' ON CONFLICT ON CONSTRAINT '
       const insert = pgp.helpers.insert(fileqcs, fqcCols);
       return tx.none(insert);
     })
       .then(() => {
+ let fileids = fileqcs.map(f => f.fileid)
+ console.log("AFTER add to db")
+ pg.any("select * from fileqc where fileid in " + getIndexedPlaceholders(fileids), fileids)
+  .then(data => {console.log("select after insert"); console.log(data)});
         return resolve(fileqcs);
       })
       .catch((err) => {
@@ -114,28 +110,6 @@ const deleteFileQcs = (fileQcIds, username) => {
   });
 };
 
-const getByProject = (projects) => {
-  const select =
-    'SELECT * FROM FileQC WHERE project IN (' +
-    getIndexedPlaceholders(projects) +
-    ')' +
-    ' AND deleted = FALSE' +
-    ' ORDER BY fileswid ASC';
-  return new Promise((resolve, reject) => {
-    pg.any(select, projects)
-      .then((data) => {
-        resolve({ fileqcs: data ? data : [], errors: [] });
-      })
-      .catch((err) => {
-        logger.error({
-          error: err,
-          method: `getFqcResultsByProject:${projects}`,
-        });
-        reject(generateError(500, 'Error retrieving records'));
-      });
-  });
-};
-
 const get = (projects, qcStatus, workflow, fileids, swids) => {
   let offset = 0;
   let query = 'SELECT * FROM fileqc ';
@@ -143,14 +117,16 @@ const get = (projects, qcStatus, workflow, fileids, swids) => {
   let realValues = [];
   let buildQuery = (param, appendFn) => {
     // don't run if param is falsey
-    if (Array.isArray(param) && param.length > 0) {
-      // only operate on non-null array members
-      let nonNull = param.filter((p) => p);
-      if (nonNull.length == 0) return;
+    if (Array.isArray(param)) {
+      if (param.length > 0) {
+        // only operate on non-null array members
+        let nonNull = param.filter((p) => p);
+        if (nonNull.length == 0) return;
 
-      queryParts.push(appendFn(nonNull));
-      nonNull.forEach((p) => realValues.push(p));
-      offset += nonNull.length;
+        queryParts.push(appendFn(nonNull));
+        nonNull.forEach((p) => realValues.push(p));
+        offset += nonNull.length;
+      }
     } else if (param) {
       queryParts.push(appendFn());
       realValues.push(param);
@@ -181,7 +157,7 @@ const get = (projects, qcStatus, workflow, fileids, swids) => {
   });
   const fullQuery =
     query + ' WHERE ' + queryParts.filter((a) => a).join(' AND ');
-
+console.log("full query: " + fullQuery)
   if (realValues.length == 0) {
     // no data requested, no data returned
     return Promise.resolve([]);
@@ -192,74 +168,14 @@ const get = (projects, qcStatus, workflow, fileids, swids) => {
       fullQuery,
       realValues.flatMap((a) => a)
     )
-      .then((data) => resolve(data))
+      //.then((data) => resolve(data))
+      .then((data) => {console.log(" get results from db: "); console.log(data); resolve(data);})
       .catch((err) => reject(generateError(500, err)));
   });
 };
-
-const getByProjectAndQcStatus = (projects, qcpassed) => {
-  let select =
-    'SELECT * FROM FileQC WHERE project IN (' +
-    getIndexedPlaceholders(projects) +
-    ')' +
-    ' AND qcpassed ' +
-    (qcpassed == null ? 'IS NULL' : '= $' + (projects.length + 1)) +
-    ' ORDER BY fileswid ASC';
-  return new Promise((resolve, reject) => {
-    pg.any(select, projects.concat([qcpassed]))
-      .then((data) => resolve(data))
-      .catch((err) => reject(generateError(500, err)));
-  });
-};
-
-const getBySwid = (swid) => {
-  return new Promise((resolve, reject) => {
-    const sql = 'SELECT * FROM FileQc WHERE fileswid = $1 AND deleted = FALSE';
-    pg.any(sql, [swid])
-      .then((data) => {
-        if (!data || data.length == 0) resolve({ fileqcs: [], errors: [] });
-        if (Array.isArray(data)) {
-          resolve({ fileqcs: data, errors: [] });
-        }
-        resolve({ fileqcs: [data], errors: [] });
-      })
-      .catch((err) => {
-        logger.error({ error: err, method: `getFqcsBySwid: ${swid}` });
-        reject(generateError(500, 'Error retrieving record'));
-      });
-  });
-};
-
-const getBySwids = (swids) => {
-  return new Promise((resolve, reject) => {
-    if (!swids.length) {
-      resolve({ fileqcs: [], errors: [] });
-    }
-    const sql =
-      'SELECT * FROM FileQC WHERE fileswid in (' +
-      swids.join() +
-      ')' +
-      ' AND deleted = FALSE' +
-      ' ORDER BY fileswid ASC';
-    pg.any(sql)
-      .then((data) => {
-        resolve({ fileqcs: data ? data : [], errors: [] });
-      })
-      .catch((err) => {
-        logger.error({ error: err, method: 'getFqcResultsBySwids' });
-        reject(generateError(500, 'Error retrieving records'));
-      });
-  });
-};
-
 module.exports = {
   streamAllFileQcs: streamAllFileQcs,
   getFileQcs: get,
-  getByProject: getByProject,
-  getByProjectAndQcStatus: getByProjectAndQcStatus,
-  getBySwid: getBySwid,
-  getBySwids: getBySwids,
-  addFileQc: addFileQc,
   addFileQcs: addFileQcs,
   deleteFileQcs: deleteFileQcs,
 };
