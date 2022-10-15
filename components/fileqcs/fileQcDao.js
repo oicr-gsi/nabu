@@ -25,6 +25,7 @@ const fqcCols = new pgp.helpers.ColumnSet(
     'username',
     'comment',
     'fileswid',
+    'fileid',
     'project',
     'md5sum',
   ],
@@ -33,7 +34,7 @@ const fqcCols = new pgp.helpers.ColumnSet(
 
 const streamAllFileQcs = (fn) => {
   const query = new queryStream(
-    'SELECT fileQcId, qcDate, fileswid, project, filepath, CASE qcpassed WHEN TRUE THEN \'PASS\' WHEN FALSE THEN \'FAIL\' ELSE \'PENDING\' END AS qcpassed, username, COALESCE(comment, \'\') FROM FileQC WHERE deleted = FALSE'
+    'SELECT fileQcId, qcDate, fileid, fileswid, project, filepath, CASE qcpassed WHEN TRUE THEN \'PASS\' WHEN FALSE THEN \'FAIL\' ELSE \'PENDING\' END AS qcpassed, username, COALESCE(comment, \'\') FROM FileQC WHERE deleted = FALSE'
   );
   return pg.stream(query, fn);
 };
@@ -42,47 +43,50 @@ const addFileQcs = (fileqcs) => {
   return new Promise((resolve, reject) => {
     pg.task('add-many', (tx) => {
       // wrapping in a transaction for error handling
- let fileids = fileqcs.map(f => f.fileid)
- console.log("before add to db")
- pg.any("select * from fileqc where fileid in " + getIndexedPlaceholders(fileids), fileids)
-  .then(data => {console.log("selcet before insert"); console.log(data)});
- console.log("here's what should be added to the database:")
-console.log(fileqcs)
-console.log("adding it to the database")
-      let query = pgp.helpers.insert(fileqcs, fqcCols) + ' ON CONFLICT ON CONSTRAINT '
-      const insert = pgp.helpers.insert(fileqcs, fqcCols);
-      return tx.none(insert);
+      let fileids = fileqcs.map(f => f.fileid)
+
+// console.log("before add to db")
+// pg.any("select * from fileqc where fileid in " + getIndexedPlaceholders(fileids), fileids)
+//  .then(data => {console.log("selcet before insert"); console.log(data)});
+// console.log("here's what should be added to the database:")
+//console.log(fileqcs)
+//console.log("adding it to the database")
+
+      let query = pgp.helpers.insert(fileqcs, fqcCols) +
+      ' ON CONFLICT (fileid) DO UPDATE SET ' +
+      fqcCols.assignColumns({from: 'EXCLUDED', skip: ['fileid', 'project', 'fileswid']});
+      //const insert = pgp.helpers.insert(fileqcs, fqcCols);
+
+      console.log(query)
+      return tx.none(query);
+      console.log("done querying")
+      //return tx.any("select * from fileqc where fileid in " + getIndexedPlaceholders(fileids), fileids);
     })
-      .then(() => {
- let fileids = fileqcs.map(f => f.fileid)
- console.log("AFTER add to db")
- pg.any("select * from fileqc where fileid in " + getIndexedPlaceholders(fileids), fileids)
-  .then(data => {console.log("select after insert"); console.log(data)});
-        return resolve(fileqcs);
-      })
-      .catch((err) => {
-        reject({ errors: err });
-      });
+    .then(data => {
+      return resolve(data);
+    })
+    .catch((err) => {
+      console.log(err)
+      throw new Error(err);
+    });
   });
 };
 
 const deleteFileQcs = (fileQcIds, username) => {
   const fqcPlaceholders = getIndexedPlaceholders(fileQcIds);
   return new Promise((resolve, reject) => {
-    const delete_stmt = `UPDATE FileQC SET deleted = TRUE,
-      comment = CONCAT(comment, '. Deleted by ${username} at ${new Date()}')
-      WHERE fileqcid IN (${fqcPlaceholders}) RETURNING fileqcid`;
+    const delete_stmt = `DELETE FROM FileQC WHERE fileqcid IN (${fqcPlaceholders}) RETURNING fileqcid`;
     pg.any(delete_stmt, fileQcIds)
       .then((data) => {
         data = data.map((d) => d.fileqcid);
         const undeleted = fileQcIds.filter((id) => data.indexOf(id) == -1);
         const yay = [];
         if (data.length) {
-          yay.push(`Deleted FileQC(s) ${data.join(', ')}. `);
+          yay.push(`Deleted: ${data.join(', ')}. `);
         }
         const nay = [];
         if (undeleted.length) {
-          nay.push(`Failed to delete FileQC(s) ${undeleted.join(', ')}.`);
+          nay.push(`Not deleted: ${undeleted.join(', ')}.`);
           pg.any(
             `SELECT fileqcid FROM FileQC WHERE fileqcid IN (${undeleted.join(
               ','
@@ -97,7 +101,7 @@ const deleteFileQcs = (fileQcIds, username) => {
             })
             .catch((err) => {
               logger.error({ error: err, method: 'deleteFqcs' });
-              return resolve({ success: yay, errors: nay });
+              throw new Error(err);
             });
         } else {
           return resolve({ success: yay, errors: nay });
@@ -105,7 +109,7 @@ const deleteFileQcs = (fileQcIds, username) => {
       })
       .catch((err) => {
         logger.error({ error: err, method: `deleteFqcs:${username}` });
-        return reject(generateError(500, 'Failed to delete FileQC records'));
+        throw new Error(err);
       });
   });
 };
@@ -169,8 +173,10 @@ console.log("full query: " + fullQuery)
       realValues.flatMap((a) => a)
     )
       //.then((data) => resolve(data))
-      .then((data) => {console.log(" get results from db: "); console.log(data); resolve(data);})
-      .catch((err) => reject(generateError(500, err)));
+    .then((data) => {console.log(" get results from db: "); console.log(data); resolve(data);})
+    .catch((err) => {
+      throw new Error(err)
+    });
   });
 };
 module.exports = {
