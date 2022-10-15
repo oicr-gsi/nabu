@@ -232,7 +232,7 @@ describe('Unit test FileQcController', () => {
   });
 });
 
-const get = (server) => {
+const get = (server, path) => {
   return chai.request(server).get(path);
 };
 const getFileQcs = (server, requestBody = {}) => {
@@ -560,7 +560,7 @@ describe('FileQC', () => {
 
   describe('batch DELETE FileQCs', () => {
     it('it should succeed in deleting a FileQC', (done) => {
-      get(server, '/fileqcs?fileswids=12016').end((err, res) => {
+      getFileQcs(server, { fileswid: '12016'}).end((err, res) => {
         const fqcId = res.body.fileqcs[0].fileqcid;
         const deleteRequest = {
           fileqcids: [fqcId],
@@ -583,7 +583,7 @@ describe('FileQC', () => {
       deleteFileQcs(server, deleteBody).end((err, res) => {
         expect(res.status).to.equal(200);
         expect(res.body.errors).not.to.be.empty;
-        expect(res.body.errors[0]).to.match(/^Failed to delete FileQC.*/);
+        expect(res.body.errors[0]).to.match(/^Not deleted:*/);
         done();
       });
     });

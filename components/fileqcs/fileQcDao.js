@@ -57,16 +57,13 @@ const addFileQcs = (fileqcs) => {
       fqcCols.assignColumns({from: 'EXCLUDED', skip: ['fileid', 'project', 'fileswid']});
       //const insert = pgp.helpers.insert(fileqcs, fqcCols);
 
-      console.log(query)
       return tx.none(query);
-      console.log("done querying")
       //return tx.any("select * from fileqc where fileid in " + getIndexedPlaceholders(fileids), fileids);
     })
     .then(data => {
       return resolve(data);
     })
     .catch((err) => {
-      console.log(err)
       throw new Error(err);
     });
   });
@@ -161,7 +158,6 @@ const get = (projects, qcStatus, workflow, fileids, swids) => {
   });
   const fullQuery =
     query + ' WHERE ' + queryParts.filter((a) => a).join(' AND ');
-console.log("full query: " + fullQuery)
   if (realValues.length == 0) {
     // no data requested, no data returned
     return Promise.resolve([]);
@@ -173,7 +169,7 @@ console.log("full query: " + fullQuery)
       realValues.flatMap((a) => a)
     )
       //.then((data) => resolve(data))
-    .then((data) => {console.log(" get results from db: "); console.log(data); resolve(data);})
+    .then((data) => resolve(data))
     .catch((err) => {
       throw new Error(err)
     });
