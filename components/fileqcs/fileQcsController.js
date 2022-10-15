@@ -51,7 +51,7 @@ const streamFileQcs = async (req, res, next) => {
 
 const getFileQcs = async (req, res, next) => {
   try {
-    let proj, fileids, swids, run, workflow, qcStatus, showAll;
+    let proj, fileids, swids, run, workflow, qcStatus;
     const validQueryParams = [
       'project',
       'fileids',
@@ -59,7 +59,6 @@ const getFileQcs = async (req, res, next) => {
       'workflow',
       'qcstatus',
       'run',
-      'showall',
     ];
     validateQueryParams(validQueryParams, req.body);
     proj = nullifyIfBlank(validateProject(req.body.project));
@@ -68,7 +67,6 @@ const getFileQcs = async (req, res, next) => {
     fileids = nullifyIfBlank(req.body.fileids);
     swids = validateIntegers(req.body.fileswids, 'fileswid');
     run = nullifyIfBlank(req.body.run);
-    showAll = validateShowAll(req.body.showall);
 
     const projects = getAllProjectNames(proj);
     let fqcResults = await fileQcDao.getFileQcs(
@@ -86,9 +84,10 @@ const getFileQcs = async (req, res, next) => {
       // search by projects, workflows
       fprResults = await fprDao.getByProjects(projects, workflow);
     }
+//    const fileqcs = maybeReduceToMostRecent(fqcResults, showAll);
+//    const merged = mergeFprsAndFqcs(fprResults, fileqcs, false);
     // TODO: filter by run
-    const fileqcs = maybeReduceToMostRecent(fqcResults, showAll);
-    const merged = mergeFprsAndFqcs(fprResults, fileqcs, false);
+    const merged = mergeFprsAndFqcs(fprResults, fqcResults, false);
     res.status(200).json({ fileqcs: merged });
     next();
   } catch (e) {
@@ -111,44 +110,39 @@ const hydrateFqcsPreSave = (fprs, fqcs) => {
   // fprHash: { fileid: indexInFprArray }
   const fprHash = {};
   fprs.map((fpr, index) => (fprHash[fpr.fileid] = index));
-  return fqcs.map((fqc) => {
-    const correspondingFpr = fprs[fprHash[fqc.fileid]] || {};
+  const noFprEntryFound = [];
+  let hydrated = fqcs.map((fqc) => {
+    const correspondingFpr = fprs[fprHash[fqc.fileid]];
+    if (correspondingFpr == null) {
+      noFprEntryFound.push(fqc.fileid);
+      return;
+    }
     fqc.project = correspondingFpr.project;
     fqc.filepath = correspondingFpr.filepath;
     fqc.md5sum = correspondingFpr.md5sum;
     return fqc;
   });
+  if (noFprEntryFound.length) {
+    let errorMessage = "Cannot create FileQCs for files that are not in file provenance. No files were found for the following fileids:  "
+      + noFprEntryFound.join(" , ");
+    throw new ValidationError(errorMessage);
+  }
+  return hydrated;
 };
 
 const addFileQcs = async (req, res, next) => {
   try {
-  if (!Array.isArray(req.body.fileqcs))
-      throw generateError(400, 'Error: request body must contain array of file QCs');
+    if (!Array.isArray(req.body.fileqcs))
+        throw generateError(400, 'Error: request body must contain array of \'fileqcs\'');
     const validationResults = validateObjectsFromUser(req.body.fileqcs);
-    if (validationResults.errors.length)
-      throw new ValidationError(validationResults.errors);
-    const toSave = validationResults.validated;
+    const toSave = validationResults;
     const fileids = toSave.map((record) => record.fileid);
     const fprs = await fprDao.getByIds([], fileids);
     const hydratedFqcs = hydrateFqcsPreSave(fprs, toSave);
+    console.log("file QCs to be inserted")
+    console.log(hydratedFqcs)
     const fqcInserts = await fileQcDao.addFileQcs(hydratedFqcs);
-    if (fqcInserts.errors && fqcInserts.errors.length)
-      throw generateError(500, fqcInserts.errors);
-    // otherwise, merge the results
-console.log("what got inserted:")
-console.log(fqcInserts)
-console.log("what's in db after insertion:")
-let fqcResults = await fileQcDao.getFileQcs(
-      [],
-      null,
-      null,
-      fileids,
-      []
-    );
-console.log(fqcResults)
-
-    const merged = mergeFprsAndFqcs(fprs, fqcInserts, false);
-    res.status(201).json({ fileqcs: merged });
+    res.status(201);
     next();
 
   } catch (e) {
@@ -205,10 +199,12 @@ const validateQueryParams = (validParams, actualParams) => {
 
 // validation functions
 function validateProject (param) {
-  if (nullifyIfBlank(param) == null) return null;
+  if (nullifyIfBlank(param) == null) {
+    return null;
+  }
   param = param.trim();
   if (param.match(/[^a-zA-Z0-9-_']+/)) {
-    throw new ValidationError('Project contains invalid characters');
+    return new ValidationError('project contains invalid characters');
   }
   // regrettably, `Catherine_O'Brien_Bug` is an existing project
   param = param.replace(/'/, '\'');
@@ -218,14 +214,14 @@ function validateProject (param) {
 function validateInteger (param, paramLabel, required) {
   if (nullifyIfBlank(param) == null) {
     if (required) {
-      throw new ValidationError(`${paramLabel} is a required field`);
+      return new ValidationError(`${paramLabel} is a required field`);
     } else {
       return null;
     }
   }
   const swid = parseInt(param);
   if (Number.isNaN(swid))
-    throw new ValidationError(
+    return new ValidationError(
       `Expected integer for ${paramLabel} but got ${param}`
     );
   return swid;
@@ -250,9 +246,9 @@ function validateIntegers (param, paramLabel) {
 function validateUsername (param) {
   const user = nullifyIfBlank(param);
   if (user == null || !user.length)
-    throw new ValidationError('Username must be provided');
+    return new ValidationError('username must be provided');
   if (user.match(/\W+/))
-    throw new ValidationError('Username must contain only letters');
+    return new ValidationError('username must contain only letters');
   return user;
 }
 
@@ -270,27 +266,18 @@ function validateQcStatus (param) {
   }
   let validStatuses = ['PASS', 'FAIL', 'PENDING'];
   if (!validStatuses.includes(status)) {
-    throw new ValidationError(
-      'FileQC must be saved with QC status "PASS", "FAIL" or "PENDING"'
+    return new ValidationError(
+      'FileQC must be saved with qcstatus "PASS", "FAIL" or "PENDING"'
     );
   }
   const qcPassed = convertQcStatusToBoolean(status);
   return qcPassed;
 }
 
-function validateShowAll (param) {
-  let showAll = nullifyIfBlank(param);
-  if (showAll == null || showAll == 'false' || showAll == false) return false;
-  if (showAll == 'true' || showAll == true) return true;
-  throw new ValidationError(
-    `Unknown value "${param}" for parameter showall. Expected values are: true, false, empty string`
-  );
-}
-
 function validateFileId (param) {
   let fileid = nullifyIfBlank(param);
   if (fileid === 'undefined' || fileid === null || fileid.length == 0) {
-    throw new ValidationError(
+    return new ValidationError(
       'FileQC must have a valid fileid'
     );
   }
@@ -313,9 +300,9 @@ function convertQcStatusToBoolean (value) {
   };
   if (typeof statusToBool[value] == 'undefined')
     throw new ValidationError(
-      'Unknown QC status ' +
+      'Unknown qcstatus ' +
         value +
-        '. QC status must be one of "PASS", "FAIL", or "PENDING"'
+        '. qcstatus must be one of "PASS", "FAIL", or "PENDING"'
     );
   return statusToBool[value];
 }
@@ -330,7 +317,7 @@ function convertBooleanToQcStatus (value) {
   const status = boolToStatus[value];
   if (status === 'undefined')
     throw new ValidationError(
-      'Cannot convert QC status ' + value + ' to "PASS", "FAIL", or "PENDING".'
+      'Cannot convert qcstatus ' + value + ' to "PASS", "FAIL", or "PENDING".'
     );
   return status;
 }
@@ -368,30 +355,38 @@ function handleErrors (e, defaultMessage, next) {
 function validateObjectsFromUser (unvalidatedObjects) {
   let validationErrors = [];
   let validatedParams = unvalidatedObjects.map((unvalidated) => {
-    try {
-      return {
-        project: validateProject(unvalidated.project),
-        qcpassed: validateQcStatus(unvalidated.qcstatus),
-        username: validateUsername(unvalidated.username),
-        comment: validateComment(unvalidated.comment),
-        fileswid: validateInteger(unvalidated.fileswid, 'fileswid', false),
-        fileid: validateFileId(unvalidated.fileid),
-      };
-    } catch (e) {
-      if (e instanceof ValidationError) {
-        validationErrors.push({
-          fileid: unvalidated.fileid,
-          error: e.message,
-        });
-        return null;
-      } else {
-        throw e;
+    let singleEntryValidationErrors = [];
+    let fromUser = {
+      project: validateProject(unvalidated.project),
+      qcpassed: validateQcStatus(unvalidated.qcstatus),
+      username: validateUsername(unvalidated.username),
+      comment: validateComment(unvalidated.comment),
+      fileswid: validateInteger(unvalidated.fileswid, 'fileswid', false),
+      fileid: validateFileId(unvalidated.fileid),
+    };
+    if (fromUser.fileid instanceof ValidationError) {
+      validationErrors.add(fromUser.fileid.message);
+      return;
+    }
+    for (const [key, value] of Object.entries(fromUser)) {
+      if (value instanceof ValidationError) {
+        singleEntryValidationErrors.push(value);
       }
     }
+    if (singleEntryValidationErrors.length) {
+      let fullErrorMessage = fromUser.fileid + " : " + 
+          singleEntryValidationErrors.map(e => e.message).join('. ');
+      validationErrors.push(fullErrorMessage);
+    } else {
+      return fromUser;
+    }
   });
-
-  return { validated: validatedParams, errors: validationErrors };
-}
+  if (validationErrors.length) {
+    let allErrors = validationErrors.join(". ");
+    throw new ValidationError(allErrors);
+  }
+  return validatedParams;
+};
 
 function getAllProjectNames (proj) {
   const ary = [proj];
@@ -406,33 +401,31 @@ function getAllProjectNames (proj) {
  * recent qcdate.
  */
 function maybeReduceToMostRecent (fqcs, showAll = false) {
-  if (showAll || !fqcs.length) {
-    return fqcs || [];
-  } else {
-    console.log("maybe reduce to most recent")
-    let thing = [];
- fqcs.map((f) => thing.push({"file id": f.fileid,"status": f.qcpassed, "date": f.qcdate}));
-console.log(thing)
-    // get only the most recent FileQC for each swid;
-    const mostRecent = {};
-    for (let fqc of fqcs) {
-      if (!mostRecent[fqc.fileid]) {
-        // add the entry
-        mostRecent[fqc.fileid] = fqc;
-      } else {
-        // update the entry if necessary
-        const existingDate = mostRecent[fqc.fileid].qcdate;
-        const currentDate = fqc.qcdate;
-        if (
-          new Date(currentDate).getTime() > new Date(existingDate).getTime()
-        ) {
-          mostRecent[fqc.fileid] = fqc;
-        }
-      }
-    }
-    return Object.values(mostRecent);
-  }
+  return fqcs;
 }
+//  if (showAll || !fqcs.length) {
+//    return fqcs || [];
+//  } else {
+//    // get only the most recent FileQC for each swid;
+//    const mostRecent = {};
+//    for (let fqc of fqcs) {
+//      if (!mostRecent[fqc.fileid]) {
+//        // add the entry
+//        mostRecent[fqc.fileid] = fqc;
+//      } else {
+//        // update the entry if necessary
+//        const existingDate = mostRecent[fqc.fileid].qcdate;
+//        const currentDate = fqc.qcdate;
+//        if (
+//          new Date(currentDate).getTime() > new Date(existingDate).getTime()
+//        ) {
+//          mostRecent[fqc.fileid] = fqc;
+//        }
+//      }
+//    }
+//    return Object.values(mostRecent);
+//  }
+//}
 
 /** returns the union of the non-null fields of a File Provenance Report object and a FileQC object */
 function mergeOneFileResult (fpr, fqc) {
@@ -454,11 +447,11 @@ function mergeOneFileResult (fpr, fqc) {
 
 /** combines the results from FPR and FileQC queries then merges them on the file id if appropriate */
 function mergeFprsAndFqcs (fprs, fqcs, includeRunInfo) {
-console.log("in merge")
-console.log("FPRs")
-console.log(fprs)
-console.log("fqcs")
-console.log(fqcs)
+//console.log("in merge")
+//console.log("FPRs")
+//console.log(fprs)
+//console.log("fqcs")
+//console.log(fqcs)
   // first, remove run info if necessary
   fprs = fprs.map((fpr) => maybeRemoveRunInfo(includeRunInfo, fpr));
   // merge the FileQCs with FPRs first...

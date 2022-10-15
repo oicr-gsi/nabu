@@ -40,105 +40,30 @@
         }
       }
     },
-    "/fileqcs": {
-      "get": {
-        "summary": "Get all FileQCs",
-        "description": "Returns a list containing all FileQCs, including those that are pending. Must be filtered by 'project' or 'fileswids' or 'run', with optional 'qcstatus' and 'workflow' filters if 'project' is selected.",
+    "/get-fileqcs": {
+      "post": {
+        "summary": "Get one or more FileQCs",
+        "description": "Get FileQCs for the given filters",
         "parameters": [
           {
-            "name": "project",
-            "in": "query",
-            "description": "Filter by project short name",
-            "type": "string"
-          },
-          {
-            "name": "workflow",
-            "in": "query",
-            "description": "Filter by workflow name. Must be used with `project` query",
-            "type": "string"
-          },
-          {
-            "name": "qcstatus",
-            "in": "query",
-            "description": "Filter by qc status (PASS, FAIL, PENDING)",
-            "type": "string"
-          },
-          {
-            "name": "fileswids",
-            "in": "query",
-            "description": "Filter by file SWIDs (comma-separated)",
-            "type": "string"
-          },
-          {
-            "name": "run",
-            "in": "query",
-            "description": "Name of run. Will return all BamQC FileQCs associated with samples from this run. Only the most recent FileQC will be returned (cannot be override by 'showall').",
-            "type": "string"
-          },
-          {
-            "name": "showall",
-            "in": "query",
-            "description": "If 'true', will display all FileQCs for the retrieved file SWIDs (default is to display only the most recent FileQC)",
-            "type": "string"
+            "name": "filters",
+            "description": "File QC filters",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/FileQC-get"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "A list of FileQCs sorted by file SWIDs",
+            "description": "A list of FileQCs",
             "schema": {
               "$ref": "#/definitions/FileQCs-response"
             }
           },
           "404": {
-            "description": "No files found for given project or file SWIDs",
-            "schema": {
-              "$ref": "#/definitions/Errors"
-            }
-          }
-        }
-      },
-      "post": {
-        "summary": "Add a single FileQC",
-        "description": "Adds a single FileQC",
-        "parameters": [
-          {
-            "name": "fileswid",
-            "in": "query",
-            "description": "File SWID",
-            "type": "integer",
-            "required": true
-          },
-          {
-            "name": "qcstatus",
-            "in": "query",
-            "description": "PASS or FAIL or PENDING",
-            "type": "string",
-            "required": true
-          },
-          {
-            "name": "username",
-            "in": "query",
-            "description": "Name of person QCing the file",
-            "type": "string",
-            "required": true
-          },
-          {
-            "name": "comment",
-            "in": "query",
-            "description": "URL-escaped comment about QC status (optional)",
-            "type": "string",
-            "required": false
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "FileQC successfully created",
-            "schema": {
-              "$ref": "#/definitions/FileQC-response"
-            }
-          },
-          "400": {
-            "description": "FileQC was not created",
+            "description": "No files found for given filters",
             "schema": {
               "$ref": "#/definitions/Errors"
             }
@@ -163,37 +88,7 @@
         }
       }
     },
-    "/fileqc/{fileswid}": {
-      "get": {
-        "summary": "Get one or all FileQCs for the given file SWID",
-        "description": "Returns either the most recent or all FileQCs for the given file SWID (sorted by QC date) for the given file SWID",
-        "parameters": [
-          {
-            "name": "fileswid",
-            "in": "path",
-            "required": true,
-            "type": "integer",
-            "description": "the file SWID"
-          },
-          {
-            "name": "showall",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "description": "If 'true', will show all FileQCs for the given file SWID. If 'false' or absent, will show only the most recent FileQC."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "A FileQC",
-            "schema": {
-              "$ref": "#/definitions/FileQC-response"
-            }
-          }
-        }
-      }
-    },
-    "/fileqcs/batch": {
+    "/add-fileqcs": {
       "post": {
         "summary": "Batch create FileQC records",
         "description": "Adds FileQC records for the given items",
@@ -204,16 +99,13 @@
             "description": "Array of FileQCs",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/FileQC-post"
+              "$ref": "#/definitions/FileQC-add"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Successfully created FileQCs, ordered by file SWID",
-            "schema": {
-              "$ref": "#/definitions/FileQCs-response"
-            }
+            "description": "Successfully created FileQCs"
           },
           "400": {
             "description": "Failures during save caused no FileQCs to be created",
@@ -281,6 +173,39 @@
         }
       }
     },
+    "FileQC-get": {
+      "type": "object",
+      "properties": {
+        "fileids": {
+          "description": "Filter by File IDs",
+          "in": "body",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "project": {
+          "description": "Filter by Project short name",
+          "in": "body",
+          "type": "string"
+        },
+        "workflow": {
+          "description": "Filter by workflow name. Must be used with `project` query",
+          "in": "body",
+          "type": "string"
+        },
+        "qcstatus": {
+          "description": "Filter by qc status (PASS, FAIL, PENDING)",
+          "in": "body",
+          "type": "string"
+        },
+        "fileswids": {
+          "description": "Filter by file SWIDs (deprecated)",
+          "in": "body",
+          "type": "string"
+        }
+      }
+    },
     "FileQC-response": {
       "type": "object",
       "properties": {
@@ -288,12 +213,24 @@
           "description": "Unique FileQC ID",
           "type": "integer"
         },
+        "fileid": {
+          "description": "File ID",
+          "type": "string"
+        },
         "fileswid": {
           "description": "File SWID",
           "type": "integer"
         },
         "filepath": {
           "description": "File Path",
+          "type": "string"
+        },
+        "md5sum": {
+          "description": "File md5sum",
+          "type": "string"
+        },
+        "workflow": {
+          "description": "Workflow",
           "type": "string"
         },
         "qcstatus": {
@@ -317,10 +254,10 @@
           "type": "string"
         },
         "upstream": {
-          "description": "List of input File SWAs (only returned if a File Provenance Report record is found)",
+          "description": "List of input File IDs (only returned if a File Provenance Report record is found)",
           "type": "array",
           "items": {
-            "type": "integer"
+            "type": "string"
           }
         },
         "skip": {
@@ -350,6 +287,10 @@
         "fileqcid": {
           "description": "Unique FileQC ID",
           "type": "integer"
+        },
+        "fileid": {
+          "description": "File ID",
+          "type": "string"
         },
         "fileswid": {
           "description": "File SWID",
@@ -381,7 +322,7 @@
         }
       }
     },
-    "FileQC-post": {
+    "FileQC-add": {
       "type": "object",
       "properties": {
         "fileqcs": {
@@ -389,9 +330,9 @@
           "items": {
             "type": "object",
             "properties": {
-              "fileswid": {
-                "description": "File SWID",
-                "type": "integer"
+              "fileid": {
+                "description": "File ID",
+                "type": "string"
               },
               "qcstatus": {
                 "description": "PASS or FAIL or PENDING",

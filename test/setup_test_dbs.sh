@@ -24,5 +24,6 @@ cd "${CURRENT}"
 docker run --rm -v $(pwd)/test:/flyway/conf -v $(pwd)/test/sql:/flyway/sql --network=host flyway/flyway clean && \
 		docker run --rm -v $(pwd)/test:/flyway/conf -v $(pwd)/test/sql:/flyway/sql --network=host flyway/flyway migrate
 
+ls $(pwd)/test/sql
 rm -r $(pwd)/test/sql
 rm $(pwd)/test/migrations/create_fpr_table.sql
