@@ -12,8 +12,8 @@ Nabu has been updated to track [Vidarr](https://github.com/oicr-gsi/vidarr) File
 * Add `flyway.table=schema_version` to the `conf/flyway.conf` file as the newer version of Flyway will by default track migration history in a differently-named table
 * Migrations `V001__create_fileqc_table.sql` and `V002__add_qcDate.sql` were updated to remove hardcoded variables, so the checksums will need to be fixed:
   ```
-  UPDATE schema_version SET checksum = '-286862715' WHERE version = '1';
-  UPDATE schema_version SET checksum = '1793500263' WHERE version = '2';
+  UPDATE schema_version SET checksum = '-286862715' WHERE checksum = '-662107746';
+  UPDATE schema_version SET checksum = '1793500263' WHERE checksum = '282457096';
   ```
 * Run a one-time script to add a Vidarr File ID and md5sum to all FileQC records where the FileQC's `fileswid` matches the Vidarr file provenance record's File Attributes File SWID.
   * Download the Vidarr FPR to "$SQLITE_LOCATION" directory (specified in `.env`). Ensure this is the only gzipped file in that directory.
