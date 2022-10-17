@@ -6,14 +6,6 @@ const pg = pgp(dbConnectionString);
 const queryStream = require('pg-query-stream');
 const logger = require('../../utils/logger').logger;
 
-function generateError (statusCode, errorMessage) {
-  const err = {
-    status: statusCode,
-    errors: [errorMessage],
-  };
-  return err;
-}
-
 function getIndexedPlaceholders (items, offset = 0) {
   return items.map((item, index) => '$' + (index + offset + 1)).join(', ');
 }
@@ -42,76 +34,26 @@ const streamAllFileQcs = (fn) => {
 const addFileQcs = (fileqcs) => {
   return new Promise((resolve, reject) => {
     pg.task('add-many', (tx) => {
-      // wrapping in a transaction for error handling
-      let fileids = fileqcs.map(f => f.fileid)
-
-// console.log("before add to db")
-// pg.any("select * from fileqc where fileid in " + getIndexedPlaceholders(fileids), fileids)
-//  .then(data => {console.log("selcet before insert"); console.log(data)});
-// console.log("here's what should be added to the database:")
-//console.log(fileqcs)
-//console.log("adding it to the database")
-
-      let query = pgp.helpers.insert(fileqcs, fqcCols) +
-      ' ON CONFLICT (fileid) DO UPDATE SET ' +
-      fqcCols.assignColumns({from: 'EXCLUDED', skip: ['fileid', 'project', 'fileswid']});
-      //const insert = pgp.helpers.insert(fileqcs, fqcCols);
+      let query =
+        pgp.helpers.insert(fileqcs, fqcCols) +
+        ' ON CONFLICT (fileid) DO UPDATE SET ' +
+        fqcCols.assignColumns({
+          from: 'EXCLUDED',
+          skip: ['fileid', 'project', 'fileswid'],
+        });
 
       return tx.none(query);
-      //return tx.any("select * from fileqc where fileid in " + getIndexedPlaceholders(fileids), fileids);
     })
-    .then(data => {
-      return resolve(data);
-    })
-    .catch((err) => {
-      throw new Error(err);
-    });
-  });
-};
-
-const deleteFileQcs = (fileQcIds, username) => {
-  const fqcPlaceholders = getIndexedPlaceholders(fileQcIds);
-  return new Promise((resolve, reject) => {
-    const delete_stmt = `DELETE FROM FileQC WHERE fileqcid IN (${fqcPlaceholders}) RETURNING fileqcid`;
-    pg.any(delete_stmt, fileQcIds)
       .then((data) => {
-        data = data.map((d) => d.fileqcid);
-        const undeleted = fileQcIds.filter((id) => data.indexOf(id) == -1);
-        const yay = [];
-        if (data.length) {
-          yay.push(`Deleted: ${data.join(', ')}. `);
-        }
-        const nay = [];
-        if (undeleted.length) {
-          nay.push(`Not deleted: ${undeleted.join(', ')}.`);
-          pg.any(
-            `SELECT fileqcid FROM FileQC WHERE fileqcid IN (${undeleted.join(
-              ','
-            )})`
-          )
-            .then((data) => {
-              const notInDb = undeleted.filter((id) => !data.includes(id));
-              if (notInDb.length) {
-                nay.push(`FileQC ID(s) do not exist: ${notInDb.join(', ')}`);
-              }
-              return resolve({ success: yay, errors: nay });
-            })
-            .catch((err) => {
-              logger.error({ error: err, method: 'deleteFqcs' });
-              throw new Error(err);
-            });
-        } else {
-          return resolve({ success: yay, errors: nay });
-        }
+        return resolve(data);
       })
       .catch((err) => {
-        logger.error({ error: err, method: `deleteFqcs:${username}` });
-        throw new Error(err);
+        reject(new Error(err));
       });
   });
 };
 
-const get = (projects, qcStatus, workflow, fileids, swids) => {
+const getFileQcs = (projects, qcStatus, workflow, fileids, swids) => {
   let offset = 0;
   let query = 'SELECT * FROM fileqc ';
   let queryParts = [];
@@ -168,16 +110,61 @@ const get = (projects, qcStatus, workflow, fileids, swids) => {
       fullQuery,
       realValues.flatMap((a) => a)
     )
-      //.then((data) => resolve(data))
-    .then((data) => resolve(data))
-    .catch((err) => {
-      throw new Error(err)
-    });
+      .then((data) => resolve(data))
+      .catch((err) => {
+        reject(new Error(err));
+      });
   });
 };
+
+const deleteFileQcs = (fileIds, username) => {
+  const fileIdPlaceholders = getIndexedPlaceholders(fileIds);
+  return new Promise((resolve, reject) => {
+    const delete_stmt = `DELETE FROM FileQC WHERE fileid IN (${fileIdPlaceholders}) RETURNING fileid`;
+    pg.any(delete_stmt, fileIds)
+      .then((data) => {
+        data = data.map((d) => d.fileid);
+        const undeleted = fileIds.filter((id) => data.indexOf(id) == -1);
+        const yay = [];
+        if (data.length) {
+          yay.push(`Deleted: ${data.length}. `);
+          if (data.length == fileIds.length) {
+            return resolve({ success: yay, errors: [] });
+          }
+        }
+        const nay = [];
+        if (undeleted.length) {
+          nay.push(`Not deleted: ${undeleted.join(', ')}. `);
+          pg.any(
+            `SELECT fileqcid FROM FileQC WHERE fileqcid IN (${undeleted.join(
+              ','
+            )})`
+          )
+            .then((data) => {
+              const notInDb = undeleted.filter((id) => !data.includes(id));
+              if (notInDb.length) {
+                nay.push(`FileQC ID(s) do not exist: ${notInDb.join(', ')}`);
+              }
+              return resolve({ success: yay, errors: nay });
+            })
+            .catch((err) => {
+              logger.error({ error: err, method: 'deleteFileQcs' });
+              reject(new Error(err));
+            });
+        } else {
+          return resolve({ success: yay, errors: nay });
+        }
+      })
+      .catch((err) => {
+        logger.error({ error: err, method: `deleteFqcs:${username}` });
+        reject(new Error(err));
+      });
+  });
+};
+
 module.exports = {
   streamAllFileQcs: streamAllFileQcs,
-  getFileQcs: get,
+  getFileQcs: getFileQcs,
   addFileQcs: addFileQcs,
   deleteFileQcs: deleteFileQcs,
 };

@@ -6,7 +6,8 @@
     "description": "API for the FileQC project"
   },
   "schemes": [
-    "http"
+    "http",
+    "https"
   ],
   "basePath": "/",
   "paths": {
@@ -119,13 +120,17 @@
     "/delete-fileqcs": {
       "post": {
         "summary": "Batch delete FileQC records",
-        "description": "Deletes FileQC records for the given FileQC IDs",
+        "description": "Deletes FileQC records for the given File IDs",
         "parameters": [
           {
             "in": "body",
-            "name": "fileqcs",
+            "name": "fileids",
             "schema": {
-              "$ref": "#/definitions/FileQC-delete"
+              "description": "List of file IDs for which the FileQCs should be deleted",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           }
         ],
@@ -348,24 +353,6 @@
               }
             }
           }
-        }
-      }
-    },
-    "FileQC-delete": {
-      "type": "object",
-      "properties": {
-        "fileqcids": {
-          "description": "Comma-separated list of FileQC IDs",
-          "required": true,
-          "type": "array",
-          "items": {
-            "type": "integer"
-          }
-        },
-        "username": {
-          "description": "Name of the user who is deleting the FileQCs",
-          "required": "true",
-          "type": "string"
         }
       }
     }

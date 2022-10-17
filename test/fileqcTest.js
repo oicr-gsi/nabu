@@ -151,7 +151,6 @@ describe('Unit test FileQcController', () => {
         qcstatus: 'PENDING',
         stalestatus: 'OKAY',
       },
-
     ];
     const actual = mergeFileResults(
       [fprs['12017'], fprs['12019'], fprs['12025']],
@@ -447,54 +446,54 @@ describe('FileQC', () => {
       });
     }
     const newFileqc = {
-      'fileid': 'vidarr:research/file/ffffed20becc81abd6b61c9972599985926eb2928303f7ee4c48e9076d443447',
-      'username': 'me',
-      'qcstatus': 'PASS'
+      fileid:
+        'vidarr:research/file/ffffed20becc81abd6b61c9972599985926eb2928303f7ee4c48e9076d443447',
+      username: 'me',
+      qcstatus: 'PASS',
     };
     for (let k of Object.keys(newFileqc)) {
       it('it should not POST a FileQC with any of the following missing: fileid, username, qcstatus', (done) => {
-        const currentFileQc = {...newFileqc};
+        const currentFileQc = { ...newFileqc };
         delete currentFileQc[k];
-        assertNotSaved({ 'fileqcs': [currentFileQc] }, done, k);
+        assertNotSaved({ fileqcs: [currentFileQc] }, done, k);
       });
     }
 
     it('it should create a new FileQC for a new file ID', (done) => {
       let getBody = {
-        'fileids': [
-          newFileqc.fileid
-        ]
+        fileids: [newFileqc.fileid],
       };
-        addFileQcs(server, { 'fileqcs': [newFileqc] }).end((err, res) => {
-          expect(res.status).to.equal(201);
-          getFileQcs(server, getBody).end((err, res) => {
-            expect(res.body.fileqcs).to.have.lengthOf(1);
-            expect(res.body.fileqcs[0]).to.have.property('upstream');
-            expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
-          });
-          done();
+      addFileQcs(server, { fileqcs: [newFileqc] }).end((err, res) => {
+        expect(res.status).to.equal(201);
+        getFileQcs(server, getBody).end((err, res) => {
+          expect(res.body.fileqcs).to.have.lengthOf(1);
+          expect(res.body.fileqcs[0]).to.have.property('upstream');
+          expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
         });
+        done();
+      });
     });
 
     it('it should update a FileQC with a new QC value when a FileQC already exists for a given file ID', (done) => {
       const getBody = {
-        'fileids': [
-          'vidarr:research/file/00000c255a2acbdd9ee34169925d2e106c2e09c8ce82c4345dd633597b664c9f'
-        ]
+        fileids: [
+          'vidarr:research/file/00000c255a2acbdd9ee34169925d2e106c2e09c8ce82c4345dd633597b664c9f',
+        ],
       };
       getFileQcs(server, getBody).end((err, res) => {
         expect(res.status).to.equal(200);
         expect(res.body.fileqcs).to.have.lengthOf(1);
         expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
         const updateFileQc = {
-          'fileqcs': [
+          fileqcs: [
             {
-              'fileid': 'vidarr:research/file/00000c255a2acbdd9ee34169925d2e106c2e09c8ce82c4345dd633597b664c9f',
-              'qcstatus': 'FAIL',
-              'username': 'test',
-              'comment': 'failed for test'
-            }
-          ]
+              fileid:
+                'vidarr:research/file/00000c255a2acbdd9ee34169925d2e106c2e09c8ce82c4345dd633597b664c9f',
+              qcstatus: 'FAIL',
+              username: 'test',
+              comment: 'failed for test',
+            },
+          ],
         };
         addFileQcs(server, updateFileQc).end((err, res) => {
           expect(res.status).to.equal(201);
@@ -502,7 +501,7 @@ describe('FileQC', () => {
             expect(res.status).to.equal(200);
             // this should only get the latest result
             expect(res.body.fileqcs).to.have.lengthOf(1);
-            console.log(res.body.fileqcs)
+            console.log(res.body.fileqcs);
             expect(res.body.fileqcs[0]).to.have.property('upstream');
             expect(res.body.fileqcs[0].qcstatus).to.be.equal('FAIL');
           });
@@ -517,12 +516,14 @@ describe('FileQC', () => {
       const postBody = {
         fileqcs: [
           {
-            fileid: 'vidarr:research/file/ffffed20becc81abd6b61c9972599985926eb2928303f7ee4c48e9076d443447',
+            fileid:
+              'vidarr:research/file/ffffed20becc81abd6b61c9972599985926eb2928303f7ee4c48e9076d443447',
             qcstatus: 'FAIL',
             username: 'me',
           },
           {
-            fileid: 'vidarr:research/file/0000118144b768469a250eb25eab7d288fd5485c99a50a7c93e659ab0331f0a4',
+            fileid:
+              'vidarr:research/file/0000118144b768469a250eb25eab7d288fd5485c99a50a7c93e659ab0331f0a4',
             qcstatus: 'PASS',
             username: 'me',
           },
@@ -531,7 +532,7 @@ describe('FileQC', () => {
       addFileQcs(server, postBody).end((err, res) => {
         expect(res.status).to.equal(201);
         expect(res.body.fileqcs).to.have.lengthOf(2);
-        let statuses = res.body.fileqcs.map(f => f.qcstatus);
+        let statuses = res.body.fileqcs.map((f) => f.qcstatus);
         expect(statuses).to.have.members(['PASS', 'FAIL']);
         done();
       });
@@ -541,13 +542,15 @@ describe('FileQC', () => {
       const postBody = {
         fileqcs: [
           {
-            fileid: 'vidarr:research/file/ffffed20becc81abd6b61c9972599985926eb2928303f7ee4c48e9076d443447',
+            fileid:
+              'vidarr:research/file/ffffed20becc81abd6b61c9972599985926eb2928303f7ee4c48e9076d443447',
             qcstatus: 'FAIL',
             username: 'me',
           },
           {
-            fileid: 'vidarr:research/file/0000118144b768469a250eb25eab7d288fd5485c99a50a7c93e659ab0331f0a4',
-            qcstatus: 'PASS'
+            fileid:
+              'vidarr:research/file/0000118144b768469a250eb25eab7d288fd5485c99a50a7c93e659ab0331f0a4',
+            qcstatus: 'PASS',
           },
         ],
       };
@@ -560,16 +563,18 @@ describe('FileQC', () => {
 
   describe('batch DELETE FileQCs', () => {
     it('it should succeed in deleting a FileQC', (done) => {
-      getFileQcs(server, { fileswid: '12016'}).end((err, res) => {
-        const fqcId = res.body.fileqcs[0].fileqcid;
+      getFileQcs(server, { fileswids: ['12016'] }).end((err, res) => {
+        const fileId = res.body.fileqcs[0].fileid;
         const deleteRequest = {
-          fileqcids: [fqcId],
+          fileids: [fileId],
           username: 'me',
         };
         deleteFileQcs(server, deleteRequest).end((err, res) => {
           expect(res.status).to.equal(200);
+          console.log(res.body);
           expect(res.body.success).not.to.be.empty;
-          expect(res.body.success[0]).to.match(/^Deleted FileQC.*/);
+          expect(res.body.success[0]).to.match(/^Deleted: .*/);
+          expect(res.body.errors).to.be.empty;
           done();
         });
       });
@@ -577,11 +582,12 @@ describe('FileQC', () => {
 
     it('it should fail to delete a non-existent FileQC', (done) => {
       const deleteBody = {
-        fileqcids: [21221008773217],
+        fileids: [21221008773217],
         username: 'mistaken',
       };
       deleteFileQcs(server, deleteBody).end((err, res) => {
         expect(res.status).to.equal(200);
+        expect(res.body.success).to.be.empty;
         expect(res.body.errors).not.to.be.empty;
         expect(res.body.errors[0]).to.match(/^Not deleted:*/);
         done();

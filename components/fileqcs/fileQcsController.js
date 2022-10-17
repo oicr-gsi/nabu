@@ -84,26 +84,12 @@ const getFileQcs = async (req, res, next) => {
       // search by projects, workflows
       fprResults = await fprDao.getByProjects(projects, workflow);
     }
-//    const fileqcs = maybeReduceToMostRecent(fqcResults, showAll);
-//    const merged = mergeFprsAndFqcs(fprResults, fileqcs, false);
-    // TODO: filter by run
     const merged = mergeFprsAndFqcs(fprResults, fqcResults, false);
     res.status(200).json({ fileqcs: merged });
     next();
   } catch (e) {
     handleErrors(e, 'Error getting records', next);
   }
-};
-
-const getByRun = async (run) => {
-  // validate run name
-  if (!/^[\w-]+$/.test(run)) {
-    generateError(400, `'${run}' is not recognized as a valid run name`);
-  }
-  const fprs = await fprDao.getByRun(run);
-  const swids = fprs.map((fpr) => fpr.fileswid);
-  const fqcResult = await fileQcDao.getBySwids(swids);
-  return mergeFprsAndFqcs(fprs, fqcResult.fileqcs, true);
 };
 
 const hydrateFqcsPreSave = (fprs, fqcs) => {
@@ -123,8 +109,9 @@ const hydrateFqcsPreSave = (fprs, fqcs) => {
     return fqc;
   });
   if (noFprEntryFound.length) {
-    let errorMessage = "Cannot create FileQCs for files that are not in file provenance. No files were found for the following fileids:  "
-      + noFprEntryFound.join(" , ");
+    let errorMessage =
+      'Cannot create FileQCs for files that are not in file provenance. No files were found for the following fileids:  ' +
+      noFprEntryFound.join(' , ');
     throw new ValidationError(errorMessage);
   }
   return hydrated;
@@ -133,18 +120,22 @@ const hydrateFqcsPreSave = (fprs, fqcs) => {
 const addFileQcs = async (req, res, next) => {
   try {
     if (!Array.isArray(req.body.fileqcs))
-        throw generateError(400, 'Error: request body must contain array of \'fileqcs\'');
+      throw generateError(
+        400,
+        'Error: request body must contain array of \'fileqcs\''
+      );
     const validationResults = validateObjectsFromUser(req.body.fileqcs);
     const toSave = validationResults;
     const fileids = toSave.map((record) => record.fileid);
     const fprs = await fprDao.getByIds([], fileids);
     const hydratedFqcs = hydrateFqcsPreSave(fprs, toSave);
-    console.log("file QCs to be inserted")
-    console.log(hydratedFqcs)
-    const fqcInserts = await fileQcDao.addFileQcs(hydratedFqcs);
-    res.status(201);
-    next();
+    await fileQcDao.addFileQcs(hydratedFqcs);
+    let saved = await fileQcDao.getFileQcs([], null, null, fileids, []);
+    const fprResults = await fprDao.getByIds([], fileids);
+    const merged = mergeFprsAndFqcs(fprResults, saved, false);
 
+    res.status(201).json({ fileqcs: merged });
+    next();
   } catch (e) {
     handleErrors(e, 'Error adding FileQCs', next);
   }
@@ -155,15 +146,15 @@ const addFileQcs = async (req, res, next) => {
  */
 const deleteManyFileQcs = async (req, res, next) => {
   try {
-    if (!req.body.fileqcids || !req.body.fileqcids.length)
-      throw generateError(400, 'Error: no "fileqcids" found in request body');
-    const fqcIds = req.body.fileqcids.map(
-      (fqcId) => validateInteger(fqcId, 'fileQc ID', true),
-      'fileqcid'
+    if (!req.body.fileids || !req.body.fileids.length)
+      throw generateError(400, 'Error: no "fileids" found in request body');
+    const fileIds = req.body.fileids.map(
+      (fileId) => validateFileId(fileId),
+      'fileid'
     );
     const username = validateUsername(req.body.username);
 
-    const result = await fileQcDao.deleteFileQcs(fqcIds, username);
+    const result = await fileQcDao.deleteFileQcs(fileIds, username);
     res.status(200).json(result);
     next();
   } catch (e) {
@@ -277,11 +268,9 @@ function validateQcStatus (param) {
 function validateFileId (param) {
   let fileid = nullifyIfBlank(param);
   if (fileid === 'undefined' || fileid === null || fileid.length == 0) {
-    return new ValidationError(
-      'FileQC must have a valid fileid'
-    );
+    return new ValidationError('FileQC must have a valid fileid');
   }
-  return fileid;
+  return `${fileid}`;
 }
 
 function nullifyIfBlank (value) {
@@ -365,7 +354,7 @@ function validateObjectsFromUser (unvalidatedObjects) {
       fileid: validateFileId(unvalidated.fileid),
     };
     if (fromUser.fileid instanceof ValidationError) {
-      validationErrors.add(fromUser.fileid.message);
+      validationErrors.push(fromUser.fileid.message);
       return;
     }
     for (const [key, value] of Object.entries(fromUser)) {
@@ -374,19 +363,21 @@ function validateObjectsFromUser (unvalidatedObjects) {
       }
     }
     if (singleEntryValidationErrors.length) {
-      let fullErrorMessage = fromUser.fileid + " : " + 
-          singleEntryValidationErrors.map(e => e.message).join('. ');
+      let fullErrorMessage =
+        fromUser.fileid +
+        ' : ' +
+        singleEntryValidationErrors.map((e) => e.message).join('. ');
       validationErrors.push(fullErrorMessage);
     } else {
       return fromUser;
     }
   });
   if (validationErrors.length) {
-    let allErrors = validationErrors.join(". ");
+    let allErrors = validationErrors.join('. ');
     throw new ValidationError(allErrors);
   }
   return validatedParams;
-};
+}
 
 function getAllProjectNames (proj) {
   const ary = [proj];
@@ -394,38 +385,6 @@ function getAllProjectNames (proj) {
     ary.push(project_mappings[proj]);
   return ary;
 }
-
-/**
- * if `showAll`, the no reduction happens. Otherwise, it returns a set of
- * FileQcs which are unique by fileswid, returning the one with the most
- * recent qcdate.
- */
-function maybeReduceToMostRecent (fqcs, showAll = false) {
-  return fqcs;
-}
-//  if (showAll || !fqcs.length) {
-//    return fqcs || [];
-//  } else {
-//    // get only the most recent FileQC for each swid;
-//    const mostRecent = {};
-//    for (let fqc of fqcs) {
-//      if (!mostRecent[fqc.fileid]) {
-//        // add the entry
-//        mostRecent[fqc.fileid] = fqc;
-//      } else {
-//        // update the entry if necessary
-//        const existingDate = mostRecent[fqc.fileid].qcdate;
-//        const currentDate = fqc.qcdate;
-//        if (
-//          new Date(currentDate).getTime() > new Date(existingDate).getTime()
-//        ) {
-//          mostRecent[fqc.fileid] = fqc;
-//        }
-//      }
-//    }
-//    return Object.values(mostRecent);
-//  }
-//}
 
 /** returns the union of the non-null fields of a File Provenance Report object and a FileQC object */
 function mergeOneFileResult (fpr, fqc) {
@@ -447,23 +406,18 @@ function mergeOneFileResult (fpr, fqc) {
 
 /** combines the results from FPR and FileQC queries then merges them on the file id if appropriate */
 function mergeFprsAndFqcs (fprs, fqcs, includeRunInfo) {
-//console.log("in merge")
-//console.log("FPRs")
-//console.log(fprs)
-//console.log("fqcs")
-//console.log(fqcs)
   // first, remove run info if necessary
   fprs = fprs.map((fpr) => maybeRemoveRunInfo(includeRunInfo, fpr));
   // merge the FileQCs with FPRs first...
-  const fileids = fqcs.map(fqc => fqc.fileid);
+  const fileids = fqcs.map((fqc) => fqc.fileid);
   const mergedFqcs = fqcs.map((fqc) => {
-    const filteredFprs = fprs.filter(fpr => fpr.fileid == fqc.fileid);
+    const filteredFprs = fprs.filter((fpr) => fpr.fileid == fqc.fileid);
     return maybeMergeResult(filteredFprs, [fqc], fqc.fileid);
   });
   // ...then the requested FPRs with no associated FileQCs...
   const bareFprs = fprs
-    .filter(fpr => !fileids.includes(fpr.fileid))
-    .map(fpr => yesFprNoFqc(fpr));
+    .filter((fpr) => !fileids.includes(fpr.fileid))
+    .map((fpr) => yesFprNoFqc(fpr));
   const all = mergedFqcs.concat(bareFprs);
   //...then order them all by date
   all.sort(sortByDate);
