@@ -4,10 +4,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0)
 and this project attempts to adhere to Semantic Versioning.
 
-## Unreleased
+## UNRELEASED
 
-### Added
-  * Users can now search by `run` and get back all FileQCs for BamQC files in that run.
+Nabu has been updated to track [Vidarr](https://github.com/oicr-gsi/vidarr) File IDs. It is still possible to search for existing Niassa File SWIDs, and the migrations for this version will upgrade Niassa File QCs to Vidarr File QCs, assuming the Niassa data was migrated to Vidarr. The API has changed significantly to reflect this; see `swagger.json` for details.
+
+### Upgrade Notes
+* Add `flyway.table=schema_version` to the `conf/flyway.conf` file as the newer version of Flyway will by default track migration history in a differently-named table
+* Migrations `V001__create_fileqc_table.sql` and `V002__add_qcDate.sql` were updated to remove hardcoded variables, so the checksums will need to be fixed:
+  ```
+  UPDATE schema_version SET checksum = '-286862715' WHERE version = '1';
+  UPDATE schema_version SET checksum = '1793500263' WHERE version = '2';
+  ```
+* Run a one-time script to add a Vidarr File ID and md5sum to all FileQC records where the FileQC's `fileswid` matches the Vidarr file provenance record's File Attributes File SWID.
+  * Download the Vidarr FPR to "$SQLITE_LOCATION" directory (specified in `.env`). Ensure this is the only gzipped file in that directory.
+  * Create a SQL file with the update statements:
+    ```
+    zcat "${SQLITE_LOCATION}"/*.tsv.gz | \
+    awk -F'\t' '!seen[$45] && NR>1 { print $45"\t"$46"\t"$48; seen[$45] = 1; }' |  \
+    awk -F'\t' '{ if ($2~/niassa-file-accession/) print $1"\t"$2"\t"$3 }' | \
+    awk -F'\t' '{ $2=gensub(/.*niassa-file-accession=([0-9]+).*/,"\\1","1",$2); print $1"\t"$2"\t"$3 }' | \
+    sort | uniq | \
+    awk -F'\t' -v qu="'" '{ if ($2) print "UPDATE fileqc SET fileid = " qu $1 qu ", md5sum = " qu $3 qu " WHERE fileswid = " qu $2 qu ";" }' > add_fileid_to_fileqc_table.sql
+    ```
+  * Run the update:
+    ```
+    source $NABU/.env
+    
+    PGPASSWORD="$DB_PW" psql -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" "$DB_NAME" --single-transaction -f add_fileid_to_fileqc_table.sql
+    ```
 
 ## [2.0.0]  2018-09-14
 
