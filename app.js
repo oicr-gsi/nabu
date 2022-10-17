@@ -83,8 +83,8 @@ app.get('/', (req, res) => {
 app.get('/available', fileQc.getAvailableConstants);
 
 // routes to fileQC records
-app.post('/add-fileqcs', fileQc.addFileQcs);
 app.post('/get-fileqcs', fileQc.getFileQcs);
+app.post('/add-fileqcs', fileQc.addFileQcs);
 // deliberate indirection here so as to not turn it on by accident
 if (process.env.DEACTIVATE_AD_AUTH === 'false') {
   app.post(
