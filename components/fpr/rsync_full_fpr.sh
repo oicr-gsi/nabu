@@ -24,7 +24,10 @@ now=$(date +"%y%m%d-%H%M%S")
 # 14. Sample Name
 # 19. Sequencer Run Name
 # 25. Lane Number
-zcat "${SQLITE_LOCATION}"/*.tsv.gz | awk -F'\t' '!seen[$45] && NR>1 { print $45"\t"$46"\t"$47"\t"$48"\t"$52"\t"$53"\t"$2"\t"$39"\t"$31"\t"$14"\t"$19"\t"$25; seen[$45] = 1; }' | awk -F'\t' '{$2=gensub(/.*niassa-file-accession=([0-9]+).*/,"\\1","1",$2); print}' | sort -g -t$'\t' -k1 > "${FPR_SMALL_DEST}"/"${now}"-fpr.tsv
+zcat "${SQLITE_LOCATION}"/*.tsv.gz | \
+awk -F'\t' '!seen[$45] && NR>1 { print $45"\t"$46"\t"$47"\t"$48"\t"$52"\t"$53"\t"$2"\t"$39"\t"$31"\t"$14"\t"$19"\t"$25; seen[$45] = 1; }' | \
+awk -F'\t' '{$2=gensub(/.*niassa-file-accession=([0-9]+).*/,"\\1","1",$2); print}' | \
+sort -g -t$'\t' -k1 > "${FPR_SMALL_DEST}"/"${now}"-fpr.tsv
 
 # symlink the latest one into the folder which contains the database file
 ln -sf "${FPR_SMALL_DEST}"/"${now}"-fpr.tsv "${SQLITE_LOCATION}"/fpr-latest.tsv
