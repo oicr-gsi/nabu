@@ -97,7 +97,6 @@ describe('Unit test FileQcController', () => {
       qcpassed: true,
     },
   };
-  const mergeOne = controller.__get__('mergeOneFileResult');
   const mergeFileResults = controller.__get__('mergeFprsAndFqcs');
 
   it('should return all data when some inputs are present in FPR, others in FQC, and some in both', (done) => {
@@ -180,7 +179,7 @@ describe('Unit test FileQcController', () => {
       username: 'test',
       comment: 'failed for test',
     };
-    const actual = mergeOne(fprs['12017'], fqcs['12017']);
+    const actual = mergeFileResults([fprs['12017']], [fqcs['12017']])[0];
     expect(actual)
       .excluding('qcdate')
       .excluding('fileqcid')
@@ -201,7 +200,7 @@ describe('Unit test FileQcController', () => {
       username: 'test',
       comment: 'failed for test',
     };
-    const actual = mergeOne({}, fqcs['12017']);
+    const actual = mergeFileResults([], [fqcs['12017']])[0];
     expect(actual)
       .excluding('qcdate')
       .excluding('fileqcid')
@@ -222,7 +221,7 @@ describe('Unit test FileQcController', () => {
       qcstatus: 'PENDING',
       upstream: [],
     };
-    const actual = mergeOne(fprs['12017'], {});
+    const actual = mergeFileResults([fprs['12017']], [])[0];
     expect(actual)
       .excluding('qcdate')
       .excluding('fileqcid')
