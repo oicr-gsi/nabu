@@ -62,7 +62,7 @@ const getFileQcs = async (req, res, next) => {
     ];
     validateQueryParams(validQueryParams, req.body);
     proj = nullifyIfBlank(validateProject(req.body.project));
-    qcStatus = nullifyIfBlank(req.body.qcstatus);
+    qcStatus = convertQcStatusToBoolean(nullifyIfBlank(req.body.qcstatus));
     workflow = nullifyIfBlank(req.body.workflow);
     fileids = nullifyIfBlank(req.body.fileids);
     swids = validateIntegers(req.body.fileswids, 'fileswid');
@@ -72,7 +72,6 @@ const getFileQcs = async (req, res, next) => {
     let fqcResults = await fileQcDao.getFileQcs(
       projects,
       qcStatus,
-      workflow,
       fileids,
       swids
     );

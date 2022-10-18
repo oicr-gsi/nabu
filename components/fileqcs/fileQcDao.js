@@ -53,7 +53,7 @@ const addFileQcs = (fileqcs) => {
   });
 };
 
-const getFileQcs = (projects, qcStatus, workflow, fileids, swids) => {
+const getFileQcs = (projects, qcStatus, fileids, swids) => {
   let offset = 0;
   let query = 'SELECT * FROM fileqc ';
   let queryParts = [];
@@ -83,10 +83,12 @@ const getFileQcs = (projects, qcStatus, workflow, fileids, swids) => {
     );
   });
   buildQuery(qcStatus, () => {
-    return ' qcStatus == \'' + getIndexedPlaceholders([qcStatus], offset) + '\' ';
-  });
-  buildQuery(workflow, () => {
-    return ' workflow == \'' + getIndexedPlaceholders([workflow], offset) + '\' ';
+    if (qcStatus === null) {
+      return ' qcpassed IS NULL ';
+    }
+    if (qcStatus !== true && qcStatus !== false)
+      throw new Error('qcStatus is invalid');
+    return ' qcpassed is ' + getIndexedPlaceholders([qcStatus], offset) + ' ';
   });
   buildQuery(fileids, (nonNullFileIds) => {
     return (
@@ -110,7 +112,9 @@ const getFileQcs = (projects, qcStatus, workflow, fileids, swids) => {
       fullQuery,
       realValues.flatMap((a) => a)
     )
-      .then((data) => resolve(data))
+      .then((data) => {
+        resolve(data);
+      })
       .catch((err) => {
         reject(new Error(err));
       });
