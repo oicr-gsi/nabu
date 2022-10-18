@@ -386,24 +386,6 @@ function getAllProjectNames (proj) {
   return ary;
 }
 
-/** returns the union of the non-null fields of a File Provenance Report object and a FileQC object */
-function mergeOneFileResult (fpr, fqc) {
-  if ((!fpr || !fpr.fileswid) && (!fqc || !fqc.fileswid)) {
-    throw new ValidationError(
-      'Cannot find any matching record in either file provenance or FileQC.'
-    );
-  } else if (fpr && fpr.fileswid && (!fqc || !fqc.fileswid)) {
-    // file exists in file provenance but hasn't been QCed
-    return yesFprNoFqc(fpr);
-  } else if ((!fpr || !fpr.fileswid) && fqc && fqc.fileswid) {
-    // this file is in the FileQC database but not in file provenance
-    return noFprYesFqc(fqc);
-  } else {
-    // we have both file provenance and FileQC data, so merge them
-    return yesFprYesFqc(fpr, fqc);
-  }
-}
-
 /** combines the results from FPR and FileQC queries then merges them on the file id if appropriate */
 function mergeFprsAndFqcs (fprs, fqcs, includeRunInfo) {
   // first, remove run info if necessary
@@ -490,7 +472,7 @@ function yesFprYesFqc (fpr, fqc) {
   if (fqc.comment) merged.comment = fqc.comment;
   merged.qcdate = moment(fqc.qcdate).format('YYYY-MM-DD HH:mm');
   merged.fileqcid = fqc.fileqcid;
-  if (fqc.fileswid) merged.fileswid = parseInt(fqc.fileswid);
+  if (fqc.fileswid) merged.fileswid = `${fqc.fileswid}`;
   return merged;
 }
 
@@ -501,7 +483,7 @@ function parseUpstream (upstream) {
   } else if (Array.isArray(upstream)) {
     return upstream;
   } else {
-    return upstream.split(';');
+    return `${upstream}`.split(';');
   }
 }
 

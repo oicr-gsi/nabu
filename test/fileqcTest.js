@@ -501,7 +501,6 @@ describe('FileQC', () => {
             expect(res.status).to.equal(200);
             // this should only get the latest result
             expect(res.body.fileqcs).to.have.lengthOf(1);
-            console.log(res.body.fileqcs);
             expect(res.body.fileqcs[0]).to.have.property('upstream');
             expect(res.body.fileqcs[0].qcstatus).to.be.equal('FAIL');
           });
@@ -571,7 +570,6 @@ describe('FileQC', () => {
         };
         deleteFileQcs(server, deleteRequest).end((err, res) => {
           expect(res.status).to.equal(200);
-          console.log(res.body);
           expect(res.body.success).not.to.be.empty;
           expect(res.body.success[0]).to.match(/^Deleted: .*/);
           expect(res.body.errors).to.be.empty;
