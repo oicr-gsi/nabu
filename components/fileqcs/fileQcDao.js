@@ -108,6 +108,8 @@ const getFileQcs = (projects, qcStatus, fileids, swids) => {
   }
 
   return new Promise((resolve, reject) => {
+    console.log(fullQuery);
+    console.log(realValues.flatMap((a) => a));
     pg.any(
       fullQuery,
       realValues.flatMap((a) => a)

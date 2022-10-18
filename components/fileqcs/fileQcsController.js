@@ -67,6 +67,7 @@ const getFileQcs = async (req, res, next) => {
     fileids = nullifyIfBlank(req.body.fileids);
     swids = validateIntegers(req.body.fileswids, 'fileswid');
     run = nullifyIfBlank(req.body.run);
+    console.log(`qcStatus: ${qcStatus}`);
 
     const projects = getAllProjectNames(proj);
     let fqcResults = await fileQcDao.getFileQcs(
@@ -129,7 +130,7 @@ const addFileQcs = async (req, res, next) => {
     const fprs = await fprDao.getByIds([], fileids);
     const hydratedFqcs = hydrateFqcsPreSave(fprs, toSave);
     await fileQcDao.addFileQcs(hydratedFqcs);
-    let saved = await fileQcDao.getFileQcs([], null, null, fileids, []);
+    let saved = await fileQcDao.getFileQcs([], null, fileids, []);
     const fprResults = await fprDao.getByIds([], fileids);
     const merged = mergeFprsAndFqcs(fprResults, saved, false);
 
@@ -276,6 +277,9 @@ function nullifyIfBlank (value) {
 
 /** Must deal with null qcStatus check elsewhere */
 function convertQcStatusToBoolean (value) {
+  if (value == null) {
+    return value;
+  }
   value = value.toLowerCase();
   const statusToBool = {
     pass: true,
