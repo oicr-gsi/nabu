@@ -325,16 +325,13 @@ function handleErrors (e, defaultMessage, next) {
     logger.info(e);
     next(generateError(400, e.message));
   } else if (e.status) {
+    logger.debug(e);
     logger.info({ error: e.errors });
     return next(e); // generateError has already been called, usually because it's a user error
-  } else if (defaultMessage) {
-    if (process.env.DEBUG == 'true') console.log(e);
-    logger.error({ error: e, method: 'handleErrors' });
-    next(generateError(500, defaultMessage));
   } else {
-    if (process.env.DEBUG == 'true') console.log(e);
+    logger.debug(e);
     logger.error({ error: e, method: 'handleErrors' });
-    next(generateError(500, 'Error'));
+    next(generateError(500, defaultMessage || 'Error'));
   }
   /* eslint-enable */
 }
