@@ -74,10 +74,7 @@ app.use(log.addUID, log.logRequestInfo);
 
 // home page
 app.get('/', (req, res) => {
-  res
-    .status(400)
-    .json({ error: 'Use path /fileqcs?[project=?? OR fileswids=??]' });
-  res.end();
+  res.redirect('/api-docs');
 });
 
 app.get('/available', fileQc.getAvailableConstants);
