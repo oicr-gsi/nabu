@@ -484,6 +484,23 @@ describe('FileQC', () => {
         done();
       });
     });
+
+    it('it should have an alert attribute if the fileqc has a different md5sum than the matching file in file provenance', (done) => {
+      let requestBody = {
+        fileids: [
+          'vidarr:research/file/000020f1ddaa79c72ca761b6fbc919a192c41f88062863757495774bbf9a6235',
+        ],
+      };
+      getFileQcs(server, requestBody).end((err, res) => {
+        expect(res.status).to.equal(200);
+        console.log(res.body);
+        expect(res.body.fileqcs).to.have.lengthOf(1);
+        expect(res.body.fileqcs[0].alert).to.match(
+          /^Different md5sum! For QCed file: .* For current FPR record: .*/
+        );
+        done();
+      });
+    });
   });
 
   describe('POST FileQC', () => {

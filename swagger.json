@@ -328,6 +328,10 @@
         "qcdate": {
           "description": "QC Date",
           "type": "string"
+        },
+        "alert": {
+          "description": "Optional attribute for alerting e.g. if the file that was QCed has a different md5sum than the existing file provenance record",
+          "type": "string"
         }
       }
     },
