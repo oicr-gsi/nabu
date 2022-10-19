@@ -12,7 +12,6 @@ DELETE FROM fileqc WHERE fileqcid <>
 CREATE SEQUENCE fileid_seq;
 ALTER TABLE fileqc ADD COLUMN fileid VARCHAR(100) NOT NULL DEFAULT nextval('fileid_seq'::regclass)::VARCHAR;
 
--- TODO: reduce existing data down to most recent
 CREATE UNIQUE INDEX IF NOT EXISTS fileid_unique_index ON FileQc (fileid);
 
 ALTER TABLE fileqc ADD COLUMN md5sum VARCHAR(100);
