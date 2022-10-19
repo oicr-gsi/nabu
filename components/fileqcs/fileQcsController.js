@@ -487,7 +487,11 @@ function yesFprYesFqc (fpr, fqc) {
   if (fqc.comment) merged.comment = fqc.comment;
   merged.qcdate = moment(fqc.qcdate).format('YYYY-MM-DD HH:mm');
   merged.fileqcid = fqc.fileqcid;
-  if (fqc.fileswid) merged.fileswid = `${fqc.fileswid}`;
+  if (fqc.fileswid) merged.fileswid = parseInt(fqc.fileswid);
+  if (fqc.md5sum != fpr.md5sum) {
+    merged.alert = `Different md5sum! For QCed file: ${fqc.md5sum} For current FPR record: ${fpr.md5sum}`;
+    merged.md5sum = fqc.md5sum;
+  }
   return merged;
 }
 
