@@ -21,11 +21,11 @@ Nabu has been updated to track [Vidarr](https://github.com/oicr-gsi/vidarr) File
   1. Create a SQL file with the update statements:
     ```
     zcat "${SQLITE_LOCATION}"/*.tsv.gz | \
-    awk -F'\t' '!seen[$45] && NR>1 { print $45"\t"$46"\t"$48; seen[$45] = 1; }' |  \
-    awk -F'\t' '{ if ($2~/niassa-file-accession/) print $1"\t"$2"\t"$3 }' | \
-    awk -F'\t' '{ $2=gensub(/.*niassa-file-accession=([0-9]+).*/,"\\1","1",$2); print $1"\t"$2"\t"$3 }' | \
+    awk -F'\t' -v OFS='\t' '!seen[$45] && NR>1 { print $45,$48,$31,$46; seen[$45] = 1; }' |  \
+    awk -F'\t' -v OFS='\t' '{ if ($2~/niassa-file-accession/) print $1,$2,$3,$4 }' | \
+    awk -F'\t' -v OFS='\t' '{ $2=gensub(/.*niassa-file-accession=([0-9]+).*/,"\\1","1",$2); print $1,$2,$3,$4 }' | \
     sort | uniq | \
-    awk -F'\t' -v qu="'" '{ if ($2) print "UPDATE fileqc SET fileid = " qu $1 qu ", md5sum = " qu $3 qu " WHERE fileswid = " qu $2 qu ";" }' > add_fileid_to_fileqc_table.sql
+    awk -F'\t' -v qu="'" '{ if ($2) print "UPDATE fileqc SET fileid = " qu $1 qu ", md5sum = " qu $2 qu ", workflow = " qu $3 qu " WHERE fileswid = " qu $4 qu ";" }' > add_fileid_to_fileqc_table.sql
     ```
   1. Run the update:
     ```
