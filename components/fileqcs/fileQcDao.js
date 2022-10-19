@@ -23,6 +23,9 @@ const fqcCols = new pgp.helpers.ColumnSet(
   ],
   { table: 'fileqc' }
 );
+const deletionCols = new pgp.helpers.ColumnSet(['fileid', 'username'], {
+  table: 'deletionlog',
+});
 
 const streamAllFileQcs = (fn) => {
   const query = new queryStream(
@@ -123,6 +126,14 @@ const getFileQcs = (projects, qcStatus, fileids, swids) => {
   });
 };
 
+const logDeletion = (fileIds, username) => {
+  const deletionLogObjects = fileIds.map((p) => {
+    return { fileid: p, username: username };
+  });
+  const deletionQuery = pgp.helpers.insert(deletionLogObjects, deletionCols);
+  pg.none(deletionQuery);
+};
+
 const deleteFileQcs = (fileIds, username) => {
   const fileIdPlaceholders = getIndexedPlaceholders(fileIds);
   return new Promise((resolve, reject) => {
@@ -135,6 +146,7 @@ const deleteFileQcs = (fileIds, username) => {
         if (data.length) {
           yay.push(`Deleted: ${data.length}. `);
           if (data.length == fileIds.length) {
+            logDeletion(data, username);
             return resolve({ success: yay, errors: [] });
           }
         }
