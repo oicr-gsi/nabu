@@ -20,6 +20,7 @@ const fqcCols = new pgp.helpers.ColumnSet(
     'fileid',
     'project',
     'md5sum',
+    'workflow',
   ],
   { table: 'fileqc' }
 );
@@ -29,7 +30,7 @@ const deletionCols = new pgp.helpers.ColumnSet(['fileid', 'username'], {
 
 const streamAllFileQcs = (fn) => {
   const query = new queryStream(
-    'SELECT fileQcId, qcDate, fileid, fileswid, project, filepath, CASE qcpassed WHEN TRUE THEN \'PASS\' WHEN FALSE THEN \'FAIL\' ELSE \'PENDING\' END AS qcpassed, username, COALESCE(comment, \'\') FROM FileQC WHERE deleted = FALSE'
+    'SELECT fileqcid, qcDate, fileid, fileswid, project, workflow, filepath, CASE qcpassed WHEN TRUE THEN \'PASS\' WHEN FALSE THEN \'FAIL\' ELSE \'PENDING\' END AS qcpassed, username, COALESCE(comment, \'\') FROM FileQC WHERE deleted = FALSE'
   );
   return pg.stream(query, fn);
 };
@@ -56,7 +57,7 @@ const addFileQcs = (fileqcs) => {
   });
 };
 
-const getFileQcs = (projects, qcStatus, fileids, swids) => {
+const getFileQcs = (projects, workflow, qcStatus, fileids, swids) => {
   let offset = 0;
   let query = 'SELECT * FROM fileqc ';
   let queryParts = [];
@@ -91,7 +92,7 @@ const getFileQcs = (projects, qcStatus, fileids, swids) => {
     }
     if (qcStatus !== true && qcStatus !== false)
       throw new Error('qcStatus is invalid');
-    return ' qcpassed is ' + getIndexedPlaceholders([qcStatus], offset) + ' ';
+    return ' qcpassed IS ' + getIndexedPlaceholders([qcStatus], offset) + ' ';
   });
   buildQuery(fileids, (nonNullFileIds) => {
     return (
@@ -101,6 +102,11 @@ const getFileQcs = (projects, qcStatus, fileids, swids) => {
   buildQuery(swids, (nonNullFileSwids) => {
     return (
       ' fileswid IN (' + getIndexedPlaceholders(nonNullFileSwids, offset) + ') '
+    );
+  });
+  buildQuery(workflow, (nonNullWorkflow) => {
+    return (
+      ' workflow = ' + getIndexedPlaceholders([nonNullWorkflow], offset) + ''
     );
   });
   const fullQuery =

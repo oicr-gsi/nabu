@@ -321,6 +321,10 @@
           "description": "Project name",
           "type": "string"
         },
+        "workflow": {
+          "description": "Workflow name",
+          "type": "string"
+        },
         "qcdate": {
           "description": "QC Date",
           "type": "string"

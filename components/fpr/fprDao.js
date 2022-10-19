@@ -60,7 +60,6 @@ const listWorkflows = () => {
 };
 
 const getByProjects = (projects, workflows) => {
-  console.log(workflows);
   const select =
     'SELECT * FROM fpr WHERE project IN (' +
     getQuestionMarkPlaceholders(projects) +

@@ -394,6 +394,55 @@ describe('FileQC', () => {
       });
     });
 
+    it('it should get only FileQCs for the given project & workflow', (done) => {
+      let requestBody = {
+        workflow: 'CASAVA',
+        project: 'IPSCellLineReprogramming',
+      };
+      getFileQcs(server, requestBody).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body.fileqcs).to.have.lengthOf(3);
+        expect(
+          res.body.fileqcs.filter(
+            (f) =>
+              f.fileid ==
+              'vidarr:research/file/000011481286954345f40be3bb7fe192715d98f4bc76d9e25e782c9ab0ae9ead'
+          )
+        ).to.have.lengthOf(1);
+        done();
+      });
+    });
+
+    it('it should get only FileQCs for the given project & workflow & QC status', (done) => {
+      let requestBody = {
+        workflow: 'CASAVA',
+        project: 'IPSCellLineReprogramming',
+        qcstatus: 'PASS',
+      };
+      getFileQcs(server, requestBody).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body.fileqcs).to.have.lengthOf(0);
+
+        // change qc status and we should get a different result back
+        requestBody.qcstatus = 'FAIL';
+        getFileQcs(server, requestBody).end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.body.fileqcs).to.have.lengthOf(1);
+
+          // change qc status again
+          requestBody.qcstatus = 'PENDING';
+          getFileQcs(server, requestBody).end((err, res) => {
+            expect(res.status).to.equal(200);
+            expect(res.body.fileqcs).to.have.lengthOf(2);
+            expect(
+              res.body.fileqcs.filter((f) => f.qcstatus == 'PENDING')
+            ).to.have.lengthOf(2);
+          });
+        });
+        done();
+      });
+    });
+
     it('it should GET all FileQCs for given file IDs', (done) => {
       let requestBody = {
         fileids: [
@@ -572,6 +621,11 @@ describe('FileQC', () => {
           expect(res.body.success).not.to.be.empty;
           expect(res.body.success[0]).to.match(/^Deleted: .*/);
           expect(res.body.errors).to.be.empty;
+
+          getFileQcs(server, { fileswids: ['12016'] }).end((err, res) => {
+            expect(res.status).to.equal(200);
+            expect(res.body.fileqcs).to.be.empty;
+          });
           done();
         });
       });
