@@ -71,6 +71,7 @@ const getFileQcs = async (req, res, next) => {
     const projects = getAllProjectNames(proj);
     let fqcResults = await fileQcDao.getFileQcs(
       projects,
+      workflow,
       qcStatus,
       fileids,
       swids
@@ -83,7 +84,12 @@ const getFileQcs = async (req, res, next) => {
       // search by projects, workflows
       fprResults = await fprDao.getByProjects(projects, workflow);
     }
-    const merged = mergeFprsAndFqcs(fprResults, fqcResults, false);
+    const merged = mergeFprsAndFqcs(
+      fprResults,
+      fqcResults,
+      false,
+      req.body.qcstatus
+    );
     res.status(200).json({ fileqcs: merged });
     next();
   } catch (e) {
@@ -103,6 +109,7 @@ const hydrateFqcsPreSave = (fprs, fqcs) => {
       return;
     }
     fqc.project = correspondingFpr.project;
+    fqc.workflow = correspondingFpr.workflow;
     fqc.filepath = correspondingFpr.filepath;
     fqc.md5sum = correspondingFpr.md5sum;
     return fqc;
@@ -129,9 +136,9 @@ const addFileQcs = async (req, res, next) => {
     const fprs = await fprDao.getByIds([], fileids);
     const hydratedFqcs = hydrateFqcsPreSave(fprs, toSave);
     await fileQcDao.addFileQcs(hydratedFqcs);
-    let saved = await fileQcDao.getFileQcs([], null, fileids, []);
+    let saved = await fileQcDao.getFileQcs([], null, null, fileids, []);
     const fprResults = await fprDao.getByIds([], fileids);
-    const merged = mergeFprsAndFqcs(fprResults, saved, false);
+    const merged = mergeFprsAndFqcs(fprResults, saved, false, false);
 
     res.status(201).json({ fileqcs: merged });
     next();
@@ -276,7 +283,7 @@ function nullifyIfBlank (value) {
 
 /** Must deal with null qcStatus check elsewhere */
 function convertQcStatusToBoolean (value) {
-  if (value == null) {
+  if (value == null || value === true || value === false) {
     return value;
   }
   value = value.toLowerCase();
@@ -382,7 +389,12 @@ function getAllProjectNames (proj) {
 }
 
 /** combines the results from FPR and FileQC queries then merges them on the file id if appropriate */
-function mergeFprsAndFqcs (fprs, fqcs, includeRunInfo) {
+function mergeFprsAndFqcs (
+  fprs,
+  fqcs,
+  includeRunInfo,
+  filterByQcStatus = false
+) {
   // first, remove run info if necessary
   fprs = fprs.map((fpr) => maybeRemoveRunInfo(includeRunInfo, fpr));
   // merge the FileQCs with FPRs first...
@@ -391,10 +403,18 @@ function mergeFprsAndFqcs (fprs, fqcs, includeRunInfo) {
     const filteredFprs = fprs.filter((fpr) => fpr.fileid == fqc.fileid);
     return maybeMergeResult(filteredFprs, [fqc], fqc.fileid);
   });
+  if (['PASS', 'FAIL'].includes(filterByQcStatus)) {
+    // we only want records that are QCed
+    return mergedFqcs;
+  }
   // ...then the requested FPRs with no associated FileQCs...
   const bareFprs = fprs
     .filter((fpr) => !fileids.includes(fpr.fileid))
     .map((fpr) => yesFprNoFqc(fpr));
+  if ('PENDING' == filterByQcStatus) {
+    // we only want records that are not QCed
+    return bareFprs;
+  }
   const all = mergedFqcs.concat(bareFprs);
   //...then order them all by date
   all.sort(sortByDate);
