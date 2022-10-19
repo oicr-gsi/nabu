@@ -67,7 +67,6 @@ const getFileQcs = async (req, res, next) => {
     fileids = nullifyIfBlank(req.body.fileids);
     swids = validateIntegers(req.body.fileswids, 'fileswid');
     run = nullifyIfBlank(req.body.run);
-    console.log(`qcStatus: ${qcStatus}`);
 
     const projects = getAllProjectNames(proj);
     let fqcResults = await fileQcDao.getFileQcs(
