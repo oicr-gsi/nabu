@@ -220,17 +220,13 @@ function validateInteger (param, paramLabel, required) {
 /** Expects an array of File SWIDs and returns the valid numbers within */
 function validateIntegers (param, paramLabel) {
   if (nullifyIfBlank(param) == null || param.length == 0) return null;
-  if (Array.isArray(param)) {
-    return param
-      .map((num) => validateInteger(num, paramLabel))
-      .filter((num) => !Number.isNaN(num));
-  } else {
-    // TODO: delete me
-    return param
-      .split(',')
-      .map((num) => validateInteger(num, paramLabel))
-      .filter((num) => !Number.isNaN(num));
+  let arrayParam = param;
+  if (!Array.isArray(param)) {
+    arrayParam = [param];
   }
+  return arrayParam
+    .map((num) => validateInteger(num, paramLabel))
+    .filter((num) => !Number.isNaN(num));
 }
 
 function validateUsername (param) {
