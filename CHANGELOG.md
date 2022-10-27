@@ -17,20 +17,23 @@ Nabu has been updated to track [Vidarr](https://github.com/oicr-gsi/vidarr) File
   ```
 1. Run the migration: `npm run fw:migrate`
 1. Run a one-time script to add a Vidarr File ID and md5sum to all FileQC records where the FileQC's `fileswid` matches the Vidarr file provenance record's File Attributes File SWID.
-  1. Download the Vidarr FPR to "$SQLITE_LOCATION" directory (specified in `.env`). Ensure this is the only gzipped file in that directory.
-  1. Create a SQL file with the update statements:
-    ```
-    zcat "${SQLITE_LOCATION}"/*.tsv.gz | \
-    awk -F'\t' -v OFS='\t' '!seen[$45] && NR>1 { print $45,$48,$31,$46; seen[$45] = 1; }' |  \
-    awk -F'\t' -v OFS='\t' '{ if ($2~/niassa-file-accession/) print $1,$2,$3,$4 }' | \
-    awk -F'\t' -v OFS='\t' '{ $2=gensub(/.*niassa-file-accession=([0-9]+).*/,"\\1","1",$2); print $1,$2,$3,$4 }' | \
-    sort | uniq | \
-    awk -F'\t' -v qu="'" '{ if ($2) print "UPDATE fileqc SET fileid = " qu $1 qu ", md5sum = " qu $2 qu ", workflow = " qu $3 qu " WHERE fileswid = " qu $4 qu ";" }' > add_fileid_to_fileqc_table.sql
-    ```
-  1. Run the update:
+  * Download the Vidarr FPR to "$SQLITE_LOCATION" directory (specified in `.env`). Ensure this is the only gzipped file in that directory.
+  * Create a SQL file with the update statements:
+    
     ```
     source $NABU/.env
-    
+
+    zcat "${SQLITE_LOCATION}"/*.tsv.gz | \  
+    awk -F'\t' -v OFS='\t' '!seen[$45] && NR>1 { print $45,$48,$31,$46; seen[$45] = 1; }' | \  
+    awk -F'\t' -v OFS='\t' '{ if ($4~/niassa-file-accession/) print $1,$2,$3,$4 }' | \  
+    awk -F'\t' -v OFS='\t' '{ $4=gensub(/.*niassa-file-accession=([0-9]+).*/,"\\1","1",$4); print $1,$2,$3,$4 }' | \  
+    sort | uniq | \  
+    awk -F'\t' -v qu="'" '{ if ($4) print "UPDATE fileqc SET fileid = " qu $1 qu ", md5sum = " qu $2 qu ", workflow = " qu $3 qu " WHERE fileswid = " qu $4 qu ";" }' > add_fileid_to_fileqc_table.sql
+    ```
+
+  * Run the update:
+
+    ```
     PGPASSWORD="$DB_PW" psql -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" "$DB_NAME" --single-transaction -f add_fileid_to_fileqc_table.sql
     ```
 
