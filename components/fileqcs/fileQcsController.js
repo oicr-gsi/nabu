@@ -112,6 +112,7 @@ const hydrateFqcsPreSave = (fprs, fqcs) => {
     fqc.workflow = correspondingFpr.workflow;
     fqc.filepath = correspondingFpr.filepath;
     fqc.md5sum = correspondingFpr.md5sum;
+    fqc.fileswid = correspondingFpr.fileswid;
     return fqc;
   });
   if (noFprEntryFound.length) {
