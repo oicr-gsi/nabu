@@ -11,8 +11,6 @@ rsync -vPL "${FPR_FULL}" "${SQLITE_LOCATION}"
 now=$(date +"%y%m%d-%H%M%S")
 
 # - Extract only the desired fields
-# - Skip the first line as we'll be importing the .tsv into a database
-# - Skip record if we've seen this File (SW)ID before
 # - Fields:
 #   45. File SWID
 #   46. File Attributes (contains File SWID)
@@ -28,10 +26,13 @@ now=$(date +"%y%m%d-%H%M%S")
 #   25. Lane Number
 # - Other notes:
 #    - use tabs as separators. "-F'\t'" means split on tabs, "-v OFS='\t'" means use tab as output separator
-#    - for the File Attributes field, only keep the portion that has the Niassa File SWID
+#    - first awk command: 
+#      - skip the first line (column headers)
+#      - skip record if we've seen this File (SW)ID before
+#    - the monstrous second awk command (to extract the Niassa File SWID): "if field 2 contains `niassa-file-accession=###`, save the ### component to variable `a`; replace field 2 with the ### component; print everything"
 zcat "${SQLITE_LOCATION}"/*.tsv.gz | \
 awk -F'\t' -v OFS='\t' '!seen[$45] && NR>1 { print $45,$46,$47,$48,$52,$53,$2,$39,$31,$14,$19,$25; seen[$45] = 1; }' | \
-awk -F'\t' -v OFS='\t' '{$2=gensub(/.*niassa-file-accession=([0-9]+).*/,"\\1","1",$2); print}' > "${FPR_SMALL_DEST}"/"${now}"-fpr.tsv
+awk -F'\t' -v OFS='\t' '{match($2,/.*niassa-file-accession=([0-9]+).*/,a); $2=a[1]; print}' > "${FPR_SMALL_DEST}"/"${now}"-fpr.tsv
 
 # symlink the latest one into the folder which contains the database file
 ln -sf "${FPR_SMALL_DEST}"/"${now}"-fpr.tsv "${SQLITE_LOCATION}"/fpr-latest.tsv
