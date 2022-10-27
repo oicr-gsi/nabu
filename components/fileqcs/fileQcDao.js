@@ -43,7 +43,7 @@ const addFileQcs = (fileqcs) => {
         ' ON CONFLICT (fileid) DO UPDATE SET ' +
         fqcCols.assignColumns({
           from: 'EXCLUDED',
-          skip: ['fileid', 'project', 'fileswid'],
+          skip: ['fileid', 'project'],
         });
 
       return tx.none(query);
