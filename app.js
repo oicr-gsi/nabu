@@ -82,20 +82,6 @@ app.get('/available', fileQc.getAvailableConstants);
 // routes to fileQC records
 app.post('/get-fileqcs', fileQc.getFileQcs);
 app.post('/add-fileqcs', fileQc.addFileQcs);
-// deliberate indirection here so as to not turn it on by accident
-if (process.env.DEACTIVATE_AD_AUTH === 'false') {
-  app.post(
-    '/fileqcs/batch-signed',
-    ad.isUserAuthorized,
-    ad.authenticateADUser,
-    // if user is authenticated by this point, add the signed bit to the request
-    (req, res, next) => {
-      req.query.signed = true;
-      next();
-    },
-    fileQc.addManyFileQcs
-  );
-}
 
 app.post('/delete-fileqcs', fileQc.deleteFileQcs);
 app.get('/metrics', async (req, res) => {
