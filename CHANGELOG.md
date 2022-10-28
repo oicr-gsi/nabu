@@ -47,8 +47,10 @@ All Nabu installations should use a proxy server like nginx or Apache in front o
 1. Migrations `V001__create_fileqc_table.sql` and `V002__add_qcDate.sql` were updated to remove hardcoded variables, so the checksums will need to be fixed:
 
   ```
-  UPDATE schema_version SET checksum = '-286862715' WHERE checksum = '-662107746';
-  UPDATE schema_version SET checksum = '1793500263' WHERE checksum = '282457096';
+  SOURCE $NABU/.env
+
+  PGPASSWORD="$DB_PW" psql -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" "$DB_NAME" -c "UPDATE schema_version SET checksum = '-286862715' WHERE checksum = '-662107746';"
+  PGPASSWORD="$DB_PW" psql -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" "$DB_NAME" -c "UPDATE schema_version SET checksum = '1793500263' WHERE checksum = '282457096';"
   ```
 
 1. Run the migration: `npm run fw:migrate`
