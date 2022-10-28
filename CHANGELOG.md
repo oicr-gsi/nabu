@@ -59,12 +59,12 @@ All Nabu installations should use a proxy server like nginx or Apache in front o
     ```
     source $NABU/.env
 
-    zcat "${SQLITE_LOCATION}"/*.tsv.gz | \  
-    awk -F'\t' -v OFS='\t' '!seen[$45] && NR>1 { print $45,$48,$31,$46; seen[$45] = 1; }' | \  
-    awk -F'\t' -v OFS='\t' '{ if ($4~/niassa-file-accession/) print $1,$2,$3,$4 }' | \  
-    awk -F'\t' -v OFS='\t' '{ $4=gensub(/.*niassa-file-accession=([0-9]+).*/,"\\1","1",$4); print $1,$2,$3,$4 }' | \  
-    sort | uniq | \  
-    awk -F'\t' -v qu="'" '{ if ($4) print "UPDATE fileqc SET fileid = " qu $1 qu ", md5sum = " qu $2 qu ", workflow = " qu $3 qu " WHERE fileswid = " qu $4 qu ";" }' > add_fileid_to_fileqc_table.sql
+    zcat "${SQLITE_LOCATION}"/*.tsv.gz | \
+    awk -F'\t' -v OFS='\t' '!seen[$45] && NR>1 { print $45,$48,$31,$47,$46; seen[$45] = 1; }' | \
+    awk -F'\t' -v OFS='\t' '{ if ($5~/niassa-file-accession/) print $1,$2,$3,$4,$5 }' | \
+    awk -F'\t' -v OFS='\t' '{ $5=gensub(/.*niassa-file-accession=([0-9]+).*/,"\\1","1",$5); print $1,$2,$3,$4,$5 }' | \
+    sort | uniq | \
+    awk -F'\t' -v qu="'" '{ if ($5) print "UPDATE fileqc SET fileid = " qu $1 qu ", md5sum = " qu $2 qu ", workflow = " qu $3 qu ", filepath = " qu $4 qu " WHERE fileswid = " qu $5 qu ";" }' > add_fileid_to_fileqc_table.sql
     ```
 
   * Run the update:
