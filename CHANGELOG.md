@@ -6,15 +6,51 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
-Nabu has been updated to track [Vidarr](https://github.com/oicr-gsi/vidarr) File IDs. It is still possible to search for existing Niassa File SWIDs, and the migrations for this version will upgrade Niassa File QCs to Vidarr File QCs, assuming the Niassa data was migrated to Vidarr. The API has changed significantly to reflect this; see `swagger.json` for details.
+Nabu has been updated to track [Vidarr](https://github.com/oicr-gsi/vidarr) File IDs. It is still possible to search for existing Niassa File SWIDs, and the migrations for this version will upgrade Niassa File QCs to Vidarr File QCs, assuming the Niassa data was migrated to Vidarr. 
 
-### Upgrade Notes
+
+### New endpoints
+
+See `swagger.json` or `/api-docs` for full details
+* Get File QCs endpoint: `POST /get-fileqcs`
+  * Available filters: 
+    * project
+    * fileids
+    * fileswids
+    * workflow
+    * qcstatus
+* Add File QCs endpoint: `POST /add-fileqcs`
+  * required fields:
+    * project
+    * qcpassed
+    * username
+    * fileid
+  * optional:
+    * comment
+    * fileswid
+* Delete File QCs endpoint: `POST /delete-fileqcs`
+  * To reset a file's QC value back to PENDING, delete the File QC for that file ID.
+  
+### Vidarr-specific changes:
+
+* Since Vidarr writes files out to deterministic locations, Nabu stores the Vidarr file ID and md5sum. 
+  * _If the md5sum of the file currently in the FPR is different from the md5sum of the file that was QCed_, the File QC response will include an `alert` attribute that details the value of the QCed file's md5sum and the current FPR file's md5sum
+* Nabu will now store only one File QC per file ID, and will update that File QC's status when a new File QC is added.
+
+### Server changes
+
+All Nabu installations should use a proxy server like nginx or Apache in front of Nabu.
+
+
+### Upgrade Process
 1. Add `flyway.table=schema_version` to the `conf/flyway.conf` file as the newer version of Flyway will by default track migration history in a differently-named table
 1. Migrations `V001__create_fileqc_table.sql` and `V002__add_qcDate.sql` were updated to remove hardcoded variables, so the checksums will need to be fixed:
+
   ```
   UPDATE schema_version SET checksum = '-286862715' WHERE checksum = '-662107746';
   UPDATE schema_version SET checksum = '1793500263' WHERE checksum = '282457096';
   ```
+
 1. Run the migration: `npm run fw:migrate`
 1. Run a one-time script to add a Vidarr File ID and md5sum to all FileQC records where the FileQC's `fileswid` matches the Vidarr file provenance record's File Attributes File SWID.
   * Download the Vidarr FPR to "$SQLITE_LOCATION" directory (specified in `.env`). Ensure this is the only gzipped file in that directory.
@@ -36,8 +72,6 @@ Nabu has been updated to track [Vidarr](https://github.com/oicr-gsi/vidarr) File
     ```
     PGPASSWORD="$DB_PW" psql -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" "$DB_NAME" --single-transaction -f add_fileid_to_fileqc_table.sql
     ```
-
-* It is recommended to use a proxy server like nginx or Apache in front of Nabu.
 
 ## [2.0.0]  2018-09-14
 
