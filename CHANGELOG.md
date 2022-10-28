@@ -37,6 +37,8 @@ Nabu has been updated to track [Vidarr](https://github.com/oicr-gsi/vidarr) File
     PGPASSWORD="$DB_PW" psql -U "$DB_USER" -h "$DB_HOST" -p "$DB_PORT" "$DB_NAME" --single-transaction -f add_fileid_to_fileqc_table.sql
     ```
 
+* It is recommended to use a proxy server like nginx or Apache in front of Nabu.
+
 ## [2.0.0]  2018-09-14
 
 ### Added:

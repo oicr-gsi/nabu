@@ -54,20 +54,7 @@ app.use(cors());
 app.use(compression());
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(bodyParser.json({ type: 'application/json', limit: '50mb' }));
-// redirect http requests to https in production
-app.use((req, res, next) => {
-  // Only /metrics can be accessed via HTTP, unless NO_SSL is 'true' in .env file (not for production!)
-  if (
-    !req.secure &&
-    req.originalUrl !== '/metrics' &&
-    (process.env.NODE_ENV === 'production' || process.env.NO_SSL != 'true')
-  ) {
-    const host = req.get('Host').split(':')[0];
-    // using 307 Temporary Redirect preserves the original HTTP method in the request.
-    return res.redirect(307, `https://${host}:${httpsPort}${req.url}`);
-  }
-  next();
-});
+
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/v1', express.Router());
 app.use(log.addUID, log.logRequestInfo);
@@ -107,34 +94,7 @@ app.set('port', port);
 const server = app.listen(app.get('port'), () => {
   const host = server.address().address;
   const port = server.address().port;
-  logger.info(
-    `Unencrypted redirecting server listening at http://${host}:${port}`
-  );
+  logger.info(`Server listening at http://${host}:${port}`);
 });
-
-if (process.env.NODE_ENV == 'production' || process.env.NO_SSL != 'true') {
-  // Run https server as well in production or if NO_SSL has been disabled in dev
-  const getSslFilesOrYell = (filepath) => {
-    try {
-      return fs.readFileSync(filepath);
-    } catch (e) {
-      throw new Error(
-        `Could not read file path '${filepath}'. Are HTTPS_KEY and HTTPS_CERT set correctly in .env?`
-      );
-    }
-  };
-
-  const httpsOptions = {
-    key: getSslFilesOrYell(process.env.HTTPS_KEY),
-    cert: getSslFilesOrYell(process.env.HTTPS_CERT),
-  };
-  https.createServer(httpsOptions, app).listen(httpsPort, () => {
-    logger.info(
-      `Encrypted server listening at https://${
-        server.address().address
-      }:${httpsPort}`
-    );
-  });
-}
 
 module.exports = app;
