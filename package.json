@@ -1,6 +1,6 @@
 {
   "name": "nabu",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "description": "File QC DB",
   "main": "app.js",
   "scripts": {
@@ -10,7 +10,7 @@
     "test": "mocha --exit",
     "lint": "eslint .",
     "pre-commit": "npm test && lint-staged",
-    "fw:clean": "docker run --rm -v $(pwd)/conf:/flyway/conf -v $(pwd)/sql:/flyway/sql --network=host flyway/flyway clean",
+    "fw:clean": "docker run --rm -v $(pwd)/conf:/flyway/conf -v $(pwd)/sql:/flyway/sql --network=host flyway/flyway -cleanDisabled=false clean",
     "fw:migrate": "docker run --rm -v $(pwd)/conf:/flyway/conf -v $(pwd)/sql:/flyway/sql --network=host flyway/flyway migrate",
     "fw:test-clean": "docker run --rm -v $(pwd)/test:/flyway/conf -v $(pwd)/test/migrations:/flyway/sql --network=host flyway/flyway -cleanDisabled=false clean",
     "fw:test-migrate": "docker run --rm -v $(pwd)/test:/flyway/conf -v $(pwd)/test/migrations:/flyway/sql --network=host flyway/flyway migrate",

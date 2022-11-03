@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0)
 and this project attempts to adhere to Semantic Versioning.
 
-## UNRELEASED
+## 3.0.0 [2022-11-03]
 
 Nabu has been updated to track [Vidarr](https://github.com/oicr-gsi/vidarr) File IDs. It is still possible to search for existing Niassa File SWIDs, and the migrations for this version will upgrade Niassa File QCs to Vidarr File QCs, assuming the Niassa data was migrated to Vidarr. 
 
