@@ -1,6 +1,6 @@
 {
   "name": "nabu",
-  "version": "3.0.0",
+  "version": "3.0.1-dev",
   "description": "File QC DB",
   "main": "app.js",
   "scripts": {
