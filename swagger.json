@@ -305,9 +305,9 @@
           "description": "File Path",
           "type": "string"
         },
-        "qcstatus": {
-          "description": "FileQC status (PASS, FAIL, PENDING)",
-          "type": "string"
+        "qcpassed": {
+          "description": "Is FileQC PASS?",
+          "type": "boolean"
         },
         "username": {
           "description": "Name of person QCing the file",
@@ -327,10 +327,6 @@
         },
         "qcdate": {
           "description": "QC Date",
-          "type": "string"
-        },
-        "alert": {
-          "description": "Optional attribute for alerting e.g. if the file that was QCed has a different md5sum than the existing file provenance record",
           "type": "string"
         }
       }

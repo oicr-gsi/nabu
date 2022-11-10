@@ -30,7 +30,7 @@ const deletionCols = new pgp.helpers.ColumnSet(['fileid', 'username'], {
 
 const streamAllFileQcs = (fn) => {
   const query = new queryStream(
-    'SELECT fileqcid, qcDate, fileid, fileswid, project, workflow, filepath, CASE qcpassed WHEN TRUE THEN \'PASS\' WHEN FALSE THEN \'FAIL\' ELSE \'PENDING\' END AS qcpassed, username, COALESCE(comment, \'\') FROM FileQC WHERE deleted = FALSE'
+    'SELECT fileqcid, qcDate, fileid, fileswid, project, workflow, filepath, qcpassed, username, comment FROM FileQC'
   );
   return pg.stream(query, fn);
 };
