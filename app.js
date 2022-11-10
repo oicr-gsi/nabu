@@ -69,6 +69,7 @@ app.get('/available', fileQc.getAvailableConstants);
 // routes to fileQC records
 app.post('/get-fileqcs', fileQc.getFileQcs);
 app.post('/add-fileqcs', fileQc.addFileQcs);
+app.get('/fileqcs-only', fileQc.streamFileQcs);
 
 app.post('/delete-fileqcs', fileQc.deleteFileQcs);
 app.get('/metrics', async (req, res) => {
