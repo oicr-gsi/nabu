@@ -170,14 +170,9 @@ const deleteManyFileQcs = async (req, res, next) => {
 };
 
 /** success returns the last time that the File Provenance Report was imported into SQLite */
-const getMostRecentFprImportTime = (req, res, next) => {
-  try {
-    const importTime = fprDao.getMostRecentImportTime();
-    res.status(200).json(importTime);
-    next();
-  } catch (e) {
-    handleErrors(e, 'Error getting most recent import time', next);
-  }
+const getMostRecentFprImportTime = async () => {
+  const importTime = await fprDao.getMostRecentImportTime();
+  return importTime;
 };
 
 const validateQueryParams = (validParams, actualParams) => {
