@@ -40,7 +40,7 @@
     "node-flywaydb": "3.0.7",
     "pg-promise": "^10.10.1",
     "pg-query-stream": "^4.1.0",
-    "prom-client": "^13.1.0",
+    "prom-client": "^14.1.0",
     "serve-favicon": "^2.5.0",
     "sqlite3": "^5.0.2",
     "swagger-ui-express": "^4.1.6",
