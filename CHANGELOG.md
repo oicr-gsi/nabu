@@ -6,6 +6,8 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+## 3.0.1: [2023-01-05]
+
 ### Fixed
 
 * Re-added GET `/fileqcs-only` endpoint
