@@ -272,6 +272,10 @@
         "stalestatus": {
           "description": "Whether file has been superseded by a more recent analysis (OKAY, STALE, NOT IN PROVENANCE)",
           "type": "string"
+        },
+        "alert": {
+          "description": "Lists known issues for FileQCs",
+          "type": "string"
         }
       }
     },
@@ -289,6 +293,10 @@
     "FileQCs-only-response": {
       "type": "object",
       "properties": {
+        "alert": {
+          "description": "Description of known FileQC issues",
+          "type": "string"
+        },
         "fileqcid": {
           "description": "Unique FileQC ID",
           "type": "integer"
