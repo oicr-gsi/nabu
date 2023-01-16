@@ -6,6 +6,10 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Added
+
+* Added FileQC `alert` property to OpenAPI documentation
+
 ## 3.0.1: [2023-01-05]
 
 ### Fixed

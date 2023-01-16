@@ -11,6 +11,34 @@
   ],
   "basePath": "/",
   "paths": {
+    "/add-fileqcs": {
+      "post": {
+        "summary": "Batch create FileQC records",
+        "description": "Adds FileQC records for the given items",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "fileqcs",
+            "description": "Array of FileQCs",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/FileQC-add"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully created FileQCs"
+          },
+          "400": {
+            "description": "Failures during save caused no FileQCs to be created",
+            "schema": {
+              "$ref": "#/definitions/Errors"
+            }
+          }
+        }
+      }
+    },
     "/available": {
       "get": {
         "summary": "Get available projects and workflows",
@@ -41,83 +69,7 @@
         }
       }
     },
-    "/get-fileqcs": {
-      "post": {
-        "summary": "Get one or more FileQCs",
-        "description": "Get FileQCs for the given filters",
-        "parameters": [
-          {
-            "name": "filters",
-            "description": "File QC filters",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/FileQC-get"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "A list of FileQCs",
-            "schema": {
-              "$ref": "#/definitions/FileQCs-response"
-            }
-          },
-          "404": {
-            "description": "No files found for given filters",
-            "schema": {
-              "$ref": "#/definitions/Errors"
-            }
-          }
-        }
-      }
-    },
-    "/fileqcs-only": {
-      "get": {
-        "summary": "Get a stream of all FileQCs",
-        "description": "Returns an unordered stream of all FileQCs in the database",
-        "responses": {
-          "200": {
-            "description": "A stream of all FileQCs",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/FileQCs-only-response"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/add-fileqcs": {
-      "post": {
-        "summary": "Batch create FileQC records",
-        "description": "Adds FileQC records for the given items",
-        "parameters": [
-          {
-            "in": "body",
-            "name": "fileqcs",
-            "description": "Array of FileQCs",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/FileQC-add"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully created FileQCs"
-          },
-          "400": {
-            "description": "Failures during save caused no FileQCs to be created",
-            "schema": {
-              "$ref": "#/definitions/Errors"
-            }
-          }
-        }
-      }
-    },
-    "/delete-fileqcs": {
+   "/delete-fileqcs": {
       "post": {
         "summary": "Batch delete FileQC records",
         "description": "Deletes FileQC records for the given File IDs",
@@ -163,6 +115,54 @@
           }
         }
       }
+    },
+    "/fileqcs-only": {
+      "get": {
+        "summary": "Get a stream of all FileQCs",
+        "description": "Returns an unordered stream of all FileQCs in the database",
+        "responses": {
+          "200": {
+            "description": "A stream of all FileQCs",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/FileQCs-only-response"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get-fileqcs": {
+      "post": {
+        "summary": "Get one or more FileQCs",
+        "description": "Get FileQCs for the given filters",
+        "parameters": [
+          {
+            "name": "filters",
+            "description": "File QC filters",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/FileQC-get"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of FileQCs",
+            "schema": {
+              "$ref": "#/definitions/FileQCs-response"
+            }
+          },
+          "404": {
+            "description": "No files found for given filters",
+            "schema": {
+              "$ref": "#/definitions/Errors"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -189,13 +189,13 @@
             "type": "string"
           }
         },
-        "project": {
-          "description": "Filter by Project short name",
+        "fileswids": {
+          "description": "Filter by file SWIDs (deprecated)",
           "in": "body",
           "type": "string"
         },
-        "workflow": {
-          "description": "Filter by workflow name. Must be used with `project` query",
+        "project": {
+          "description": "Filter by Project short name",
           "in": "body",
           "type": "string"
         },
@@ -204,8 +204,8 @@
           "in": "body",
           "type": "string"
         },
-        "fileswids": {
-          "description": "Filter by file SWIDs (deprecated)",
+        "workflow": {
+          "description": "Filter by workflow name. Must be used with `project` query",
           "in": "body",
           "type": "string"
         }
@@ -214,40 +214,32 @@
     "FileQC-response": {
       "type": "object",
       "properties": {
-        "fileqcid": {
-          "description": "Unique FileQC ID",
-          "type": "integer"
+        "alert": {
+          "description": "Lists known issues for FileQCs",
+          "type": "string"
+        },
+        "comment": {
+          "description": "URL-escaped reason why FileQC is PASS or FAIL (only returned if a FileQC record is found and a comment was provided)",
+          "type": "string"
         },
         "fileid": {
           "description": "File ID",
           "type": "string"
         },
-        "fileswid": {
-          "description": "File SWID",
-          "type": "integer"
-        },
         "filepath": {
           "description": "File Path",
           "type": "string"
         },
+        "fileqcid": {
+          "description": "Unique FileQC ID",
+          "type": "integer"
+        },
+        "fileswid": {
+          "description": "File SWID",
+          "type": "integer"
+        },
         "md5sum": {
           "description": "File md5sum",
-          "type": "string"
-        },
-        "workflow": {
-          "description": "Workflow",
-          "type": "string"
-        },
-        "qcstatus": {
-          "description": "FileQC status (PASS, FAIL, PENDING)",
-          "type": "string"
-        },
-        "username": {
-          "description": "Name of person QCing the file (only returned if a FileQC record is found)",
-          "type": "string"
-        },
-        "comment": {
-          "description": "URL-escaped reason why FileQC is PASS or FAIL (only returned if a FileQC record is found and a comment was provided)",
           "type": "string"
         },
         "project": {
@@ -258,12 +250,9 @@
           "description": "QC Date (only returned if a FileQC record is found)",
           "type": "string"
         },
-        "upstream": {
-          "description": "List of input File IDs (only returned if a File Provenance Report record is found)",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "qcstatus": {
+          "description": "FileQC status (PASS, FAIL, PENDING)",
+          "type": "string"
         },
         "skip": {
           "description": "Whether file is skipped in analysis (only returned if a File Provenance Reprot record is found)",
@@ -273,8 +262,19 @@
           "description": "Whether file has been superseded by a more recent analysis (OKAY, STALE, NOT IN PROVENANCE)",
           "type": "string"
         },
-        "alert": {
-          "description": "Lists known issues for FileQCs",
+        "upstream": {
+          "description": "List of input File IDs (only returned if a File Provenance Report record is found)",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "username": {
+          "description": "Name of person QCing the file (only returned if a FileQC record is found)",
+          "type": "string"
+        },
+        "workflow": {
+          "description": "Workflow",
           "type": "string"
         }
       }
@@ -293,48 +293,44 @@
     "FileQCs-only-response": {
       "type": "object",
       "properties": {
-        "alert": {
-          "description": "Description of known FileQC issues",
+        "comment": {
+          "description": "Further information about the QC status",
+          "type": "string"
+        },
+        "fileid": {
+          "description": "File ID",
+          "type": "string"
+        },
+        "filepath": {
+          "description": "File Path",
           "type": "string"
         },
         "fileqcid": {
           "description": "Unique FileQC ID",
           "type": "integer"
         },
-        "fileid": {
-          "description": "File ID",
-          "type": "string"
-        },
         "fileswid": {
           "description": "File SWID",
           "type": "integer"
         },
-        "filepath": {
-          "description": "File Path",
+        "project": {
+          "description": "Project name",
+          "type": "string"
+        },
+        "qcdate": {
+          "description": "QC Date",
           "type": "string"
         },
         "qcpassed": {
           "description": "Is FileQC PASS?",
           "type": "boolean"
         },
-        "username": {
-          "description": "Name of person QCing the file",
-          "type": "string"
-        },
-        "comment": {
-          "description": "Further information about the QC status",
-          "type": "string"
-        },
-        "project": {
-          "description": "Project name",
-          "type": "string"
-        },
         "workflow": {
           "description": "Workflow name",
           "type": "string"
         },
-        "qcdate": {
-          "description": "QC Date",
+        "username": {
+          "description": "Name of person QCing the file",
           "type": "string"
         }
       }
@@ -347,7 +343,11 @@
           "items": {
             "type": "object",
             "properties": {
-              "fileid": {
+              "comment": {
+                "description": "optional URL-escaped reason why FileQC is PASS or FAIL",
+                "type": "string"
+              },
+             "fileid": {
                 "description": "File ID",
                 "type": "string"
               },
@@ -357,10 +357,6 @@
               },
               "username": {
                 "description": "Name of person QCing the file",
-                "type": "string"
-              },
-              "comment": {
-                "description": "optional URL-escaped reason why FileQC is PASS or FAIL",
                 "type": "string"
               }
             }
