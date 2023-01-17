@@ -5,11 +5,11 @@
 # Getting started
 
 ## Requirements
-  * Node 4.5.0 or higher (developed on Node 8/9)
-  * NPM (comes with Node)
+  * Node 16 or higher
+  * NPM
   * PostgreSQL 9.5 or higher
   * SQLite3
-  * Docker (if using for database migrations)-
+  * Docker (for database migrations)
 
 Checking for node:
 
