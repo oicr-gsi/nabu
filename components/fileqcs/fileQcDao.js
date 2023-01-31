@@ -1,8 +1,14 @@
 'use strict';
 
-const dbConnectionString = `postgres://${process.env.DB_USER}:${process.env.DB_PW}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`;
 const pgp = require('pg-promise')({});
-const pg = pgp(dbConnectionString);
+const connectionConfig = {
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PW,
+};
+const pg = pgp(connectionConfig);
 const queryStream = require('pg-query-stream');
 const logger = require('../../utils/logger').logger;
 
