@@ -54,7 +54,7 @@
     "chai-http": "^4.3.0",
     "eslint": "^8.34.0",
     "husky": "^6.0.0",
-    "lint-staged": "^10.5.4",
+    "lint-staged": "^13.1.2",
     "mocha": "10.2.0",
     "node-cmd": "^5.0.0",
     "nodemon": "^2.0.20",
