@@ -59,6 +59,6 @@
     "node-cmd": "^5.0.0",
     "nodemon": "^2.0.20",
     "prettier": "^2.8.3",
-    "rewire": "^5.0.0"
+    "rewire": "^6.0.0"
   }
 }
