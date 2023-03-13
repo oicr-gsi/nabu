@@ -57,7 +57,7 @@
     "lint-staged": "^13.1.2",
     "mocha": "10.2.0",
     "node-cmd": "^5.0.0",
-    "nodemon": "^2.0.20",
+    "nodemon": "^2.0.21",
     "prettier": "^2.8.3",
     "rewire": "^6.0.0"
   }
