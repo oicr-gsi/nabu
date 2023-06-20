@@ -5,7 +5,7 @@
 # Getting started
 
 ## Requirements
-  * Node 16 or higher
+  * Node 18 or higher
   * NPM
   * PostgreSQL 9.5 or higher
   * SQLite3
