@@ -9,7 +9,7 @@ and this project attempts to adhere to Semantic Versioning.
 ### Added
 
 * FileQC `alert` property to OpenAPI documentation
-* Requirement for Node.js version 16+ 
+* Requirement for Node.js version 18+ 
 
 ## 3.0.1: [2023-01-05]
 
