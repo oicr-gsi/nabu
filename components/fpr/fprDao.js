@@ -1,6 +1,5 @@
 'use strict';
 
-const log = require('../../utils/logger');
 const basesqlite3 = require('sqlite3');
 const sqlite3 =
   (process.env.DEBUG || 'false') === 'true'

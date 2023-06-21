@@ -68,7 +68,6 @@ const getFileQcs = async (req, res, next) => {
     workflow = nullifyIfBlank(req.body.workflow);
     fileids = nullifyIfBlank(req.body.fileids);
     swids = validateIntegers(req.body.fileswids, 'fileswid');
-    run = nullifyIfBlank(req.body.run);
 
     const projects = getAllProjectNames(proj);
     let fqcResults = await fileQcDao.getFileQcs(
@@ -331,7 +330,7 @@ function validateObjectsFromUser (unvalidatedObjects) {
       validationErrors.push(fromUser.fileid.message);
       return;
     }
-    for (const [key, value] of Object.entries(fromUser)) {
+    for (const [, value] of Object.entries(fromUser)) {
       if (value instanceof ValidationError) {
         singleEntryValidationErrors.push(value);
       }

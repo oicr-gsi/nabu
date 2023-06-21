@@ -5,16 +5,14 @@ if (process.env.NODE_ENV != 'TEST') {
   // Tests run their own dotenv config
   require('dotenv').config();
 }
-const ad = require('./utils/activeDirectory');
 const bodyParser = require('body-parser');
 const compression = require('compression');
 const cors = require('cors');
 const express = require('express');
 const favicon = require('serve-favicon');
 const fileQc = require('./components/fileqcs/fileQcsController'); // controller for FileQC endpoints
-const fs = require('fs');
+const caseController = require('./components/case/caseController'); // controller for case & archive endpoints
 const helmet = require('helmet');
-const https = require('https');
 const log = require('./utils/logger');
 const path = require('path');
 const prom = require('./utils/prometheus');
@@ -23,7 +21,6 @@ const swaggerUi = require('swagger-ui-express');
 
 const app = express();
 const port = process.env.PORT || 3000;
-const httpsPort = process.env.HTTPS_PORT || 8443;
 const logger = log.logger;
 
 const errorHandler = (err, req, res, next) => {
