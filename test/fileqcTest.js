@@ -493,7 +493,6 @@ describe('FileQC', () => {
       };
       getFileQcs(server, requestBody).end((err, res) => {
         expect(res.status).to.equal(200);
-        console.log(res.body);
         expect(res.body.fileqcs).to.have.lengthOf(1);
         expect(res.body.fileqcs[0].alert).to.match(
           /^Different md5sum! For QCed file: .* For current FPR record: .*/
