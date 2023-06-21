@@ -5,6 +5,8 @@ const moment = require('moment');
 const fileQcDao = require('./fileQcDao');
 const fprDao = require('../fpr/fprDao');
 const log = require('../../utils/logger');
+const generateError = require('../../utils/controllerUtils').generateError;
+const handleErrors = require('../../utils/controllerUtils').handleErrors;
 const logger = log.logger;
 
 /* some projects are represented with two different names. This contains only the duplicates,
@@ -27,7 +29,7 @@ const getAvailableConstants = async (req, res, next) => {
     res.status(200).json({ projects: results[0], workflows: results[1] });
     next();
   } catch (e) {
-    handleErrors(e, 'Error getting projects and workflows', next);
+    handleErrors(e, 'Error getting projects and workflows', logger, next);
   }
 };
 
@@ -45,7 +47,7 @@ const streamFileQcs = async (req, res, next) => {
     });
     next();
   } catch (e) {
-    handleErrors(e, 'Error streaming FileQCs', next);
+    handleErrors(e, 'Error streaming FileQCs', logger, next);
   }
 };
 
@@ -93,7 +95,7 @@ const getFileQcs = async (req, res, next) => {
     res.status(200).json({ fileqcs: merged });
     next();
   } catch (e) {
-    handleErrors(e, 'Error getting records', next);
+    handleErrors(e, 'Error getting records', logger, next);
   }
 };
 
@@ -144,7 +146,7 @@ const addFileQcs = async (req, res, next) => {
     res.status(201).json({ fileqcs: merged });
     next();
   } catch (e) {
-    handleErrors(e, 'Error adding FileQCs', next);
+    handleErrors(e, 'Error adding FileQCs', logger, next);
   }
 };
 
@@ -165,7 +167,7 @@ const deleteManyFileQcs = async (req, res, next) => {
     res.status(200).json(result);
     next();
   } catch (e) {
-    handleErrors(e, 'Error deleting records', next);
+    handleErrors(e, 'Error deleting records', logger, next);
   }
 };
 
@@ -310,32 +312,6 @@ function convertBooleanToQcStatus (value) {
       'Cannot convert qcstatus ' + value + ' to "PASS", "FAIL", or "PENDING".'
     );
   return status;
-}
-
-function generateError (statusCode, errorMessage) {
-  const err = {
-    status: statusCode,
-    errors: [errorMessage],
-  };
-  return err;
-}
-
-function handleErrors (e, defaultMessage, next) {
-  /* eslint-disable */
-  if (e instanceof ValidationError) {
-    if (process.env.DEBUG == 'true') console.log(e);
-    logger.info(e);
-    next(generateError(400, e.message));
-  } else if (e.status) {
-    logger.debug(e);
-    logger.info({ error: e.errors });
-    return next(e); // generateError has already been called, usually because it's a user error
-  } else {
-    logger.debug(e);
-    logger.error({ error: e, method: 'handleErrors' });
-    next(generateError(500, defaultMessage || 'Error'));
-  }
-  /* eslint-enable */
 }
 
 /** returns an object { validated: {}, errors: [] } */

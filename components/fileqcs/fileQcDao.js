@@ -11,10 +11,7 @@ const connectionConfig = {
 const pg = pgp(connectionConfig);
 const queryStream = require('pg-query-stream');
 const logger = require('../../utils/logger').logger;
-
-function getIndexedPlaceholders (items, offset = 0) {
-  return items.map((item, index) => '$' + (index + offset + 1)).join(', ');
-}
+const utils = require('../../utils/pgUtils');
 
 const fqcCols = new pgp.helpers.ColumnSet(
   [
@@ -89,7 +86,9 @@ const getFileQcs = (projects, workflow, qcStatus, fileids, swids) => {
   };
   buildQuery(projects, (nonNullProjects) => {
     return (
-      ' project IN (' + getIndexedPlaceholders(nonNullProjects, offset) + ') '
+      ' project IN (' +
+      utils.getIndexedPlaceholders(nonNullProjects, offset) +
+      ') '
     );
   });
   buildQuery(qcStatus, () => {
@@ -98,21 +97,29 @@ const getFileQcs = (projects, workflow, qcStatus, fileids, swids) => {
     }
     if (qcStatus !== true && qcStatus !== false)
       throw new Error('qcStatus is invalid');
-    return ' qcpassed IS ' + getIndexedPlaceholders([qcStatus], offset) + ' ';
+    return (
+      ' qcpassed IS ' + utils.getIndexedPlaceholders([qcStatus], offset) + ' '
+    );
   });
   buildQuery(fileids, (nonNullFileIds) => {
     return (
-      ' fileid IN (' + getIndexedPlaceholders(nonNullFileIds, offset) + ') '
+      ' fileid IN (' +
+      utils.getIndexedPlaceholders(nonNullFileIds, offset) +
+      ') '
     );
   });
   buildQuery(swids, (nonNullFileSwids) => {
     return (
-      ' fileswid IN (' + getIndexedPlaceholders(nonNullFileSwids, offset) + ') '
+      ' fileswid IN (' +
+      utils.getIndexedPlaceholders(nonNullFileSwids, offset) +
+      ') '
     );
   });
   buildQuery(workflow, (nonNullWorkflow) => {
     return (
-      ' workflow = ' + getIndexedPlaceholders([nonNullWorkflow], offset) + ''
+      ' workflow = ' +
+      utils.getIndexedPlaceholders([nonNullWorkflow], offset) +
+      ''
     );
   });
   const fullQuery =
@@ -145,7 +152,7 @@ const logDeletion = (fileIds, username) => {
 };
 
 const deleteFileQcs = (fileIds, username) => {
-  const fileIdPlaceholders = getIndexedPlaceholders(fileIds);
+  const fileIdPlaceholders = utils.getIndexedPlaceholders(fileIds);
   return new Promise((resolve, reject) => {
     const delete_stmt = `DELETE FROM FileQC WHERE fileid IN (${fileIdPlaceholders}) RETURNING fileid`;
     pg.any(delete_stmt, fileIds)
