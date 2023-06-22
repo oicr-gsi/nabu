@@ -34,6 +34,24 @@ const caseCols = new pgPackage.helpers.ColumnSet(
   { table: 'cardea_case' }
 );
 
+const archiveCols = new pgPackage.helpers.ColumnSet(
+  [
+    'id',
+    'created',
+    'modified',
+    'case_id',
+    'commvault_backup_job_id',
+    'workflow_run_ids_for_offsite_archive',
+    'unload_file_for_offsite',
+    'files_moved_to_offsite_dir',
+    'files_loaded_into_vidarr_archival',
+    'workflow_run_ids_for_vidarr_archival',
+    'unload_file_for_vidarr_archival',
+    'case_files_unloaded',
+  ],
+  { table: 'archive' }
+);
+
 const addCase = (cardeaCase) => {
   return new Promise((resolve, reject) => {
     pg.task('add-case', (tx) => {
@@ -55,8 +73,10 @@ const addCase = (cardeaCase) => {
   });
 };
 
+const allCaseArchiveDataQuery =
+  'SELECT c.id, c.case_identifier, c.requisition_id, c.lims_ids, a.created, a.modified, a.workflow_run_ids_for_offsite_archive, a.unload_file_for_offsite_archive, a.files_moved_to_offsite_archive_staging_dir, a.commvault_backup_job_id, a.workflow_run_ids_for_vidarr_archival, a.unload_file_for_vidarr_archival, a.files_loaded_into_vidarr_archival, a.case_files_unloaded FROM cardea_case c JOIN archive a ON c.id = a.case_id';
 const getByCaseIdentifier = (caseIdentifier) => {
-  let query = 'SELECT * FROM cardea_case WHERE case_identifier = $1';
+  let query = allCaseArchiveDataQuery + ' WHERE case_identifier = $1';
   return new Promise((resolve, reject) => {
     pg.one(query, caseIdentifier)
       .then((data) => {
