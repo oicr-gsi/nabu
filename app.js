@@ -27,7 +27,9 @@ const errorHandler = (err, req, res, next) => {
   if (res.headersSent) {
     return next(err);
   }
-  if (err.status) {
+  if (err.status && err.status == 404) {
+    res.status(err.status).end(); // no body
+  } else if (err.status) {
     res.status(err.status);
     res.json({
       errors: err.errors || err.message || err,

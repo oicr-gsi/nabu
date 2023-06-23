@@ -1,28 +1,35 @@
 'use strict';
 
+const NotFoundError = require('./pgUtils').NotFoundError;
+
 /** set up custom error if bad params are given */
-function ValidationError (message) {
-  this.name = 'ValidationError';
-  this.message = message || '';
+class ValidationError extends Error {
+  constructor (message = '', ...args) {
+    super(message, ...args);
+    this.name = 'ValidationError';
+    this.message = message || '';
+  }
 }
-ValidationError.prototype = Error.prototype;
 
 function generateError (statusCode, errorMessage) {
   const err = {
     status: statusCode,
-    errors: [errorMessage],
   };
+  if (errorMessage) {
+    err.errors = [errorMessage];
+  }
   return err;
 }
 
 function handleErrors (e, defaultMessage, logger, next) {
   /* eslint-disable */
   if (e instanceof ValidationError) {
-    if (process.env.DEBUG == 'true') console.log(e);
-    logger.info(e);
+    logger.info(e.message);
     next(generateError(400, e.message));
+  } else if (e instanceof NotFoundError) {
+    if (process.env.DEBUG == 'true') console.log(e);
+    next(generateError(404, null));
   } else if (e.status) {
-    logger.debug(e);
     logger.info({ error: e.errors });
     return next(e); // generateError has already been called, usually because it's a user error
   } else {
@@ -35,5 +42,6 @@ function handleErrors (e, defaultMessage, logger, next) {
 
 module.exports = {
   ValidationError: ValidationError,
+  generateError: generateError,
   handleErrors: handleErrors,
 };
