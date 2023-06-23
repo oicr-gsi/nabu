@@ -3,12 +3,14 @@
 const dbUtils = require('../../utils/pgUtils');
 const db = dbUtils.db;
 const pgp = dbUtils.pgPkg;
+const qrec = pgp.errors.queryResultErrorCode;
+const NotFoundError = dbUtils.NotFoundError;
 
 const caseCols = new pgp.helpers.ColumnSet(
   ['id', 'case_identifier', 'requisition_id', 'lims_ids'],
   { table: 'cardea_case' }
 );
-
+/**
 const archiveCols = new pgp.helpers.ColumnSet(
   [
     'id',
@@ -26,7 +28,7 @@ const archiveCols = new pgp.helpers.ColumnSet(
   ],
   { table: 'archive' }
 );
-
+*/
 const addCase = (cardeaCase) => {
   return new Promise((resolve, reject) => {
     db.task('add-case', (tx) => {
@@ -50,6 +52,7 @@ const addCase = (cardeaCase) => {
 
 const allCaseArchiveDataQuery =
   'SELECT c.id, c.case_identifier, c.requisition_id, c.lims_ids, a.created, a.modified, a.workflow_run_ids_for_offsite_archive, a.unload_file_for_offsite_archive, a.files_moved_to_offsite_archive_staging_dir, a.commvault_backup_job_id, a.workflow_run_ids_for_vidarr_archival, a.unload_file_for_vidarr_archival, a.files_loaded_into_vidarr_archival, a.case_files_unloaded FROM cardea_case c JOIN archive a ON c.id = a.case_id';
+
 const getByCaseIdentifier = (caseIdentifier) => {
   let query = allCaseArchiveDataQuery + ' WHERE case_identifier = $1';
   return new Promise((resolve, reject) => {
@@ -58,7 +61,12 @@ const getByCaseIdentifier = (caseIdentifier) => {
         resolve(data);
       })
       .catch((err) => {
-        reject(new Error(err));
+        if (err.code === qrec.noData) {
+          // no data found
+          reject(new NotFoundError(err));
+        } else {
+          reject(new Error(err));
+        }
       });
   });
 };

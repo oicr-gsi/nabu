@@ -29,14 +29,22 @@ const camelizeColumns = (data) => {
 const pgPackage = pgp(pgOptions);
 const pg = pgPackage(connectionConfig);
 
-console.log(pgPackage.helpers);
-
 function getIndexedPlaceholders (items, offset = 0) {
   return items.map((item, index) => '$' + (index + offset + 1)).join(', ');
+}
+
+/** set up custom error if data is not found */
+class NotFoundError extends Error {
+  constructor (message = '', ...args) {
+    super(message, ...args);
+    this.name = 'NotFoundError';
+    this.message = message || '';
+  }
 }
 
 module.exports = {
   db: pg,
   pgPkg: pgPackage,
   getIndexedPlaceholders: getIndexedPlaceholders,
+  NotFoundError: NotFoundError,
 };

@@ -2,6 +2,7 @@
 
 const caseDao = require('./caseDao');
 const handleErrors = require('../../utils/controllerUtils').handleErrors;
+const logger = require('../../utils/logger').logger;
 
 const getCase = async (req, res, next) => {
   try {
@@ -10,7 +11,7 @@ const getCase = async (req, res, next) => {
     );
     res.status(200).json(cardeaCase);
   } catch (e) {
-    handleErrors(e, 'Error getting case', next);
+    handleErrors(e, 'Error getting case', logger, next);
   }
 };
 

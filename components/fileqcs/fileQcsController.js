@@ -4,21 +4,15 @@ const JSONStream = require('JSONStream');
 const moment = require('moment');
 const fileQcDao = require('./fileQcDao');
 const fprDao = require('../fpr/fprDao');
-const log = require('../../utils/logger');
-const generateError = require('../../utils/controllerUtils').generateError;
-const handleErrors = require('../../utils/controllerUtils').handleErrors;
-const logger = log.logger;
+const logger = require('../../utils/logger').logger;
+const controllerUtils = require('../../utils/controllerUtils');
+const generateError = controllerUtils.generateError;
+const handleErrors = controllerUtils.handleErrors;
+const ValidationError = controllerUtils.ValidationError;
 
 /* some projects are represented with two different names. This contains only the duplicates,
  * and maps the long name to the short name */
 const project_mappings = require('./project_mappings');
-
-/** set up custom error if bad params are given */
-function ValidationError (message) {
-  this.name = 'ValidationError';
-  this.message = message || '';
-}
-ValidationError.prototype = Error.prototype;
 
 const getAvailableConstants = async (req, res, next) => {
   try {
@@ -53,7 +47,7 @@ const streamFileQcs = async (req, res, next) => {
 
 const getFileQcs = async (req, res, next) => {
   try {
-    let proj, fileids, swids, run, workflow, qcStatus;
+    let proj, fileids, swids, workflow, qcStatus;
     const validQueryParams = [
       'project',
       'fileids',
