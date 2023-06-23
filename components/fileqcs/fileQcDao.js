@@ -1,17 +1,11 @@
 'use strict';
 
-const pgp = require('pg-promise')({});
-const connectionConfig = {
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PW,
-};
-const pg = pgp(connectionConfig);
+const dbUtils = require('../../utils/pgUtils');
+const db = dbUtils.db;
+const pgp = dbUtils.pgPkg;
+
 const queryStream = require('pg-query-stream');
 const logger = require('../../utils/logger').logger;
-const utils = require('../../utils/pgUtils');
 
 const fqcCols = new pgp.helpers.ColumnSet(
   [
@@ -35,12 +29,12 @@ const streamAllFileQcs = (fn) => {
   const query = new queryStream(
     'SELECT fileqcid, qcDate, fileid, fileswid, project, workflow, filepath, qcpassed, username, comment FROM FileQC'
   );
-  return pg.stream(query, fn);
+  return db.stream(query, fn);
 };
 
 const addFileQcs = (fileqcs) => {
   return new Promise((resolve, reject) => {
-    pg.task('add-many', (tx) => {
+    db.task('add-many', (tx) => {
       let query =
         pgp.helpers.insert(fileqcs, fqcCols) +
         ' ON CONFLICT (fileid) DO UPDATE SET ' +
@@ -87,7 +81,7 @@ const getFileQcs = (projects, workflow, qcStatus, fileids, swids) => {
   buildQuery(projects, (nonNullProjects) => {
     return (
       ' project IN (' +
-      utils.getIndexedPlaceholders(nonNullProjects, offset) +
+      dbUtils.getIndexedPlaceholders(nonNullProjects, offset) +
       ') '
     );
   });
@@ -98,27 +92,27 @@ const getFileQcs = (projects, workflow, qcStatus, fileids, swids) => {
     if (qcStatus !== true && qcStatus !== false)
       throw new Error('qcStatus is invalid');
     return (
-      ' qcpassed IS ' + utils.getIndexedPlaceholders([qcStatus], offset) + ' '
+      ' qcpassed IS ' + dbUtils.getIndexedPlaceholders([qcStatus], offset) + ' '
     );
   });
   buildQuery(fileids, (nonNullFileIds) => {
     return (
       ' fileid IN (' +
-      utils.getIndexedPlaceholders(nonNullFileIds, offset) +
+      dbUtils.getIndexedPlaceholders(nonNullFileIds, offset) +
       ') '
     );
   });
   buildQuery(swids, (nonNullFileSwids) => {
     return (
       ' fileswid IN (' +
-      utils.getIndexedPlaceholders(nonNullFileSwids, offset) +
+      dbUtils.getIndexedPlaceholders(nonNullFileSwids, offset) +
       ') '
     );
   });
   buildQuery(workflow, (nonNullWorkflow) => {
     return (
       ' workflow = ' +
-      utils.getIndexedPlaceholders([nonNullWorkflow], offset) +
+      dbUtils.getIndexedPlaceholders([nonNullWorkflow], offset) +
       ''
     );
   });
@@ -130,7 +124,7 @@ const getFileQcs = (projects, workflow, qcStatus, fileids, swids) => {
   }
 
   return new Promise((resolve, reject) => {
-    pg.any(
+    db.any(
       fullQuery,
       realValues.flatMap((a) => a)
     )
@@ -148,14 +142,14 @@ const logDeletion = (fileIds, username) => {
     return { fileid: p, username: username };
   });
   const deletionQuery = pgp.helpers.insert(deletionLogObjects, deletionCols);
-  pg.none(deletionQuery);
+  db.none(deletionQuery);
 };
 
 const deleteFileQcs = (fileIds, username) => {
-  const fileIdPlaceholders = utils.getIndexedPlaceholders(fileIds);
+  const fileIdPlaceholders = dbUtils.getIndexedPlaceholders(fileIds);
   return new Promise((resolve, reject) => {
     const delete_stmt = `DELETE FROM FileQC WHERE fileid IN (${fileIdPlaceholders}) RETURNING fileid`;
-    pg.any(delete_stmt, fileIds)
+    db.any(delete_stmt, fileIds)
       .then((data) => {
         data = data.map((d) => d.fileid);
         const undeleted = fileIds.filter((id) => data.indexOf(id) == -1);
@@ -170,7 +164,7 @@ const deleteFileQcs = (fileIds, username) => {
         const nay = [];
         if (undeleted.length) {
           nay.push(`Not deleted: ${undeleted.join(', ')}. `);
-          pg.any(
+          db.any(
             `SELECT fileqcid FROM FileQC WHERE fileqcid IN (${undeleted.join(
               ','
             )})`
