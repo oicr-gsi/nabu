@@ -16,15 +16,15 @@ const get = (server, path) => {
   return chai.request(server).get(path);
 };
 */
-/**
-const addArchive = (server, requestBody = {}) => {
+
+const addCaseArchives = (server, requestBody = {}) => {
   return chai
     .request(server)
-    .post('/archive')
+    .post('/case')
     .set('content-type', 'application/json')
     .send(requestBody);
 };
-*/
+
 
 const getCaseByCaseIdentifier = (server, caseIdentifier = {}) => {
   return chai
@@ -53,6 +53,19 @@ describe('case archive tracking', () => {
     getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
       expect(res.status).to.equal(404);
       expect(res.body).to.be.empty;
+      done();
+    });
+  });
+  it('it should create a case + archive entry', (done) => {
+    let reqBody = {
+      caseIdentifier: 'R22_TEST_0022_Bb_B',
+      requisitionId: 22,
+      limsIds: ['2222_1_LDI2222', '2222_1_LDI2323', '2222_1_LDI2442'],
+      workflowRunIdsForOffsiteArchive: ['vidarr:research/run/asdf', 'vidarr:research/run/1234'],
+      workflowRunIdsForVidarrArchival: ['vidarr:research/run/abba']
+    };
+    addCaseArchives(server, reqBody).end((err, res) => {
+      expect(res.status).to.equal(201);
       done();
     });
   });

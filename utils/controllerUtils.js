@@ -33,6 +33,7 @@ function handleErrors (e, defaultMessage, logger, next) {
     logger.info({ error: e.errors });
     return next(e); // generateError has already been called, usually because it's a user error
   } else {
+    console.log(e);
     logger.debug(e);
     logger.error({ error: e, method: 'handleErrors' });
     next(generateError(500, defaultMessage || 'Error'));
