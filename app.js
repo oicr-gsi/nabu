@@ -72,6 +72,7 @@ app.get('/fileqcs-only', fileQc.streamFileQcs);
 
 app.post('/delete-fileqcs', fileQc.deleteFileQcs);
 app.get('/case/:caseIdentifier', caseController.getCase);
+app.post('/case', caseController.addCases);
 app.get('/metrics', async (req, res) => {
   try {
     const mostRecentImportTime = await fileQc.getMostRecentFprImportTime();

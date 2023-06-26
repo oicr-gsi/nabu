@@ -15,6 +15,16 @@ const getCase = async (req, res, next) => {
   }
 };
 
+const addCases = async (req, res, next) => {
+  try {
+    await caseDao.addCases(req.body);
+    res.status(201).end();
+  } catch (e) {
+    handleErrors(e, 'Error adding cases', logger, next);
+  }
+};
+
 module.exports = {
+  addCases: addCases,
   getCase: getCase,
 };
