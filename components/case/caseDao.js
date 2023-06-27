@@ -110,14 +110,14 @@ const allCaseArchiveDataQuery =
 const getByCaseIdentifier = (caseIdentifier) => {
   let query = allCaseArchiveDataQuery + ' WHERE case_identifier = $1';
   return new Promise((resolve, reject) => {
-    db.one(query, caseIdentifier)
+    db.oneOrNone(query, caseIdentifier)
       .then((data) => {
         resolve(data);
       })
       .catch((err) => {
         if (err.code === qrec.noData) {
           // no data found
-          reject(new NotFoundError(err));
+          resolve([]);
         } else {
           reject(new Error(err));
         }
