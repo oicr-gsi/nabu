@@ -5,10 +5,11 @@ const moment = require('moment');
 const fileQcDao = require('./fileQcDao');
 const fprDao = require('../fpr/fprDao');
 const logger = require('../../utils/logger').logger;
-const controllerUtils = require('../../utils/controllerUtils');
-const generateError = controllerUtils.generateError;
-const handleErrors = controllerUtils.handleErrors;
-const ValidationError = controllerUtils.ValidationError;
+const {
+  generateError,
+  handleErrors,
+  ValidationError,
+} = require('../../utils/controllerUtils');
 
 /* some projects are represented with two different names. This contains only the duplicates,
  * and maps the long name to the short name */

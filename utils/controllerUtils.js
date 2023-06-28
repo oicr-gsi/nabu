@@ -1,6 +1,6 @@
 'use strict';
 
-const NotFoundError = require('./pgUtils').NotFoundError;
+const NotFoundError = require('./dbUtils').NotFoundError;
 
 /** set up custom error if bad params are given */
 class ValidationError extends Error {
