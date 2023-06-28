@@ -84,8 +84,21 @@ const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
   }
 };
 
+const filesSentOffsite = async (req, res, next) => {
+  try {
+    const updatedCase = await caseDao.updateFilesSentOffsite(
+      req.params.caseIdentifier,
+      req.body.commvaultBackupJobId
+    );
+    res.status(200).send(updatedCase);
+  } catch (e) {
+    handleErrors(e, 'Error updating case', logger, next);
+  }
+};
+
 module.exports = {
   addCases: addCases,
   getCase: getCase,
   filesCopiedToOffsiteStagingDir: filesCopiedToOffsiteStagingDir,
+  filesSentOffsite: filesSentOffsite,
 };

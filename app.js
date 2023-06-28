@@ -77,6 +77,10 @@ app.put(
   '/case/:caseIdentifier/files-copied-to-offsite-staging-dir',
   caseController.filesCopiedToOffsiteStagingDir
 );
+app.put(
+  '/case/:caseIdentifier/files-sent-offsite',
+  caseController.filesSentOffsite
+);
 app.get('/case/:caseIdentifier', caseController.getCase);
 
 app.get('/metrics', async (req, res) => {

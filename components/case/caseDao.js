@@ -146,8 +146,30 @@ const updateFilesCopiedToOffsiteStagingDir = (caseIdentifier, unloadFile) => {
   });
 };
 
+const filesSentOffsiteQuery =
+  'UPDATE archive SET commvault_backup_job_id = $1 WHERE case_id = (SELECT id FROM cardea_case WHERE case_identifier = $2)';
+
+const updateFilesSentOffsite = (caseIdentifier, commvaultBackupJobId) => {
+  return new Promise((resolve, reject) => {
+    db.none(filesSentOffsiteQuery, [commvaultBackupJobId, caseIdentifier])
+      .then(() => {
+        let query =
+          caseArchiveDataQueryWithoutUnloadFiles +
+          ' WHERE case_identifier = $1';
+        db.one(query, caseIdentifier).then((data) => {
+          resolve(data);
+        });
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(new Error(err));
+      });
+  });
+};
+
 module.exports = {
   addCases: addCases,
   getByCaseIdentifier: getByCaseIdentifier,
   updateFilesCopiedToOffsiteStagingDir: updateFilesCopiedToOffsiteStagingDir,
+  updateFilesSentOffsite: updateFilesSentOffsite,
 };
