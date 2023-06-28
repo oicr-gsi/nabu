@@ -86,6 +86,10 @@ app.put(
   `/case/:caseIdentifier/${urls.filesLoadedIntoVidarrArchival}`,
   caseController.filesLoadedIntoVidarrArchival
 );
+app.put(
+  `/case/:caseIdentifier/${urls.caseFilesUnloaded}`,
+  caseController.caseFilesUnloaded
+);
 app.get('/case/:caseIdentifier', caseController.getCase);
 
 app.get('/metrics', async (req, res) => {

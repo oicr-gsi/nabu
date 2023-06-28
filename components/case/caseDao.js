@@ -132,14 +132,7 @@ const updateFilesCopiedToOffsiteStagingDir = (caseIdentifier, unloadFile) => {
   return new Promise((resolve, reject) => {
     db.none(filesCopiedToStagingDirQuery, [unloadFile, caseIdentifier])
       .then(() => {
-        let query =
-          caseArchiveDataQueryWithoutUnloadFiles +
-          ' WHERE case_identifier = $1';
-        db.one(query, caseIdentifier)
-          .then((data) => {
-            resolve(data);
-          })
-          .catch((err) => standardCatch(err, reject));
+        getCaseArchiveData(caseIdentifier, resolve, reject);
       })
       .catch((err) => standardCatch(err, reject));
   });
@@ -152,14 +145,7 @@ const updateFilesLoadedIntoVidarrArchival = (caseIdentifier, unloadFile) => {
   return new Promise((resolve, reject) => {
     db.none(filesLoadedIntoVidarrArchivalQuery, [unloadFile, caseIdentifier])
       .then(() => {
-        let query =
-          caseArchiveDataQueryWithoutUnloadFiles +
-          ' WHERE case_identifier = $1';
-        db.one(query, caseIdentifier)
-          .then((data) => {
-            resolve(data);
-          })
-          .catch((err) => standardCatch(err, reject));
+        getCaseArchiveData(caseIdentifier, resolve, reject);
       })
       .catch((err) => standardCatch(err, reject));
   });
@@ -172,12 +158,20 @@ const updateFilesSentOffsite = (caseIdentifier, commvaultBackupJobId) => {
   return new Promise((resolve, reject) => {
     db.none(filesSentOffsiteQuery, [commvaultBackupJobId, caseIdentifier])
       .then(() => {
-        let query =
-          caseArchiveDataQueryWithoutUnloadFiles +
-          ' WHERE case_identifier = $1';
-        db.one(query, caseIdentifier).then((data) => {
-          resolve(data);
-        });
+        getCaseArchiveData(caseIdentifier, resolve, reject);
+      })
+      .catch((err) => standardCatch(err, reject));
+  });
+};
+
+const filesUnloadedQuery =
+  'UPDATE archive SET case_files_unloaded = NOW() WHERE case_id = (SELECT id FROM cardea_case WHERE case_identifier = $1)';
+
+const updateFilesUnloaded = (caseIdentifier) => {
+  return new Promise((resolve, reject) => {
+    db.none(filesUnloadedQuery, [caseIdentifier])
+      .then(() => {
+        getCaseArchiveData(caseIdentifier, resolve, reject);
       })
       .catch((err) => standardCatch(err, reject));
   });
@@ -192,10 +186,21 @@ const standardCatch = (err, reject) => {
   }
 };
 
+const getCaseArchiveData = (caseIdentifier, resolve, reject) => {
+  let query =
+    caseArchiveDataQueryWithoutUnloadFiles + ' WHERE case_identifier = $1';
+  db.one(query, caseIdentifier)
+    .then((data) => {
+      resolve(data);
+    })
+    .catch((err) => standardCatch(err, reject));
+};
+
 module.exports = {
   addCases: addCases,
   getByCaseIdentifier: getByCaseIdentifier,
   updateFilesCopiedToOffsiteStagingDir: updateFilesCopiedToOffsiteStagingDir,
   updateFilesLoadedIntoVidarrArchival: updateFilesLoadedIntoVidarrArchival,
   updateFilesSentOffsite: updateFilesSentOffsite,
+  updateFilesUnloaded: updateFilesUnloaded,
 };
