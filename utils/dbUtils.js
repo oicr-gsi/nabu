@@ -44,7 +44,7 @@ class NotFoundError extends Error {
 
 module.exports = {
   db: pg,
-  pgPkg: pgPackage,
+  pgp: pgPackage,
   getIndexedPlaceholders: getIndexedPlaceholders,
   NotFoundError: NotFoundError,
 };

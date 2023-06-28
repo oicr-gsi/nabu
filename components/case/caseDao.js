@@ -1,10 +1,7 @@
 'use strict';
 
-const dbUtils = require('../../utils/pgUtils');
-const db = dbUtils.db;
-const pgp = dbUtils.pgPkg;
+const { db, pgp, NotFoundError } = require('../../utils/dbUtils');
 const qrec = pgp.errors.queryResultErrorCode;
-const NotFoundError = dbUtils.NotFoundError;
 
 const id = 'id';
 const created = 'created';

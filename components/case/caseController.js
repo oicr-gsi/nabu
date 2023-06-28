@@ -1,8 +1,10 @@
 'use strict';
 
 const caseDao = require('./caseDao');
-const handleErrors = require('../../utils/controllerUtils').handleErrors;
-const ValidationError = require('../../utils/controllerUtils').ValidationError;
+const {
+  handleErrors,
+  ValidationError,
+} = require('../../utils/controllerUtils');
 const logger = require('../../utils/logger').logger;
 
 function arraysEquals (array1, array2) {

@@ -1,8 +1,6 @@
 'use strict';
 
-const dbUtils = require('../../utils/pgUtils');
-const db = dbUtils.db;
-const pgp = dbUtils.pgPkg;
+const { db, pgp, getIndexedPlaceholders } = require('../../utils/dbUtils');
 
 const queryStream = require('pg-query-stream');
 const logger = require('../../utils/logger').logger;
@@ -80,9 +78,7 @@ const getFileQcs = (projects, workflow, qcStatus, fileids, swids) => {
   };
   buildQuery(projects, (nonNullProjects) => {
     return (
-      ' project IN (' +
-      dbUtils.getIndexedPlaceholders(nonNullProjects, offset) +
-      ') '
+      ' project IN (' + getIndexedPlaceholders(nonNullProjects, offset) + ') '
     );
   });
   buildQuery(qcStatus, () => {
@@ -91,29 +87,21 @@ const getFileQcs = (projects, workflow, qcStatus, fileids, swids) => {
     }
     if (qcStatus !== true && qcStatus !== false)
       throw new Error('qcStatus is invalid');
-    return (
-      ' qcpassed IS ' + dbUtils.getIndexedPlaceholders([qcStatus], offset) + ' '
-    );
+    return ' qcpassed IS ' + getIndexedPlaceholders([qcStatus], offset) + ' ';
   });
   buildQuery(fileids, (nonNullFileIds) => {
     return (
-      ' fileid IN (' +
-      dbUtils.getIndexedPlaceholders(nonNullFileIds, offset) +
-      ') '
+      ' fileid IN (' + getIndexedPlaceholders(nonNullFileIds, offset) + ') '
     );
   });
   buildQuery(swids, (nonNullFileSwids) => {
     return (
-      ' fileswid IN (' +
-      dbUtils.getIndexedPlaceholders(nonNullFileSwids, offset) +
-      ') '
+      ' fileswid IN (' + getIndexedPlaceholders(nonNullFileSwids, offset) + ') '
     );
   });
   buildQuery(workflow, (nonNullWorkflow) => {
     return (
-      ' workflow = ' +
-      dbUtils.getIndexedPlaceholders([nonNullWorkflow], offset) +
-      ''
+      ' workflow = ' + getIndexedPlaceholders([nonNullWorkflow], offset) + ''
     );
   });
   const fullQuery =
@@ -146,7 +134,7 @@ const logDeletion = (fileIds, username) => {
 };
 
 const deleteFileQcs = (fileIds, username) => {
-  const fileIdPlaceholders = dbUtils.getIndexedPlaceholders(fileIds);
+  const fileIdPlaceholders = getIndexedPlaceholders(fileIds);
   return new Promise((resolve, reject) => {
     const delete_stmt = `DELETE FROM FileQC WHERE fileid IN (${fileIdPlaceholders}) RETURNING fileid`;
     db.any(delete_stmt, fileIds)
