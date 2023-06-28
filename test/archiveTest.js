@@ -11,16 +11,27 @@ const cmd = require('node-cmd');
 chai.use(chaiHttp);
 chai.use(chaiExclude);
 
-/**
-const get = (server, path) => {
-  return chai.request(server).get(path);
-};
-*/
+const filesCopiedToOffsiteStagingDirSlug =
+  'files-copied-to-offsite-staging-dir';
 
 const addCaseArchives = (server, requestBody = {}) => {
   return chai
     .request(server)
     .post('/case')
+    .set('content-type', 'application/json')
+    .send(requestBody);
+};
+
+const updateCaseArchives = (
+  server,
+  caseIdentifier,
+  operationSlug,
+  requestBody = {}
+) => {
+  let url = `/case/${caseIdentifier}/${operationSlug}`;
+  return chai
+    .request(server)
+    .put(url)
     .set('content-type', 'application/json')
     .send(requestBody);
 };
@@ -35,6 +46,7 @@ const getCaseByCaseIdentifier = (server, caseIdentifier = {}) => {
 
 describe('case archive tracking', () => {
   beforeEach(async () => {
+    console.log('migrating...');
     await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
   });
   it('it should retrieve an archive entry with case data for a given case identifier', (done) => {
@@ -127,8 +139,103 @@ describe('case archive tracking', () => {
       expect(res.body.requisitionId).not.to.be.equal(reqBody.requisitionId);
 
       addCaseArchives(server, reqBody).end((err, res) => {
-        console.log(res.body);
         expect(res.status).to.equal(400);
+      });
+      done();
+    });
+  });
+  it('it should update a case with info that files have been copied to the offsite staging directory', (done) => {
+    let caseIdentifier = 'R12_TEST_1212_Ab_C';
+    let unloadFile = {
+      workflows: ['bcl2fastq', 'consensusCruncher'],
+      workflowVersions: [
+        { name: 'bcl2fastq', version: '1.0.1' },
+        { name: 'consensusCruncher', version: '2.0.0' },
+      ],
+      workflowRuns: [
+        { run1: 'values' },
+        { run2: 'more values' },
+        { run3: 'yet more values' },
+      ],
+    };
+    getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.body.filesCopiedToOffsiteArchiveStagingDir).to.be.a('null');
+
+      updateCaseArchives(
+        server,
+        caseIdentifier,
+        filesCopiedToOffsiteStagingDirSlug,
+        unloadFile
+      ).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body.filesCopiedToOffsiteArchiveStagingDir).not.to.be.a(
+          'null'
+        );
+        expect(res.body.filesLoadedIntoVidarrArchival).to.be.a('null');
+      });
+      done();
+    });
+  });
+  it('it should not update a case if the case does not exist', (done) => {
+    let caseIdentifier = 'nonexistent';
+    let unloadFile = {
+      workflows: ['bcl2fastq', 'consensusCruncher'],
+      workflowVersions: [
+        { name: 'bcl2fastq', version: '1.0.1' },
+        { name: 'consensusCruncher', version: '2.0.0' },
+      ],
+      workflowRuns: [
+        { run1: 'values' },
+        { run2: 'more values' },
+        { run3: 'yet more values' },
+      ],
+    };
+    getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
+      expect(res.status).to.equal(404);
+
+      updateCaseArchives(
+        server,
+        caseIdentifier,
+        filesCopiedToOffsiteStagingDirSlug,
+        unloadFile
+      ).end((err, res) => {
+        expect(res.status).to.equal(404);
+      });
+      done();
+    });
+  });
+  it('it should update twice that file have been copied to the offsite staging directory', (done) => {
+    let caseIdentifier = 'R11_TEST_1000_Xy_Z';
+    let unloadFile = {
+      workflows: ['bcl2fastq', 'consensusCruncher'],
+      workflowVersions: [
+        { name: 'bcl2fastq', version: '1.0.1' },
+        { name: 'consensusCruncher', version: '2.0.0' },
+      ],
+      workflowRuns: [
+        { run1: 'values' },
+        { run2: 'more values' },
+        { run3: 'yet more values' },
+      ],
+    };
+    getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.body.filesCopiedToOffsiteArchiveStagingDir).not.to.be.a(
+        'null'
+      );
+      let firstCopyTime = res.body.filesCopiedToOffsiteArchiveStagingDir;
+
+      updateCaseArchives(
+        server,
+        caseIdentifier,
+        filesCopiedToOffsiteStagingDirSlug,
+        unloadFile
+      ).end((err, res) => {
+        expect(res.status).to.equal(200);
+
+        let secondCopyTime = res.body.filesCopiedToOffsiteArchiveStagingDir;
+        expect(firstCopyTime).not.to.equal(secondCopyTime);
       });
       done();
     });

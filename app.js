@@ -71,8 +71,14 @@ app.post('/add-fileqcs', fileQc.addFileQcs);
 app.get('/fileqcs-only', fileQc.streamFileQcs);
 
 app.post('/delete-fileqcs', fileQc.deleteFileQcs);
-app.get('/case/:caseIdentifier', caseController.getCase);
+
 app.post('/case', caseController.addCases);
+app.put(
+  '/case/:caseIdentifier/files-copied-to-offsite-staging-dir',
+  caseController.filesCopiedToOffsiteStagingDir
+);
+app.get('/case/:caseIdentifier', caseController.getCase);
+
 app.get('/metrics', async (req, res) => {
   try {
     const mostRecentImportTime = await fileQc.getMostRecentFprImportTime();
