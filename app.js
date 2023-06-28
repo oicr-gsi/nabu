@@ -12,6 +12,7 @@ const express = require('express');
 const favicon = require('serve-favicon');
 const fileQc = require('./components/fileqcs/fileQcsController'); // controller for FileQC endpoints
 const caseController = require('./components/case/caseController'); // controller for case & archive endpoints
+const urls = require('./utils/urlSlugs');
 const helmet = require('helmet');
 const log = require('./utils/logger');
 const path = require('path');
@@ -74,12 +75,16 @@ app.post('/delete-fileqcs', fileQc.deleteFileQcs);
 
 app.post('/case', caseController.addCases);
 app.put(
-  '/case/:caseIdentifier/files-copied-to-offsite-staging-dir',
+  `/case/:caseIdentifier/${urls.filesCopiedToOffsiteStagingDir}`,
   caseController.filesCopiedToOffsiteStagingDir
 );
 app.put(
-  '/case/:caseIdentifier/files-sent-offsite',
+  `/case/:caseIdentifier/${urls.filesSentOffsite}`,
   caseController.filesSentOffsite
+);
+app.put(
+  `/case/:caseIdentifier/${urls.filesLoadedIntoVidarrArchival}`,
+  caseController.filesLoadedIntoVidarrArchival
 );
 app.get('/case/:caseIdentifier', caseController.getCase);
 
