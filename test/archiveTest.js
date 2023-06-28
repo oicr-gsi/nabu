@@ -11,6 +11,7 @@ const cmd = require('node-cmd');
 chai.use(chaiHttp);
 chai.use(chaiExclude);
 
+const filesSentOffsiteSlug = 'files-sent-offsite';
 const filesCopiedToOffsiteStagingDirSlug =
   'files-copied-to-offsite-staging-dir';
 
@@ -46,7 +47,6 @@ const getCaseByCaseIdentifier = (server, caseIdentifier = {}) => {
 
 describe('case archive tracking', () => {
   beforeEach(async () => {
-    console.log('migrating...');
     await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
   });
   it('it should retrieve an archive entry with case data for a given case identifier', (done) => {
@@ -236,6 +236,45 @@ describe('case archive tracking', () => {
 
         let secondCopyTime = res.body.filesCopiedToOffsiteArchiveStagingDir;
         expect(firstCopyTime).not.to.equal(secondCopyTime);
+      });
+      done();
+    });
+  });
+  it('it should update a case and save the commvault job ID', (done) => {
+    let caseIdentifier = 'R12_TEST_1212_Ab_C';
+    let reqBody = {
+      commvaultBackupJobId: 'CJ1212',
+    };
+
+    updateCaseArchives(
+      server,
+      caseIdentifier,
+      filesSentOffsiteSlug,
+      reqBody
+    ).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.body.commvaultBackupJobId).not.to.be.a('null');
+      done();
+    });
+  });
+  it('it should update a commvault job ID if a new one is provided', (done) => {
+    let caseIdentifier = 'R11_TEST_1000_Xy_Z';
+    let reqBody = {
+      commvaultBackupJobId: 'CJ9999',
+    };
+    getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
+      expect(res.body.commvaultBackupJobId).not.to.be.a('null');
+      let firstCvId = res.body.commvaultBackupJobId;
+
+      updateCaseArchives(
+        server,
+        caseIdentifier,
+        filesSentOffsiteSlug,
+        reqBody
+      ).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body.commvaultBackupJobId).not.to.be.a('null');
+        expect(res.body.commvaultBackupJobId).not.to.equal(firstCvId);
       });
       done();
     });
