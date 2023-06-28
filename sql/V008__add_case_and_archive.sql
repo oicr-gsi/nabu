@@ -22,7 +22,7 @@ CREATE TABLE archive (
   case_id INTEGER NOT NULL,
   workflow_run_ids_for_offsite_archive VARCHAR[],
   unload_file_for_offsite_archive JSONB,
-  files_moved_to_offsite_archive_staging_dir TIMESTAMP WITH TIME ZONE,
+  files_copied_to_offsite_archive_staging_dir TIMESTAMP WITH TIME ZONE,
   commvault_backup_job_id VARCHAR,
   workflow_run_ids_for_vidarr_archival VARCHAR[],
   unload_file_for_vidarr_archival JSONB,
@@ -50,8 +50,7 @@ CREATE TRIGGER archive_update
   FOR EACH ROW
     EXECUTE FUNCTION update_modified();
 
-DROP FUNCTION IF EXISTS is_changed;
-CREATE FUNCTION is_changed(val1 varchar(255), val2 varchar(255))
+CREATE OR REPLACE FUNCTION is_changed(val1 varchar(255), val2 varchar(255))
   returns boolean
   language plpgsql
 AS $$
@@ -66,27 +65,53 @@ AS $$
   END;
 $$;
 
-DROP FUNCTION IF EXISTS make_change_message;
-CREATE FUNCTION make_change_message(field_name varchar(255), before_val varchar(255), afterVal varchar(255))
+CREATE OR REPLACE FUNCTION is_changed_ts(val1 timestamp with time zone, val2 timestamp with time zone)
+  returns boolean
+  language plpgsql
+AS $$
+  BEGIN
+    IF (val1 IS NULL) <> (val2 IS NULL) THEN
+      RETURN TRUE;
+    ELSEIF val1 IS NULL AND val2 IS NULL THEN
+      RETURN FALSE;
+    ELSE
+      RETURN val1 <> val2;
+    END IF;
+  END;
+$$;
+
+CREATE OR REPLACE FUNCTION make_change_message(field_name varchar(255), before_val varchar(255), after_val varchar(255))
   returns varchar
   language plpgsql
 AS $$
   BEGIN
-    IF is_changed(before_val, afterVal) THEN
-      RETURN CONCAT(field_name, ': ', COALESCE(before_val, 'n/a'), ' → ', COALESCE(afterVal, 'n/a'));
+    IF is_changed(before_val, after_val) THEN
+      RETURN CONCAT(field_name, ': ', COALESCE(before_val, 'n/a'), ' → ', COALESCE(after_val, 'n/a'));
     ELSE
       RETURN NULL;
     END IF;
   END;
 $$;
 
-DROP FUNCTION IF EXISTS make_change_column;
-CREATE FUNCTION make_change_column(field_name varchar(255), before_val varchar(255), afterVal varchar(255))
+CREATE OR REPLACE FUNCTION make_change_message_ts(field_name varchar(255), before_val timestamp with time zone, after_val timestamp with time zone)
+  returns varchar
+  language plpgsql
+AS $$
+  BEGIN
+    IF is_changed_ts(before_val, after_val) THEN
+      RETURN CONCAT(field_name, ': ', (CASE WHEN before_val IS NULL THEN 'n/a' ELSE TO_CHAR(before_val, 'YYYY/MM/DD HH:MM:SS') END), ' → ', (CASE WHEN after_val IS NULL THEN 'n/a' ELSE TO_CHAR(after_val, 'YYYY/MM/DD HH:MM:SS') END));
+    ELSE
+      RETURN NULL;
+    END IF;
+  END;
+$$;
+
+CREATE OR REPLACE FUNCTION make_change_column(field_name varchar(255), before_val varchar(255), after_val varchar(255))
   returns varchar(255)
   language plpgsql
 AS $$
   BEGIN
-    IF is_changed(before_val, afterVal) THEN
+    IF is_changed(before_val, after_val) THEN
       RETURN field_name;
     ELSE
       RETURN NULL;
@@ -94,8 +119,21 @@ AS $$
   END;
 $$;
 
-DROP FUNCTION IF EXISTS archive_changelog_function;
-CREATE FUNCTION archive_changelog_function()
+CREATE OR REPLACE FUNCTION make_change_column_ts(field_name varchar(255), before_val timestamp with time zone, after_val timestamp with time zone)
+  returns varchar(255)
+  language plpgsql
+AS $$
+  BEGIN
+    IF is_changed_ts(before_val, after_val) THEN
+      RETURN field_name;
+    ELSE
+      RETURN NULL;
+    END IF;
+  END;
+$$;
+
+
+CREATE OR REPLACE FUNCTION archive_changelog_function()
   returns trigger
   language plpgsql
 AS $$
@@ -103,27 +141,24 @@ AS $$
   BEGIN
     message:= CONCAT_WS(', ',
       make_change_message('backup job ID', OLD.commvault_backup_job_id, NEW.commvault_backup_job_id),
-      make_change_message('workflow run IDs for offsite archive', OLD.workflow_run_ids_for_offsite_archive, NEW.workflow_run_ids_for_offsite_archive),
-      make_change_message('files moved to offsite dir', OLD.files_moved_to_offsite_dir, NEW.files_moved_to_offsite_dir),
-      make_change_message('files loaded into vidarr-archival', OLD.files_loaded_into_vidarr_archival, NEW.files_loaded_into_vidarr_archival),
-      make_change_message('workflow run IDs for vidarr-archival', OLD.workflow_run_ids_for_vidarr_archival, NEW.workflow_run_ids_for_vidarr_archival),
-      make_change_message('case files unloaded', OLD.case_files_unloaded, NEW.case_files_unloaded)
+      make_change_message_ts('files copied to offsite dir', OLD.files_copied_to_offsite_archive_staging_dir, NEW.files_copied_to_offsite_archive_staging_dir),
+      make_change_message_ts('files loaded into vidarr-archival', OLD.files_loaded_into_vidarr_archival, NEW.files_loaded_into_vidarr_archival),
+      make_change_message_ts('case files unloaded', OLD.case_files_unloaded, NEW.case_files_unloaded)
     );
     IF message IS NOT NULL AND message <> '' THEN
       INSERT INTO archive_changelog(archive_id, columns_changed, message, change_time) VALUES (
       NEW.id,
         COALESCE(CONCAT_WS(',',
          make_change_column('backup job ID', OLD.commvault_backup_job_id, NEW.commvault_backup_job_id),
-         make_change_column('workflow run IDs for offsite archive', OLD.workflow_run_ids_for_offsite_archive, NEW.workflow_run_ids_for_offsite_archive),
-         make_change_column('files moved to offsite dir', OLD.files_moved_to_offsite_dir, NEW.files_moved_to_offsite_dir),
-         make_change_column('files loaded into vidarr-archival', OLD.files_loaded_into_vidarr_archival, NEW.files_loaded_into_vidarr_archival),
-         make_change_column('workflow run IDs for vidarr-archival', OLD.workflow_run_ids_for_vidarr_archival, NEW.workflow_run_ids_for_vidarr_archival),
-         make_change_column('case files unloaded', OLD.case_files_unloaded, NEW.case_files_unloaded)
+         make_change_column_ts('files copied to offsite dir', OLD.files_copied_to_offsite_archive_staging_dir, NEW.files_copied_to_offsite_archive_staging_dir),
+         make_change_column_ts('files loaded into vidarr-archival', OLD.files_loaded_into_vidarr_archival, NEW.files_loaded_into_vidarr_archival),
+         make_change_column_ts('case files unloaded', OLD.case_files_unloaded, NEW.case_files_unloaded)
         ), ''),
         message,
         NEW.modified
       );
     END IF;
+    RETURN NEW;
   END;
 $$;
 
@@ -132,4 +167,4 @@ CREATE TRIGGER archive_changelog_trigger
   BEFORE UPDATE
   ON archive
   FOR EACH ROW
-    EXECUTE PROCEDURE archive_changelog_function();
+    EXECUTE FUNCTION archive_changelog_function();

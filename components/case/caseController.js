@@ -70,7 +70,20 @@ const addCases = async (req, res, next) => {
   }
 };
 
+const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
+  try {
+    const updatedCase = await caseDao.updateFilesCopiedToOffsiteStagingDir(
+      req.params.caseIdentifier,
+      JSON.stringify(req.body)
+    );
+    res.status(200).send(updatedCase);
+  } catch (e) {
+    handleErrors(e, 'Error updating case', logger, next);
+  }
+};
+
 module.exports = {
   addCases: addCases,
   getCase: getCase,
+  filesCopiedToOffsiteStagingDir: filesCopiedToOffsiteStagingDir,
 };
