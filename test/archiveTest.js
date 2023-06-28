@@ -7,13 +7,10 @@ const chaiExclude = require('chai-exclude');
 const chaiHttp = require('chai-http');
 const server = require('../app');
 const cmd = require('node-cmd');
+const urls = require('../utils/urlSlugs');
 
 chai.use(chaiHttp);
 chai.use(chaiExclude);
-
-const filesSentOffsiteSlug = 'files-sent-offsite';
-const filesCopiedToOffsiteStagingDirSlug =
-  'files-copied-to-offsite-staging-dir';
 
 const addCaseArchives = (server, requestBody = {}) => {
   return chai
@@ -43,6 +40,10 @@ const getCaseByCaseIdentifier = (server, caseIdentifier = {}) => {
     .get('/case/' + caseIdentifier)
     .set('content-type', 'application/json')
     .send();
+};
+
+const isValidDate = (date) => {
+  return !!Date.parse(date);
 };
 
 describe('case archive tracking', () => {
@@ -165,13 +166,15 @@ describe('case archive tracking', () => {
       updateCaseArchives(
         server,
         caseIdentifier,
-        filesCopiedToOffsiteStagingDirSlug,
+        urls.filesCopiedToOffsiteStagingDir,
         unloadFile
       ).end((err, res) => {
         expect(res.status).to.equal(200);
         expect(res.body.filesCopiedToOffsiteArchiveStagingDir).not.to.be.a(
           'null'
         );
+        expect(isValidDate(res.body.filesCopiedToOffsiteArchiveStagingDir)).to
+          .be.true;
         expect(res.body.filesLoadedIntoVidarrArchival).to.be.a('null');
       });
       done();
@@ -197,7 +200,7 @@ describe('case archive tracking', () => {
       updateCaseArchives(
         server,
         caseIdentifier,
-        filesCopiedToOffsiteStagingDirSlug,
+        urls.filesCopiedToOffsiteStagingDir,
         unloadFile
       ).end((err, res) => {
         expect(res.status).to.equal(404);
@@ -229,12 +232,13 @@ describe('case archive tracking', () => {
       updateCaseArchives(
         server,
         caseIdentifier,
-        filesCopiedToOffsiteStagingDirSlug,
+        urls.filesCopiedToOffsiteStagingDir,
         unloadFile
       ).end((err, res) => {
         expect(res.status).to.equal(200);
 
         let secondCopyTime = res.body.filesCopiedToOffsiteArchiveStagingDir;
+        expect(isValidDate(secondCopyTime)).to.be.true;
         expect(firstCopyTime).not.to.equal(secondCopyTime);
       });
       done();
@@ -249,11 +253,14 @@ describe('case archive tracking', () => {
     updateCaseArchives(
       server,
       caseIdentifier,
-      filesSentOffsiteSlug,
+      urls.filesSentOffsite,
       reqBody
     ).end((err, res) => {
       expect(res.status).to.equal(200);
       expect(res.body.commvaultBackupJobId).not.to.be.a('null');
+      expect(res.body.commvaultBackupJobId).to.equal(
+        reqBody.commvaultBackupJobId
+      );
       done();
     });
   });
@@ -269,13 +276,89 @@ describe('case archive tracking', () => {
       updateCaseArchives(
         server,
         caseIdentifier,
-        filesSentOffsiteSlug,
+        urls.filesSentOffsite,
         reqBody
       ).end((err, res) => {
         expect(res.status).to.equal(200);
         expect(res.body.commvaultBackupJobId).not.to.be.a('null');
         expect(res.body.commvaultBackupJobId).not.to.equal(firstCvId);
+        expect(res.body.commvaultBackupJobId).to.equal(
+          reqBody.commvaultBackupJobId
+        );
       });
+      done();
+    });
+  });
+  it('it should update a case to indicate files have been sent to vidarr-archival', (done) => {
+    let caseIdentifier = 'R12_TEST_1212_Ab_C';
+    let loadFile = {
+      workflows: ['crosscheckFingerprintsCollector_bam'],
+      workflowVersions: [
+        { name: 'crosscheckFingerprintsCollector_bam', version: '1.2.1' },
+      ],
+      workflowRuns: [
+        { name: 'crosscheckFingerprintsCollector_bam', values: 'lots' },
+      ],
+    };
+    updateCaseArchives(
+      server,
+      caseIdentifier,
+      urls.filesLoadedIntoVidarrArchival,
+      loadFile
+    ).end((err, res) => {
+      expect(res.status).to.equal(200);
+      expect(res.body.filesLoadedIntoVidarrArchival).not.to.be.a('null');
+      expect(isValidDate(res.body.filesLoadedIntoVidarrArchival)).to.be.true;
+      done();
+    });
+  });
+  it('it should update the "files have been sent to vidarr-archival" time', (done) => {
+    let caseIdentifier = 'R11_TEST_1000_Xy_Z';
+    let loadFile = {
+      workflows: ['crosscheckFingerprintsCollector_fastq'],
+      workflowVersions: [
+        { name: 'crosscheckFingerprintsCollector_fastq', version: '1.2.1' },
+      ],
+      workflowRuns: [
+        { name: 'crosscheckFingerprintsCollector_fastq', values: 'yet more' },
+      ],
+    };
+    getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
+      let firstLoadedDate = res.body.filesLoadedIntoVidarrArchival;
+      expect(isValidDate(firstLoadedDate)).to.be.true;
+
+      updateCaseArchives(
+        server,
+        caseIdentifier,
+        urls.filesLoadedIntoVidarrArchival,
+        loadFile
+      ).end((err, res) => {
+        expect(res.status).to.equal(200);
+        let secondLoadedDate = res.body.filesLoadedIntoVidarrArchival;
+        expect(firstLoadedDate).not.to.equal(secondLoadedDate);
+        expect(isValidDate(secondLoadedDate)).to.be.true;
+      });
+      done();
+    });
+  });
+  it('it should error if attempting to indicate files have been sent to vidarr-archival for a case with an unknown identifier', (done) => {
+    let caseIdentifier = 'R1000_TEST_1000_Kw_Q';
+    let loadFile = {
+      workflows: ['crosscheckFingerprintsCollector_bam'],
+      workflowVersions: [
+        { name: 'crosscheckFingerprintsCollector_bam', version: '1.2.1' },
+      ],
+      workflowRuns: [
+        { name: 'crosscheckFingerprintsCollector_bam', values: 'lots' },
+      ],
+    };
+    updateCaseArchives(
+      server,
+      caseIdentifier,
+      urls.filesLoadedIntoVidarrArchival,
+      loadFile
+    ).end((err, res) => {
+      expect(res.status).to.equal(404);
       done();
     });
   });

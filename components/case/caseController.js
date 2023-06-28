@@ -84,6 +84,18 @@ const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
   }
 };
 
+const filesLoadedIntoVidarrArchival = async (req, res, next) => {
+  try {
+    const updatedCase = await caseDao.updateFilesLoadedIntoVidarrArchival(
+      req.params.caseIdentifier,
+      JSON.stringify(req.body)
+    );
+    res.status(200).send(updatedCase);
+  } catch (e) {
+    handleErrors(e, 'Error updating case', logger, next);
+  }
+};
+
 const filesSentOffsite = async (req, res, next) => {
   try {
     const updatedCase = await caseDao.updateFilesSentOffsite(
@@ -100,5 +112,6 @@ module.exports = {
   addCases: addCases,
   getCase: getCase,
   filesCopiedToOffsiteStagingDir: filesCopiedToOffsiteStagingDir,
+  filesLoadedIntoVidarrArchival: filesLoadedIntoVidarrArchival,
   filesSentOffsite: filesSentOffsite,
 };

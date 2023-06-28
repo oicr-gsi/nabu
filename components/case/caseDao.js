@@ -135,14 +135,33 @@ const updateFilesCopiedToOffsiteStagingDir = (caseIdentifier, unloadFile) => {
         let query =
           caseArchiveDataQueryWithoutUnloadFiles +
           ' WHERE case_identifier = $1';
-        db.one(query, caseIdentifier).then((data) => {
-          resolve(data);
-        });
+        db.one(query, caseIdentifier)
+          .then((data) => {
+            resolve(data);
+          })
+          .catch((err) => standardCatch(err, reject));
       })
-      .catch((err) => {
-        console.log(err);
-        reject(new Error(err));
-      });
+      .catch((err) => standardCatch(err, reject));
+  });
+};
+
+const filesLoadedIntoVidarrArchivalQuery =
+  'UPDATE archive SET files_loaded_into_vidarr_archival = NOW(), unload_file_for_vidarr_archival = $1 WHERE case_id = (SELECT id FROM cardea_case WHERE case_identifier = $2)';
+
+const updateFilesLoadedIntoVidarrArchival = (caseIdentifier, unloadFile) => {
+  return new Promise((resolve, reject) => {
+    db.none(filesLoadedIntoVidarrArchivalQuery, [unloadFile, caseIdentifier])
+      .then(() => {
+        let query =
+          caseArchiveDataQueryWithoutUnloadFiles +
+          ' WHERE case_identifier = $1';
+        db.one(query, caseIdentifier)
+          .then((data) => {
+            resolve(data);
+          })
+          .catch((err) => standardCatch(err, reject));
+      })
+      .catch((err) => standardCatch(err, reject));
   });
 };
 
@@ -160,16 +179,23 @@ const updateFilesSentOffsite = (caseIdentifier, commvaultBackupJobId) => {
           resolve(data);
         });
       })
-      .catch((err) => {
-        console.log(err);
-        reject(new Error(err));
-      });
+      .catch((err) => standardCatch(err, reject));
   });
+};
+
+const standardCatch = (err, reject) => {
+  if (err.code === qrec.noData) {
+    reject(new NotFoundError());
+  } else {
+    console.log(err);
+    reject(new Error(err));
+  }
 };
 
 module.exports = {
   addCases: addCases,
   getByCaseIdentifier: getByCaseIdentifier,
   updateFilesCopiedToOffsiteStagingDir: updateFilesCopiedToOffsiteStagingDir,
+  updateFilesLoadedIntoVidarrArchival: updateFilesLoadedIntoVidarrArchival,
   updateFilesSentOffsite: updateFilesSentOffsite,
 };
