@@ -108,9 +108,21 @@ const filesSentOffsite = async (req, res, next) => {
   }
 };
 
+const caseFilesUnloaded = async (req, res, next) => {
+  try {
+    const updatedCase = await caseDao.updateFilesUnloaded(
+      req.params.caseIdentifier
+    );
+    res.status(200).send(updatedCase);
+  } catch (e) {
+    handleErrors(e, 'Error updating case', logger, next);
+  }
+};
+
 module.exports = {
   addCases: addCases,
   getCase: getCase,
+  caseFilesUnloaded: caseFilesUnloaded,
   filesCopiedToOffsiteStagingDir: filesCopiedToOffsiteStagingDir,
   filesLoadedIntoVidarrArchival: filesLoadedIntoVidarrArchival,
   filesSentOffsite: filesSentOffsite,

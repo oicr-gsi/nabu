@@ -362,4 +362,41 @@ describe('case archive tracking', () => {
       done();
     });
   });
+  it('it should update a case to indicate that the case files have been unloaded from production vidarr', (done) => {
+    let caseIdentifier = 'R12_TEST_1212_Ab_C';
+    updateCaseArchives(server, caseIdentifier, urls.caseFilesUnloaded).end(
+      (err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body.caseFilesUnloaded).not.to.be.a('null');
+        expect(isValidDate(res.body.caseFilesUnloaded)).to.be.true;
+        done();
+      }
+    );
+  });
+  it('it should update the "files have been deleted from production vidarr" time', (done) => {
+    let caseIdentifier = 'R11_TEST_1000_Xy_Z';
+    getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
+      let firstUnloadDate = res.body.caseFilesUnloaded;
+      expect(isValidDate(firstUnloadDate)).to.be.true;
+
+      updateCaseArchives(server, caseIdentifier, urls.caseFilesUnloaded).end(
+        (err, res) => {
+          expect(res.status).to.equal(200);
+          let secondUnloadDate = res.body.caseFilesUnloaded;
+          expect(firstUnloadDate).not.to.equal(secondUnloadDate);
+          expect(isValidDate(secondUnloadDate)).to.be.true;
+        }
+      );
+      done();
+    });
+  });
+  it('it should error if attempting to indicate files have been deleted from production vidarr for a case with an unknown identifier', (done) => {
+    let caseIdentifier = 'R1000_TEST_1000_Kw_Q';
+    updateCaseArchives(server, caseIdentifier, urls.caseFilesUnloaded).end(
+      (err, res) => {
+        expect(res.status).to.equal(404);
+        done();
+      }
+    );
+  });
 });
