@@ -10,8 +10,7 @@ and this project attempts to adhere to Semantic Versioning.
 
 * FileQC `alert` property to OpenAPI documentation
 * Requirement for Node.js version 18+ 
-* Tables for `case`, `archive`, `archive_changelog`
-* Endpoints to get, create, and update case & archive data
+* Storage of case archive information, including the ability to add, retrieve, and update case archives.
 
 ## 3.0.1: [2023-01-05]
 

@@ -163,6 +163,189 @@
           }
         }
       }
+    },
+    "/case": {
+      "post": {
+        "summary": "Create a case archive record",
+        "description": "Adds a case archive record with basic data",
+        "requestBody": {
+          "description": "Fields for creating a new case archive record",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/definitions/Case-new"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A case archive record",
+            "schema": {
+              "$ref": "#/definitions/Case-response"
+            }
+          },
+          "400": {
+            "description": "Submitted parameters do not match parameters for existing case with the same caseIdentifier",
+            "schema": {
+              "$ref": "#/definitions/Errors"
+            }
+          }
+        }
+      }
+    },
+    "/case/{caseIdentifier}": {
+      "get": {
+        "summary": "Get a case archive record",
+        "description": "This resource represents a case and archive record. Each case and archive record is identified by a string `caseIdentifier`",
+        "parameters": [{
+          "name": "caseIdentifier",
+          "in": "path",
+          "description": "unique case identifier",
+          "required": "true",
+          "type": "string"
+        }],
+        "responses": {
+          "200": {
+            "description": "A case archive record",
+            "schema": {
+              "$ref": "#/definitions/Case-response"
+            }
+          },
+          "404": {
+            "description": "The requested resource was not found"
+          }
+        }
+      }
+    },
+    "/case/{caseIdentifier}/files-copied-to-offsite-staging-dir": {
+      "put": {
+        "summary": "Case archive files moved to offsite staging directory",
+        "description": "Indicate that this case archive's files have been moved to the offfsite staging directory",
+        "parameters": [
+          {
+            "name": "caseIdentifier",
+            "in": "path",
+            "description": "unique case identifier",
+            "required": "true",
+            "type": "string"
+          }, {
+            "description": "Vidarr unload file containing metadata about the files to be moved to the offsite staging directory",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Case archive record was updated",
+            "schema": {
+              "$ref": "#/definitions/Case-response"
+            }
+          },
+          "404": {
+            "description": "The requested case archive resource was not found"
+          }
+
+        }
+      }
+    },
+    "/case/{caseIdentifier}/files-sent-offsite": {
+      "put": {
+        "summary": "Case archive files were sent offsite",
+        "description": "Indicate that this case archive's files have been archived offsite",
+        "parameters": [
+          {
+            "name": "caseIdentifier",
+            "in": "path",
+            "description": "unique case identifier",
+            "required": true,
+            "type": "string"
+          }, {
+            "description": "ID of Commvault backup job for sending the files offsite",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "parameters": [{
+                "name": "commvaultBackupJobId",
+                "required": true,
+                "type": "string"
+              }]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Case archive record was updated",
+            "schema": {
+              "$ref": "#/definitions/Case-response"
+            }
+          },
+          "404": {
+            "description": "The requested case archive resource was not found"
+          }
+        }
+      }
+    },
+    "/case/{caseIdentifier}/files-loaded-into-vidarr-archival": {
+      "put": {
+        "summary": "Case archive files loaded into vidarr-archival",
+        "description": "Indicate that this case archive's files have been loaded into vidarr-archival",
+        "parameters": [
+          {
+            "name": "caseIdentifier",
+            "in": "path",
+            "description": "unique case identifier",
+            "required": "true",
+            "type": "string"
+          }, {
+            "description": "Vidarr unload file containing metadata about the files to be loaded into vidarr-archival",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Case archive record was updated",
+            "schema": {
+              "$ref": "#/definitions/Case-response"
+            }
+          },
+          "404": {
+            "description": "The requested case archive resource was not found"
+          }
+
+        }
+      }
+    },
+    "/case/{caseIdentifier}/case-files-unloaded": {
+      "put": {
+        "summary": "Case archive files deleted from production vidarr",
+        "description": "Indicate that this case archive's files have been deleted from production vidarr",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Case archive record was updated",
+            "schema": {
+              "$ref": "#/definitions/Case-response"
+            }
+          },
+          "404": {
+            "description": "The requested case archive resource was not found"
+          }
+
+        }
+      }
     }
   },
   "definitions": {
@@ -363,6 +546,116 @@
           }
         }
       }
+    },
+    "Case-new": {
+      "type": "object",
+      "properties": {
+        "caseIdentifier": {
+          "description": "Unique case identifier",
+          "type": "string"
+        },
+        "requisitionId": {
+          "description": "Requisition number",
+          "type": "integer"
+        },
+        "limsIds": {
+          "description": "LIMS IDs associated with the case",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "workflowRunIdsForOffsiteArchive": {
+          "description": "Vidarr workflow run IDs whose files need to be archived offsite",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "workflowRunIdsForVidarrArchival": {
+          "description": "Vidarr workflow run IDs whose files need to be stored in vidarr-archival",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Case-response": {
+      "type": "object",
+      "properties": {
+        "created": {
+          "description": "Date that the case was created in Nabu",
+          "type": "string",
+          "format": "date-time"
+        },
+        "modified": {
+          "description": "Date that the case was last modified in Nabu",
+          "type": "string",
+          "format": "date-time"
+        },
+        "caseIdentifier": {
+          "description": "Unique case identifier",
+          "type": "string"
+        },
+        "requisitionId": {
+          "description": "Requisition number",
+          "type": "integer"
+        },
+        "limsIds": {
+          "description": "LIMS IDs associated with the case",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "workflowRunIdsForOffsiteArchive": {
+          "description": "Vidarr workflow run IDs whose files need to be archived offsite",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "filesCopiedToOffsiteArchiveStagingDir": {
+          "description": "Date that the case was copied to the offsite archive staging directory",
+          "type": "string",
+          "format": "date-time"
+        },
+        "commvaultBackupJobId": {
+          "description": "Commvault identifier for the backup job for sending the case to offsite location",
+          "type": "string"
+        },
+        "workflowRunIdsForVidarrArchival": {
+          "description": "Vidarr workflow run IDs whose files need to be stored in vidarr-archival",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "filesLoadedIntoVidarrArchival": {
+          "description": "Date that the case was last modified in Nabu",
+          "type": "string",
+          "format": "date-time"
+        },
+        "caseFilesUnloaded": {
+          "description": "Date that the case was last modified in Nabu",
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "created",
+        "modified",
+        "caseIdentifier",
+        "requisitionId",
+        "limsIds",
+        "workflowRunIdsForOffsiteArchive",
+        "filesCopiedToOffsiteArchiveStagingDir",
+        "commvaultBackupJobId",
+        "workflowRunIdsForVidarrArchival",
+        "filesLoadedIntoVidarrArchival",
+        "caseFilesUnloaded"
+      ]
     }
   }
 }
