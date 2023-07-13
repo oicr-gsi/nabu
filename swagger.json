@@ -1,39 +1,55 @@
 {
-  "swagger": "2.0",
+  "openapi": "3.0.0",
   "info": {
     "version": "1.0.0",
     "title": "FileQC API",
     "description": "API for the FileQC project"
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "basePath": "/",
+  "servers": [{
+    "url": "/",
+    "variables": {
+      "protocol": {
+        "enum": [
+          "http",
+          "https"
+        ],
+        "default": "https"
+      }
+    }
+  }],
   "paths": {
     "/add-fileqcs": {
       "post": {
         "summary": "Batch create FileQC records",
         "description": "Adds FileQC records for the given items",
-        "parameters": [
-          {
-            "in": "body",
-            "name": "fileqcs",
-            "description": "Array of FileQCs",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/FileQC-add"
+        "requestBody": {
+          "description": "Array of FileQCs",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fileqcs": {
+                    "$ref": "#/components/schemas/FileQC-add"
+                  }
+                }
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
             "description": "Successfully created FileQCs"
           },
           "400": {
             "description": "Failures during save caused no FileQCs to be created",
-            "schema": {
-              "$ref": "#/definitions/Errors"
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
             }
           }
         }
@@ -46,71 +62,91 @@
         "responses": {
           "200": {
             "description": "Lists of projects and workflow names in File Provenance Report",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "projects": {
-                  "description": "List of distinct projects in the File Provenance Report",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "workflows": {
-                  "description": "List of distinct workflow names in the File Provenance Report",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "projects": {
+                      "description": "List of distinct projects in the File Provenance Report",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "workflows": {
+                      "description": "List of distinct workflow names in the File Provenance Report",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                   }
+                 }
+               }
+             }
+           }
+         }
+       }
+     }
+   },
    "/delete-fileqcs": {
       "post": {
         "summary": "Batch delete FileQC records",
         "description": "Deletes FileQC records for the given File IDs",
-        "parameters": [
-          {
-            "in": "body",
-            "name": "fileids",
-            "schema": {
-              "description": "List of file IDs for which the FileQCs should be deleted",
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully deleted at least some FileQCs",
-            "type": "object",
-            "properties": {
-              "success": {
-                "type": "array",
-                "description": "Message containing the IDs of the FileQCs which were deleted",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "errors": {
-                "type": "array",
-                "description": "Message containing the IDs of the FileQCs which were not deleted",
-                "items": {
-                  "type": "string"
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fileids": {
+                    "description": "List of file IDs for which the FileQCs should be deleted",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
           },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully deleted at least some FileQCs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                    "type": "array",
+                    "description": "Message containing the IDs of the FileQCs which were deleted",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "errors": {
+                    "type": "array",
+                    "description": "Message containing the IDs of the FileQCs which were not deleted",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+     }
+          },
           "400": {
             "description": "Failed to delete any FileQCs",
-            "schema": {
-              "$ref": "#/definitions/Errors"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
             }
           }
         }
@@ -123,10 +159,14 @@
         "responses": {
           "200": {
             "description": "A stream of all FileQCs",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/FileQCs-only-response"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FileQCs-only-response"
+                  }
+                }
               }
             }
           }
@@ -137,28 +177,63 @@
       "post": {
         "summary": "Get one or more FileQCs",
         "description": "Get FileQCs for the given filters",
-        "parameters": [
-          {
-            "name": "filters",
-            "description": "File QC filters",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/FileQC-get"
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "filters": {
+                    "description": "File QC filters",
+                    "type": "object",
+                    "$ref": "#/components/schemas/FileQC-get"
+                  }
+                }
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
             "description": "A list of FileQCs",
-            "schema": {
-              "$ref": "#/definitions/FileQCs-response"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileQCs-response"
+                }
+              }
             }
           },
           "404": {
             "description": "No files found for given filters",
-            "schema": {
-              "$ref": "#/definitions/Errors"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cases": {
+      "get": {
+        "summary": "Get all case archives",
+        "description": "A streaming endpoint to get all case archive records",
+        "responses": {
+          "200": {
+            "description": "All case archive records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Case-response"
+                  }
+                }
+              }
             }
           }
         }
@@ -174,7 +249,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/definitions/Case-new"
+                "$ref": "#/components/schemas/Case-new"
               }
             }
           }
@@ -182,14 +257,22 @@
         "responses": {
           "200": {
             "description": "A case archive record",
-            "schema": {
-              "$ref": "#/definitions/Case-response"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Case-response"
+                }
+              }
             }
           },
           "400": {
             "description": "Submitted parameters do not match parameters for existing case with the same caseIdentifier",
-            "schema": {
-              "$ref": "#/definitions/Errors"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
             }
           }
         }
@@ -203,14 +286,20 @@
           "name": "caseIdentifier",
           "in": "path",
           "description": "unique case identifier",
-          "required": "true",
-          "type": "string"
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
         }],
         "responses": {
           "200": {
             "description": "A case archive record",
-            "schema": {
-              "$ref": "#/definitions/Case-response"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Case-response"
+                }
+              }
             }
           },
           "404": {
@@ -228,23 +317,32 @@
             "name": "caseIdentifier",
             "in": "path",
             "description": "unique case identifier",
-            "required": "true",
-            "type": "string"
-          }, {
-            "description": "Vidarr unload file containing metadata about the files to be moved to the offsite staging directory",
-            "in": "body",
-            "name": "body",
             "required": true,
             "schema": {
-              "type": "object"
+              "type": "string"
             }
           }
-        ],
+        ], 
+        "requestBody": {
+          "required": true,
+          "description": "Vidarr unload file containing metadata about the files to be moved to the offsite staging directory",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Case archive record was updated",
-            "schema": {
-              "$ref": "#/definitions/Case-response"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Case-response"
+                }
+              }
             }
           },
           "404": {
@@ -264,27 +362,36 @@
             "in": "path",
             "description": "unique case identifier",
             "required": true,
-            "type": "string"
-          }, {
-            "description": "ID of Commvault backup job for sending the files offsite",
-            "in": "body",
-            "name": "body",
-            "required": true,
             "schema": {
-              "type": "object",
-              "parameters": [{
-                "name": "commvaultBackupJobId",
-                "required": true,
-                "type": "string"
-              }]
+              "type": "string"
             }
           }
         ],
+        "requestBody": {
+          "description": "ID of Commvault backup job for sending the files offsite",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "commvaultBackupJobId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Case archive record was updated",
-            "schema": {
-              "$ref": "#/definitions/Case-response"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Case-response"
+                }
+              }
             }
           },
           "404": {
@@ -302,53 +409,75 @@
             "name": "caseIdentifier",
             "in": "path",
             "description": "unique case identifier",
-            "required": "true",
-            "type": "string"
-          }, {
-            "description": "Vidarr unload file containing metadata about the files to be loaded into vidarr-archival",
-            "in": "body",
-            "name": "body",
             "required": true,
             "schema": {
-              "type": "object"
+              "type": "string"
             }
           }
         ],
+        "requestBody": {
+          "description": "Vidarr unload file containing metadata about the files to be loaded into vidarr-archival",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Case archive record was updated",
-            "schema": {
-              "$ref": "#/definitions/Case-response"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Case-response"
+                }
+              }
             }
           },
           "404": {
             "description": "The requested case archive resource was not found"
           }
-
         }
       }
     },
     "/case/{caseIdentifier}/case-files-unloaded": {
       "put": {
         "summary": "Case archive files deleted from production vidarr",
-        "description": "Indicate that this case archive's files have been deleted from production vidarr",
-        "parameters": [],
+        "description": "Record that this case archive's files have been deleted from production vidarr",
+        "parameters": [
+          {
+            "name": "caseIdentifier",
+            "in": "path",
+            "description": "unique case identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Case archive record was updated",
-            "schema": {
-              "$ref": "#/definitions/Case-response"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Case-response"
+                }
+              }
             }
           },
           "404": {
             "description": "The requested case archive resource was not found"
           }
-
         }
       }
     }
   },
-  "definitions": {
+  "components": {
+    "schemas": {
     "Errors": {
       "type": "object",
       "properties": {
@@ -366,7 +495,6 @@
       "properties": {
         "fileids": {
           "description": "Filter by File IDs",
-          "in": "body",
           "type": "array",
           "items": {
             "type": "string"
@@ -374,22 +502,18 @@
         },
         "fileswids": {
           "description": "Filter by file SWIDs (deprecated)",
-          "in": "body",
           "type": "string"
         },
         "project": {
           "description": "Filter by Project short name",
-          "in": "body",
           "type": "string"
         },
         "qcstatus": {
           "description": "Filter by qc status (PASS, FAIL, PENDING)",
-          "in": "body",
           "type": "string"
         },
         "workflow": {
           "description": "Filter by workflow name. Must be used with `project` query",
-          "in": "body",
           "type": "string"
         }
       }
@@ -468,7 +592,7 @@
         "fileqcs": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/FileQC-response"
+            "$ref": "#/components/schemas/FileQC-response"
           }
         }
       }
@@ -657,5 +781,6 @@
         "caseFilesUnloaded"
       ]
     }
+  }
   }
 }
