@@ -1,6 +1,7 @@
 'use strict';
 
 const caseDao = require('./caseDao');
+const JSONStream = require('JSONStream');
 const {
   handleErrors,
   ValidationError,
@@ -26,6 +27,28 @@ const getCase = async (req, res, next) => {
     }
   } catch (e) {
     handleErrors(e, 'Error getting case', logger, next);
+  }
+};
+
+const allCases = async (req, res, next) => {
+  try {
+    const cases = await caseDao.streamAllCases((stream) => {
+      res.status(200);
+      stream.pipe(JSONStream.stringify()).pipe(res);
+      stream.on('error', (err) => {
+        // log the error and prematurely end the response
+        console.log(err);
+        res.end();
+      });
+    });
+    logger.info({
+      streamRowsProcessedCases: cases.processed,
+      streamingDurationCases: cases.duration,
+      method: 'allCases',
+    });
+    next();
+  } catch (e) {
+    handleErrors(e, 'Error getting cases', logger, next);
   }
 };
 
@@ -120,6 +143,7 @@ const caseFilesUnloaded = async (req, res, next) => {
 };
 
 module.exports = {
+  allCases: allCases,
   addCases: addCases,
   getCase: getCase,
   caseFilesUnloaded: caseFilesUnloaded,

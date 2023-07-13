@@ -91,6 +91,7 @@ app.put(
   `/case/:caseIdentifier/${urls.caseFilesUnloaded}`,
   caseController.caseFilesUnloaded
 );
+app.get('/cases', caseController.allCases);
 
 app.get('/metrics', async (req, res) => {
   try {
