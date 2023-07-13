@@ -1,6 +1,7 @@
 'use strict';
 
 const { db, pgp, NotFoundError } = require('../../utils/dbUtils');
+const queryStream = require('pg-query-stream');
 const qrec = pgp.errors.queryResultErrorCode;
 
 const id = 'id';
@@ -196,6 +197,11 @@ const getCaseArchiveData = (caseIdentifier, resolve, reject) => {
     .catch((err) => standardCatch(err, reject));
 };
 
+const streamAllCases = (fn) => {
+  const query = new queryStream(caseArchiveDataQueryWithoutUnloadFiles);
+  return db.stream(query, fn);
+};
+
 module.exports = {
   addCases: addCases,
   getByCaseIdentifier: getByCaseIdentifier,
@@ -203,4 +209,5 @@ module.exports = {
   updateFilesLoadedIntoVidarrArchival: updateFilesLoadedIntoVidarrArchival,
   updateFilesSentOffsite: updateFilesSentOffsite,
   updateFilesUnloaded: updateFilesUnloaded,
+  streamAllCases: streamAllCases,
 };
