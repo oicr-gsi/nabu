@@ -292,8 +292,8 @@
           }
         }],
         "responses": {
-          "200": {
-            "description": "A case archive record",
+          "201": {
+            "description": "Created case archive record",
             "content": {
               "application/json": {
                 "schema": {
