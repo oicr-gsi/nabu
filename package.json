@@ -45,7 +45,7 @@
     "serve-favicon": "^2.5.0",
     "sqlite3": "^5.1.5",
     "swagger-ui-express": "^4.6.2",
-    "uid": "^2.0.1",
+    "uid": "^2.0.2",
     "winston": "^3.3.3"
   },
   "devDependencies": {
