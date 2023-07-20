@@ -97,6 +97,11 @@ const addCases = async (req, res, next) => {
 
 const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
   try {
+    if (!req.body) {
+      throw new ValidationError(
+        'Must provide an unload file\'s contents in request body'
+      );
+    }
     const updatedCase = await caseDao.updateFilesCopiedToOffsiteStagingDir(
       req.params.caseIdentifier,
       JSON.stringify(req.body)
@@ -109,6 +114,11 @@ const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
 
 const filesLoadedIntoVidarrArchival = async (req, res, next) => {
   try {
+    if (!req.body) {
+      throw new ValidationError(
+        'Must provide an unload file\'s contents in request body'
+      );
+    }
     const updatedCase = await caseDao.updateFilesLoadedIntoVidarrArchival(
       req.params.caseIdentifier,
       JSON.stringify(req.body)
