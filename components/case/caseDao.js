@@ -1,6 +1,7 @@
 'use strict';
 
 const { db, pgp, NotFoundError } = require('../../utils/dbUtils');
+const logger = require('../../utils/logger').logger;
 const queryStream = require('pg-query-stream');
 const qrec = pgp.errors.queryResultErrorCode;
 
@@ -36,16 +37,10 @@ const archiveCols = [
   caseFilesUnloaded,
 ];
 
-const caseColsGet = new pgp.helpers.ColumnSet(caseCols, {
-  table: 'cardea_case',
-});
 const caseColsCreate = new pgp.helpers.ColumnSet(
   [caseIdentifier, reqId, limsIds],
   { table: 'cardea_case' }
 );
-const archiveColsGet = new pgp.helpers.ColumnSet(archiveCols, {
-  table: 'archive',
-});
 const archiveColsCreate = [caseId, wfrIdsForOffsite, wfrIdsForVidarrArchival];
 const archiveColsCopyToOffsiteStagingDir = [
   caseId,
@@ -60,38 +55,47 @@ const archiveColsLoadIntoVidarrArchival = [
 ];
 const archiveColsCaseFilesUnloaded = [caseId, caseFilesUnloaded];
 
-const addCases = (cases) => {
+const addCase = (kase) => {
   return new Promise((resolve, reject) => {
-    let cardeaCases = Array.isArray(cases) ? cases : [cases];
     db.task('add-cases', async (tx) => {
-      for (let c of cardeaCases) {
-        const caseData = {
-          case_identifier: c.caseIdentifier,
-          requisition_id: c.requisitionId,
-          lims_ids: c.limsIds,
+      const caseData = {
+        case_identifier: kase.caseIdentifier,
+        requisition_id: kase.requisitionId,
+        lims_ids: kase.limsIds,
+      };
+
+      const caseInsert = pgp.helpers.insert(
+        caseData,
+        caseColsCreate,
+        'cardea_case'
+      );
+      const onConflict =
+        ' ON CONFLICT(' +
+        caseIdentifier +
+        ') DO UPDATE SET ' +
+        caseColsCreate.assignColumns({
+          from: 'EXCLUDED',
+          skip: [caseIdentifier, reqId],
+        });
+      const returning = ' RETURNING id';
+      const caseQuery = caseInsert + onConflict + returning;
+      await tx.one(caseQuery).then(async (data) => {
+        const archiveData = {
+          case_id: data.id,
+          workflow_run_ids_for_offsite_archive:
+            kase.workflowRunIdsForOffsiteArchive,
+          workflow_run_ids_for_vidarr_archival:
+            kase.workflowRunIdsForVidarrArchival,
         };
 
-        const caseQuery =
-          pgp.helpers.insert(caseData, caseColsCreate, 'cardea_case') +
-          ' RETURNING id';
-        await tx.one(caseQuery).then(async (data) => {
-          const archiveData = {
-            case_id: data.id,
-            workflow_run_ids_for_offsite_archive:
-              c.workflowRunIdsForOffsiteArchive,
-            workflow_run_ids_for_vidarr_archival:
-              c.workflowRunIdsForVidarrArchival,
-          };
-
-          const archiveQuery = pgp.helpers.insert(
-            archiveData,
-            archiveColsCreate,
-            'archive'
-          );
-          await tx.none(archiveQuery);
-          return;
-        });
-      }
+        const archiveQuery = pgp.helpers.insert(
+          archiveData,
+          archiveColsCreate,
+          'archive'
+        );
+        await tx.none(archiveQuery);
+        return;
+      });
     })
       .then(() => {
         resolve();
@@ -107,9 +111,19 @@ const caseArchiveDataQueryWithoutUnloadFiles =
 const caseArchiveDataQueryWithUnloadFiles =
   'SELECT c.case_identifier, c.requisition_id, c.lims_ids, a.created, a.modified, a.workflow_run_ids_for_offsite_archive, a.unload_file_for_offsite_archive, a.files_copied_to_offsite_archive_staging_dir, a.commvault_backup_job_id, a.workflow_run_ids_for_vidarr_archival, a.unload_file_for_vidarr_archival, a.files_loaded_into_vidarr_archival, a.case_files_unloaded FROM cardea_case c JOIN archive a ON c.id = a.case_id';
 
-const getByCaseIdentifier = (caseIdentifier) => {
-  let query =
-    caseArchiveDataQueryWithoutUnloadFiles + ' WHERE case_identifier = $1';
+const getCaseArchiveQuery = (includeUnloadFiles = false) => {
+  let query;
+  if (includeUnloadFiles) {
+    query = caseArchiveDataQueryWithUnloadFiles;
+  } else {
+    query = caseArchiveDataQueryWithoutUnloadFiles;
+  }
+  query += ' WHERE case_identifier = $1';
+  return query;
+};
+
+const getByCaseIdentifier = (caseIdentifier, includeUnloadFiles = false) => {
+  const query = getCaseArchiveQuery(includeUnloadFiles);
   return new Promise((resolve, reject) => {
     db.oneOrNone(query, caseIdentifier)
       .then((data) => {
@@ -126,6 +140,21 @@ const getByCaseIdentifier = (caseIdentifier) => {
   });
 };
 
+/** Return data or NotFoundError */
+const getCaseArchiveData = (
+  caseIdentifier,
+  includeUnloadFiles = false,
+  resolve,
+  reject
+) => {
+  const query = getCaseArchiveQuery(includeUnloadFiles);
+  db.one(query, caseIdentifier)
+    .then((data) => {
+      resolve(data);
+    })
+    .catch((err) => standardCatch(err, reject));
+};
+
 const filesCopiedToStagingDirQuery =
   'UPDATE archive SET files_copied_to_offsite_archive_staging_dir = NOW(), unload_file_for_offsite_archive = $1 WHERE case_id = (SELECT id FROM cardea_case WHERE case_identifier = $2)';
 
@@ -133,7 +162,7 @@ const updateFilesCopiedToOffsiteStagingDir = (caseIdentifier, unloadFile) => {
   return new Promise((resolve, reject) => {
     db.none(filesCopiedToStagingDirQuery, [unloadFile, caseIdentifier])
       .then(() => {
-        getCaseArchiveData(caseIdentifier, resolve, reject);
+        getCaseArchiveData(caseIdentifier, false, resolve, reject);
       })
       .catch((err) => standardCatch(err, reject));
   });
@@ -146,7 +175,7 @@ const updateFilesLoadedIntoVidarrArchival = (caseIdentifier, unloadFile) => {
   return new Promise((resolve, reject) => {
     db.none(filesLoadedIntoVidarrArchivalQuery, [unloadFile, caseIdentifier])
       .then(() => {
-        getCaseArchiveData(caseIdentifier, resolve, reject);
+        getCaseArchiveData(caseIdentifier, false, resolve, reject);
       })
       .catch((err) => standardCatch(err, reject));
   });
@@ -159,7 +188,7 @@ const updateFilesSentOffsite = (caseIdentifier, commvaultBackupJobId) => {
   return new Promise((resolve, reject) => {
     db.none(filesSentOffsiteQuery, [commvaultBackupJobId, caseIdentifier])
       .then(() => {
-        getCaseArchiveData(caseIdentifier, resolve, reject);
+        getCaseArchiveData(caseIdentifier, false, resolve, reject);
       })
       .catch((err) => standardCatch(err, reject));
   });
@@ -172,7 +201,7 @@ const updateFilesUnloaded = (caseIdentifier) => {
   return new Promise((resolve, reject) => {
     db.none(filesUnloadedQuery, [caseIdentifier])
       .then(() => {
-        getCaseArchiveData(caseIdentifier, resolve, reject);
+        getCaseArchiveData(caseIdentifier, false, resolve, reject);
       })
       .catch((err) => standardCatch(err, reject));
   });
@@ -182,19 +211,9 @@ const standardCatch = (err, reject) => {
   if (err.code === qrec.noData) {
     reject(new NotFoundError());
   } else {
-    console.log(err);
+    logger.log(err);
     reject(new Error(err));
   }
-};
-
-const getCaseArchiveData = (caseIdentifier, resolve, reject) => {
-  let query =
-    caseArchiveDataQueryWithoutUnloadFiles + ' WHERE case_identifier = $1';
-  db.one(query, caseIdentifier)
-    .then((data) => {
-      resolve(data);
-    })
-    .catch((err) => standardCatch(err, reject));
 };
 
 const streamAllCases = (fn) => {
@@ -203,7 +222,7 @@ const streamAllCases = (fn) => {
 };
 
 module.exports = {
-  addCases: addCases,
+  addCase: addCase,
   getByCaseIdentifier: getByCaseIdentifier,
   updateFilesCopiedToOffsiteStagingDir: updateFilesCopiedToOffsiteStagingDir,
   updateFilesLoadedIntoVidarrArchival: updateFilesLoadedIntoVidarrArchival,

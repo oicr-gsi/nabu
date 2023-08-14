@@ -256,7 +256,7 @@
         },
         "responses": {
           "200": {
-            "description": "A case archive record",
+            "description": "Case archive record exists",
             "content": {
               "application/json": {
                 "schema": {
@@ -265,7 +265,17 @@
               }
             }
           },
-          "400": {
+          "201": {
+            "description": "Case archive record created or updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Case-response"
+                }
+              }
+            }
+          },
+          "409": {
             "description": "Submitted parameters do not match parameters for existing case with the same caseIdentifier",
             "content": {
               "application/json": {
