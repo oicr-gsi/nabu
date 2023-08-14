@@ -73,7 +73,7 @@ app.get('/fileqcs-only', fileQc.streamFileQcs);
 
 app.post('/delete-fileqcs', fileQc.deleteFileQcs);
 
-app.post('/case', caseController.addCases);
+app.post('/case', caseController.addCase);
 app.get('/case/:caseIdentifier', caseController.getCase);
 app.put(
   `/case/:caseIdentifier/${urls.filesCopiedToOffsiteStagingDir}`,

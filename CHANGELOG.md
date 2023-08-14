@@ -10,6 +10,10 @@ and this project attempts to adhere to Semantic Versioning.
 
 * Validation that Vidarr unload files are included in requests that require them
 
+### Changed
+
+* Allow case archives to have their LIMS IDs updated if case has not yet been sent to archiving staging directory
+
 ## 3.1.0: [2023-07-14]
 
 ### Added

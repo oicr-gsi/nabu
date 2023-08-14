@@ -11,6 +11,14 @@ class ValidationError extends Error {
   }
 }
 
+class ConflictingDataError extends Error {
+  constructor (message = 'Cannot update with new data', ...args) {
+    super(message, ...args);
+    this.name = 'ConflictingDataError';
+    this.message = message || '';
+  }
+}
+
 function generateError (statusCode, errorMessage) {
   const err = {
     status: statusCode,
@@ -29,6 +37,8 @@ function handleErrors (e, defaultMessage, logger, next) {
   } else if (e instanceof NotFoundError) {
     if (process.env.DEBUG == 'true') console.log(e);
     next(generateError(404, null));
+  } else if (e instanceof ConflictingDataError) {
+    next(generateError(409, e.message));
   } else if (e.status) {
     logger.info({ error: e.errors });
     return next(e); // generateError has already been called, usually because it's a user error
@@ -43,6 +53,7 @@ function handleErrors (e, defaultMessage, logger, next) {
 
 module.exports = {
   ValidationError: ValidationError,
+  ConflictingDataError: ConflictingDataError,
   generateError: generateError,
   handleErrors: handleErrors,
 };

@@ -151,7 +151,7 @@ describe('case archive tracking', () => {
         expect(res.body.requisitionId).not.to.be.equal(reqBody.requisitionId);
 
         addCaseArchives(server, reqBody).end((err, res) => {
-          expect(res.status).to.equal(400);
+          expect(res.status).to.equal(409);
         });
         done();
       });

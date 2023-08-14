@@ -5,6 +5,7 @@ const JSONStream = require('JSONStream');
 const {
   handleErrors,
   ValidationError,
+  ConflictingDataError,
 } = require('../../utils/controllerUtils');
 const logger = require('../../utils/logger').logger;
 
@@ -37,7 +38,7 @@ const allCases = async (req, res, next) => {
       stream.pipe(JSONStream.stringify()).pipe(res);
       stream.on('error', (err) => {
         // log the error and prematurely end the response
-        console.log(err);
+        logger.log(err);
         res.end();
       });
     });
@@ -52,13 +53,21 @@ const allCases = async (req, res, next) => {
   }
 };
 
-const addCases = async (req, res, next) => {
+const addCase = async (req, res, next) => {
   try {
     const existingCase = await caseDao.getByCaseIdentifier(
       req.body.caseIdentifier
     );
-    if (existingCase) {
-      if (
+    if (existingCase == null) {
+      await upsert(req.body);
+      res.status(201).end();
+    } else {
+      if (existingCase.filesCopiedToOffsiteArchiveStagingDir == null) {
+        // no harm in modifying a case that hasn't yet been archived
+        await upsert(req.body);
+        res.status(201).end();
+        return true;
+      } else if (
         existingCase.requisitionId == req.body.requisitionId &&
         arraysEquals(existingCase.limsIds, req.body.limsIds) &&
         arraysEquals(
@@ -70,29 +79,22 @@ const addCases = async (req, res, next) => {
           req.body.workflowRunIdsForVidarrArchival
         )
       ) {
-        // case has already been created with the same data
+        // case data is same, no need to update
         res.status(200).end();
       } else {
-        // case has already been created, with different data. Will not update. Yell.
-        handleErrors(
-          new ValidationError(
-            'Data provided differs from data for matching existing case. Provided: ' +
-              JSON.stringify(req.body) +
-              '. Existing: ' +
-              JSON.stringify(existingCase)
-          ),
-          'Error creating case',
-          logger,
-          next
+        // case data is different but files have already been copied to archiving directory, and archiving may have begun
+        throw new ConflictingDataError(
+          `Cannot modify data for case ${existingCase.caseIdentifier} that's already been sent to the archive staging directory`
         );
       }
-    } else {
-      await caseDao.addCases(req.body);
     }
-    res.status(201).end();
   } catch (e) {
     handleErrors(e, 'Error adding cases', logger, next);
   }
+};
+
+const upsert = (caseInfo) => {
+  return caseDao.addCase(caseInfo);
 };
 
 const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
@@ -154,7 +156,7 @@ const caseFilesUnloaded = async (req, res, next) => {
 
 module.exports = {
   allCases: allCases,
-  addCases: addCases,
+  addCase: addCase,
   getCase: getCase,
   caseFilesUnloaded: caseFilesUnloaded,
   filesCopiedToOffsiteStagingDir: filesCopiedToOffsiteStagingDir,
