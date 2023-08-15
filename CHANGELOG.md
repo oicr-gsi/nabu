@@ -6,6 +6,8 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+## 3.2.0: [2023-08-15]
+
 ### Added
 
 * Validation that Vidarr unload files are included in requests that require them
