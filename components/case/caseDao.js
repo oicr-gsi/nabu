@@ -5,23 +5,27 @@ const logger = require('../../utils/logger').logger;
 const queryStream = require('pg-query-stream');
 const qrec = pgp.errors.queryResultErrorCode;
 
+// case info
 const id = 'id';
 const created = 'created';
 const modified = 'modified';
 const caseId = 'case_id';
 const caseIdentifier = 'case_identifier';
-const reqId = 'requisition_id';
+const requisitionId = 'requisition_id';
 const limsIds = 'lims_ids';
+
+// archive info
 const wfrIdsForOffsite = 'workflow_run_ids_for_offsite_archive';
-const unloadFileForOffsite = 'unload_file_for_offsite';
-const filesCopiedToOffsiteStagingDir = 'files_copied_to_offsite_dir';
+const unloadFileForOffsite = 'unload_file_for_offsite_archive';
+const filesCopiedToOffsiteStagingDir =
+  'files_copied_to_offsite_archive_staging_dir';
 const commvaultJobId = 'commvault_backup_job_id';
 const wfrIdsForVidarrArchival = 'workflow_run_ids_for_vidarr_archival';
 const unloadFileForVidarrArchival = 'unload_file_for_vidarr_archival';
 const filesLoadedIntoVidarrArchival = 'files_loaded_into_vidarr_archival';
 const caseFilesUnloaded = 'case_files_unloaded';
 
-const caseCols = [id, caseIdentifier, reqId, limsIds];
+const caseCols = [id, caseIdentifier, requisitionId, limsIds];
 const archiveCols = [
   id,
   created,
@@ -38,7 +42,7 @@ const archiveCols = [
 ];
 
 const caseColsCreate = new pgp.helpers.ColumnSet(
-  [caseIdentifier, reqId, limsIds],
+  [caseIdentifier, requisitionId, limsIds],
   { table: 'cardea_case' }
 );
 const archiveColsCreate = [caseId, wfrIdsForOffsite, wfrIdsForVidarrArchival];
@@ -75,7 +79,7 @@ const addCase = (kase) => {
         ') DO UPDATE SET ' +
         caseColsCreate.assignColumns({
           from: 'EXCLUDED',
-          skip: [caseIdentifier, reqId],
+          skip: [caseIdentifier, requisitionId],
         });
       const returning = ' RETURNING id';
       const caseQuery = caseInsert + onConflict + returning;
@@ -106,10 +110,8 @@ const addCase = (kase) => {
   });
 };
 
-const caseArchiveDataQueryWithoutUnloadFiles =
-  'SELECT c.case_identifier, c.requisition_id, c.lims_ids, a.created, a.modified, a.workflow_run_ids_for_offsite_archive, a.files_copied_to_offsite_archive_staging_dir, a.commvault_backup_job_id, a.workflow_run_ids_for_vidarr_archival, a.files_loaded_into_vidarr_archival, a.case_files_unloaded FROM cardea_case c JOIN archive a ON c.id = a.case_id';
-const caseArchiveDataQueryWithUnloadFiles =
-  'SELECT c.case_identifier, c.requisition_id, c.lims_ids, a.created, a.modified, a.workflow_run_ids_for_offsite_archive, a.unload_file_for_offsite_archive, a.files_copied_to_offsite_archive_staging_dir, a.commvault_backup_job_id, a.workflow_run_ids_for_vidarr_archival, a.unload_file_for_vidarr_archival, a.files_loaded_into_vidarr_archival, a.case_files_unloaded FROM cardea_case c JOIN archive a ON c.id = a.case_id';
+const caseArchiveDataQueryWithoutUnloadFiles = `SELECT c.${caseIdentifier}, c.${requisitionId}, c.${limsIds}, a.${created}, a.${modified}, a.${wfrIdsForOffsite}, a.${filesCopiedToOffsiteStagingDir}, a.${commvaultJobId}, a.${wfrIdsForVidarrArchival}, a.${filesLoadedIntoVidarrArchival}, a.${caseFilesUnloaded} FROM cardea_case c JOIN archive a ON c.${id} = a.${caseId}`;
+const caseArchiveDataQueryWithUnloadFiles = `SELECT c.${caseIdentifier}, c.${requisitionId}, c.${limsIds}, a.${created}, a.${modified}, a.${wfrIdsForOffsite}, a.${unloadFileForOffsite}, a.${filesCopiedToOffsiteStagingDir}, a.${commvaultJobId}, a.${wfrIdsForVidarrArchival}, a.${unloadFileForVidarrArchival}, a.${filesLoadedIntoVidarrArchival}, a.${caseFilesUnloaded} FROM cardea_case c JOIN archive a ON c.${id} = a.${caseId}`;
 
 const getCaseArchiveQuery = (includeUnloadFiles = false) => {
   let query;
@@ -118,7 +120,7 @@ const getCaseArchiveQuery = (includeUnloadFiles = false) => {
   } else {
     query = caseArchiveDataQueryWithoutUnloadFiles;
   }
-  query += ' WHERE case_identifier = $1';
+  query += ` WHERE ${caseIdentifier} = $1`;
   return query;
 };
 
@@ -155,8 +157,7 @@ const getCaseArchiveData = (
     .catch((err) => standardCatch(err, reject));
 };
 
-const filesCopiedToStagingDirQuery =
-  'UPDATE archive SET files_copied_to_offsite_archive_staging_dir = NOW(), unload_file_for_offsite_archive = $1 WHERE case_id = (SELECT id FROM cardea_case WHERE case_identifier = $2)';
+const filesCopiedToStagingDirQuery = `UPDATE archive SET ${filesCopiedToOffsiteStagingDir} = NOW(), ${unloadFileForOffsite} = $1 WHERE ${caseId} = (SELECT ${id} FROM cardea_case WHERE ${caseIdentifier} = $2)`;
 
 const updateFilesCopiedToOffsiteStagingDir = (caseIdentifier, unloadFile) => {
   return new Promise((resolve, reject) => {
@@ -168,8 +169,7 @@ const updateFilesCopiedToOffsiteStagingDir = (caseIdentifier, unloadFile) => {
   });
 };
 
-const filesLoadedIntoVidarrArchivalQuery =
-  'UPDATE archive SET files_loaded_into_vidarr_archival = NOW(), unload_file_for_vidarr_archival = $1 WHERE case_id = (SELECT id FROM cardea_case WHERE case_identifier = $2)';
+const filesLoadedIntoVidarrArchivalQuery = `UPDATE archive SET ${filesLoadedIntoVidarrArchival} = NOW(), ${unloadFileForVidarrArchival} = $1 WHERE ${caseId} = (SELECT ${id} FROM cardea_case WHERE ${caseIdentifier} = $2)`;
 
 const updateFilesLoadedIntoVidarrArchival = (caseIdentifier, unloadFile) => {
   return new Promise((resolve, reject) => {
@@ -181,12 +181,11 @@ const updateFilesLoadedIntoVidarrArchival = (caseIdentifier, unloadFile) => {
   });
 };
 
-const filesSentOffsiteQuery =
-  'UPDATE archive SET commvault_backup_job_id = $1 WHERE case_id = (SELECT id FROM cardea_case WHERE case_identifier = $2)';
+const filesSentOffsiteQuery = `UPDATE archive SET ${commvaultJobId} = $1 WHERE ${caseId} = (SELECT ${id} FROM cardea_case WHERE ${caseIdentifier} = $2)`;
 
-const updateFilesSentOffsite = (caseIdentifier, commvaultBackupJobId) => {
+const updateFilesSentOffsite = (caseIdentifier, commvaultJobId) => {
   return new Promise((resolve, reject) => {
-    db.none(filesSentOffsiteQuery, [commvaultBackupJobId, caseIdentifier])
+    db.none(filesSentOffsiteQuery, [commvaultJobId, caseIdentifier])
       .then(() => {
         getCaseArchiveData(caseIdentifier, false, resolve, reject);
       })
@@ -194,8 +193,7 @@ const updateFilesSentOffsite = (caseIdentifier, commvaultBackupJobId) => {
   });
 };
 
-const filesUnloadedQuery =
-  'UPDATE archive SET case_files_unloaded = NOW() WHERE case_id = (SELECT id FROM cardea_case WHERE case_identifier = $1)';
+const filesUnloadedQuery = `UPDATE archive SET ${caseFilesUnloaded} = NOW() WHERE ${caseId} = (SELECT ${id} FROM cardea_case WHERE ${caseIdentifier} = $1)`;
 
 const updateFilesUnloaded = (caseIdentifier) => {
   return new Promise((resolve, reject) => {
