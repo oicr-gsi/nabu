@@ -6,6 +6,10 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Added
+
+* Ability to query for case archives that have not completed various steps of the archiving process
+
 ## 3.2.0: [2023-08-15]
 
 ### Added

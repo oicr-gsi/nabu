@@ -222,6 +222,15 @@
       "get": {
         "summary": "Get all case archives",
         "description": "A streaming endpoint to get all case archive records",
+        "parameters": {
+          "in": "query",
+          "name": "not",
+          "schema": {
+            "type": "string",
+            "required": false,
+            "description": "Optional parameter to filter by outstanding case archiving work. Permitted values are: 'copied-to-staging', 'sent-offsite', 'sent-to-vidarr-archival', 'unloaded'"
+          }
+        },
         "responses": {
           "200": {
             "description": "All case archive records",
