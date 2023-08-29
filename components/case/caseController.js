@@ -16,7 +16,7 @@ function arraysEquals (array1, array2) {
   );
 }
 
-const getCase = async (req, res, next) => {
+const getCaseArchive = async (req, res, next) => {
   try {
     const cardeaCase = await caseDao.getByCaseIdentifier(
       req.params.caseIdentifier
@@ -31,29 +31,51 @@ const getCase = async (req, res, next) => {
   }
 };
 
-const allCases = async (req, res, next) => {
+/**
+ * Request all case archives.
+ * Can optionally filter for items that are "not" at a certain state of archiving: 'copied-to-staging', 'sent-offsite', 'sent-to-vidarr-archival', 'unloaded'
+ */
+const allCaseArchives = async (req, res, next) => {
   try {
-    const cases = await caseDao.streamAllCases((stream) => {
-      res.status(200);
-      stream.pipe(JSONStream.stringify()).pipe(res);
-      stream.on('error', (err) => {
-        // log the error and prematurely end the response
-        logger.log(err);
-        res.end();
+    const query = req.query.not;
+    let cases;
+    if (query) {
+      if (query == 'copied-to-staging') {
+        cases = await caseDao.getByFilesNotCopiedToOffsiteStagingDir();
+        res.status(200).send(cases);
+      } else if (query == 'sent-offsite') {
+        cases = await caseDao.getByFilesNotSentOffsite();
+        res.status(200).send(cases);
+      } else if (query == 'sent-to-vidarr-archival') {
+        cases = await caseDao.getByFilesNotLoadedIntoVidarrArchival();
+        res.status(200).send(cases);
+      } else if (query == 'unloaded') {
+        cases = await caseDao.getByFilesNotUnloaded();
+        res.status(200).send(cases);
+      }
+    } else {
+      cases = await caseDao.streamAllCases((stream) => {
+        res.status(200);
+        stream.pipe(JSONStream.stringify()).pipe(res);
+        stream.on('error', (err) => {
+          // log the error and prematurely end the response
+          logger.log(err);
+          res.end();
+        });
       });
-    });
-    logger.info({
-      streamRowsProcessedCases: cases.processed,
-      streamingDurationCases: cases.duration,
-      method: 'allCases',
-    });
+      logger.info({
+        streamRowsProcessedCases: cases.processed,
+        streamingDurationCases: cases.duration,
+        method: '',
+      });
+    }
     next();
   } catch (e) {
     handleErrors(e, 'Error getting cases', logger, next);
   }
 };
 
-const addCase = async (req, res, next) => {
+const addCaseArchive = async (req, res, next) => {
   try {
     const existingCase = await caseDao.getByCaseIdentifier(
       req.body.caseIdentifier
@@ -155,9 +177,9 @@ const caseFilesUnloaded = async (req, res, next) => {
 };
 
 module.exports = {
-  allCases: allCases,
-  addCase: addCase,
-  getCase: getCase,
+  allCaseArchives: allCaseArchives,
+  addCaseArchive: addCaseArchive,
+  getCaseArchive: getCaseArchive,
   caseFilesUnloaded: caseFilesUnloaded,
   filesCopiedToOffsiteStagingDir: filesCopiedToOffsiteStagingDir,
   filesLoadedIntoVidarrArchival: filesLoadedIntoVidarrArchival,

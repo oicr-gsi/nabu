@@ -143,6 +143,58 @@ const getByCaseIdentifier = (caseIdentifier, includeUnloadFiles = false) => {
 };
 
 /** Return data or NotFoundError */
+const getByFilesNotCopiedToOffsiteStagingDir = () => {
+  const query =
+    caseArchiveDataQueryWithoutUnloadFiles +
+    ` WHERE ${filesCopiedToOffsiteStagingDir} IS NULL`;
+  return new Promise((resolve, reject) => {
+    db.any(query)
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => standardCatch(err, reject));
+  });
+};
+
+const getByFilesNotLoadedIntoVidarrArchival = () => {
+  const query =
+    caseArchiveDataQueryWithoutUnloadFiles +
+    ` WHERE ${filesLoadedIntoVidarrArchival} IS NULL`;
+  return new Promise((resolve, reject) => {
+    db.any(query)
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => standardCatch(err, reject));
+  });
+};
+
+const getByFilesNotSentOffsite = () => {
+  const query =
+    caseArchiveDataQueryWithoutUnloadFiles +
+    ` WHERE ${filesCopiedToOffsiteStagingDir} IS NOT NULL AND ${commvaultJobId} IS NULL`;
+  return new Promise((resolve, reject) => {
+    db.any(query)
+      .then((data) => {
+        resolve(data ? data : []);
+      })
+      .catch((err) => standardCatch(err, reject));
+  });
+};
+
+const getByFilesNotUnloaded = () => {
+  const query =
+    caseArchiveDataQueryWithoutUnloadFiles +
+    ` WHERE ${commvaultJobId} IS NOT NULL AND ${filesLoadedIntoVidarrArchival} IS NOT NULL AND ${caseFilesUnloaded} IS NULL`;
+  return new Promise((resolve, reject) => {
+    db.any(query)
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => standardCatch(err, reject));
+  });
+};
+
 const getCaseArchiveData = (
   caseIdentifier,
   includeUnloadFiles = false,
@@ -227,4 +279,9 @@ module.exports = {
   updateFilesSentOffsite: updateFilesSentOffsite,
   updateFilesUnloaded: updateFilesUnloaded,
   streamAllCases: streamAllCases,
+  getByFilesNotCopiedToOffsiteStagingDir:
+    getByFilesNotCopiedToOffsiteStagingDir,
+  getByFilesNotLoadedIntoVidarrArchival: getByFilesNotLoadedIntoVidarrArchival,
+  getByFilesNotSentOffsite: getByFilesNotSentOffsite,
+  getByFilesNotUnloaded: getByFilesNotUnloaded,
 };
