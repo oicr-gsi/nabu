@@ -8,7 +8,7 @@
   * Node 18 or higher
   * NPM
   * PostgreSQL 9.5 or higher
-  * SQLite3
+  * SQLite3 (system software)
   * Docker (for database migrations)
 
 Checking for node:
@@ -22,10 +22,13 @@ Checking for node:
     npm install
 
 
-SQLite3 may need to be built from source in order to comply with the version of Node on your system, as well as the system's architecture. If running `node app.js` or `nodejs app.js` shows errors with SQLite, run the following:
+The npm SQLite3 module may need to be built from source in order to comply with the version of Node on your system, as well as the system's architecture. Then, if running `node app.js` or `nodejs app.js` shows errors with SQLite, run the following:
 
     npm uninstall sqlite3
     npm install sqlite3 --local --build-from-source
+    npm rebuild
+    
+
 
 
 ## Setting environment variables
@@ -44,6 +47,8 @@ Set up the same user and password as in your `.env` file
     # create user ${USER};
     # alter role ${USER} with password '${PASSWORD}';
     # grant all on database ${DATABASE} to ${USER};
+    # \c ${DATABASE}
+    # grant all on schema PUBLIC to ${USER};
     # \q
 
 
@@ -55,7 +60,7 @@ Create a file in `conf/` called `flyway.conf` and add to it your database url, u
 
 Pull in the Flyway Docker image:
 
-    docker pull boxfuse/flyway
+    docker pull flyway/flyway
 
 Perform the initial migration using the following:
 
