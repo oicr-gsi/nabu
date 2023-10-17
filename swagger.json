@@ -309,6 +309,14 @@
           "schema": {
             "type": "string"
           }
+        }, {
+          "name": "includeVidarrMetadata",
+          "in": "query",
+          "description": "Whether or not to return the full Vidarr metadata for files sent offsite and files sent to vidarr-archival (true/false)",
+          "required": false,
+          "schema": {
+            "type": "boolean"
+          }
         }],
         "responses": {
           "201": {
