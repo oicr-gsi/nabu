@@ -6,6 +6,14 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Added
+
+* Ability to request Vidarr metadata for a case
+
+### Fixed
+
+* Can now query by optional "not" steps in `/cases` endpoint
+
 ## 3.3.0: [2023-09-25]
 
 ### Added
