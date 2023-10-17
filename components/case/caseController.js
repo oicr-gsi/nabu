@@ -19,7 +19,8 @@ function arraysEquals (array1, array2) {
 const getCaseArchive = async (req, res, next) => {
   try {
     const cardeaCase = await caseDao.getByCaseIdentifier(
-      req.params.caseIdentifier
+      req.params.caseIdentifier,
+      req.query.includeVidarrMetadata ? req.query.includeVidarrMetadata : false
     );
     if (cardeaCase) {
       res.status(200).json(cardeaCase);
