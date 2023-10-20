@@ -10,6 +10,10 @@ and this project attempts to adhere to Semantic Versioning.
 
 * Ability to request Vidarr metadata for a case
 
+### Changed
+
+* Standardized URLs: used same URL components for querying by "not completed a step" as "write back to indicate step is complete"
+
 ### Fixed
 
 * Can now query by optional "not" steps in `/cases` endpoint

@@ -8,6 +8,7 @@ const {
   ConflictingDataError,
 } = require('../../utils/controllerUtils');
 const logger = require('../../utils/logger').logger;
+const urls = require('../../utils/urlSlugs');
 
 function arraysEquals (array1, array2) {
   return (
@@ -41,16 +42,16 @@ const allCaseArchives = async (req, res, next) => {
     const query = req.query.not;
     let cases;
     if (query) {
-      if (query == 'copied-to-staging') {
+      if (query == urls.filesCopiedToOffsiteStagingDir) {
         cases = await caseDao.getByFilesNotCopiedToOffsiteStagingDir();
         res.status(200).send(cases);
-      } else if (query == 'sent-offsite') {
+      } else if (query == urls.filesSentOffsite) {
         cases = await caseDao.getByFilesNotSentOffsite();
         res.status(200).send(cases);
-      } else if (query == 'sent-to-vidarr-archival') {
+      } else if (query == urls.filesLoadedIntoVidarrArchival) {
         cases = await caseDao.getByFilesNotLoadedIntoVidarrArchival();
         res.status(200).send(cases);
-      } else if (query == 'unloaded') {
+      } else if (query == urls.caseFilesUnloaded) {
         cases = await caseDao.getByFilesNotUnloaded();
         res.status(200).send(cases);
       }

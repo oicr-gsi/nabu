@@ -229,7 +229,7 @@
           "schema": {
             "type": "string"
           },
-          "description": "Optional parameter to filter by outstanding case archiving work. Permitted values are: 'copied-to-staging', 'sent-offsite', 'sent-to-vidarr-archival', 'unloaded'"
+          "description": "Optional parameter to filter by outstanding case archiving work. Permitted values are: 'copied-to-offsite-staging', 'sent-offsite', 'sent-to-vidarr-archival', 'unloaded'"
         }],
         "responses": {
           "200": {
@@ -335,7 +335,7 @@
         }
       }
     },
-    "/case/{caseIdentifier}/files-copied-to-offsite-staging-dir": {
+    "/case/{caseIdentifier}/copied-to-offsite-staging": {
       "put": {
         "summary": "Case archive files moved to offsite staging directory",
         "description": "Indicate that this case archive's files have been moved to the offfsite staging directory",
@@ -379,7 +379,7 @@
         }
       }
     },
-    "/case/{caseIdentifier}/files-sent-offsite": {
+    "/case/{caseIdentifier}/sent-offsite": {
       "put": {
         "summary": "Case archive files were sent offsite",
         "description": "Indicate that this case archive's files have been archived offsite",
@@ -427,7 +427,7 @@
         }
       }
     },
-    "/case/{caseIdentifier}/files-loaded-into-vidarr-archival": {
+    "/case/{caseIdentifier}/sent-to-vidarr-archival": {
       "put": {
         "summary": "Case archive files loaded into vidarr-archival",
         "description": "Indicate that this case archive's files have been loaded into vidarr-archival",
@@ -470,7 +470,7 @@
         }
       }
     },
-    "/case/{caseIdentifier}/case-files-unloaded": {
+    "/case/{caseIdentifier}/unloaded": {
       "put": {
         "summary": "Case archive files deleted from production vidarr",
         "description": "Record that this case archive's files have been deleted from production vidarr",
