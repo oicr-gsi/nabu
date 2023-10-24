@@ -6,6 +6,8 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+## 3.4.0 [2023-10-24]
+
 ### Added
 
 * Ability to request Vidarr metadata for a case
