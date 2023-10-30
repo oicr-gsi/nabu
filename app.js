@@ -74,8 +74,8 @@ app.get('/fileqcs-only', fileQc.streamFileQcs);
 
 app.post('/delete-fileqcs', fileQc.deleteFileQcs);
 
-app.post('/case', caseController.addCase);
-app.get('/case/:caseIdentifier', caseController.getCase);
+app.post('/case', caseController.addCaseArchive);
+app.get('/case/:caseIdentifier', caseController.getCaseArchive);
 app.put(
   `/case/:caseIdentifier/${urls.filesCopiedToOffsiteStagingDir}`,
   caseController.filesCopiedToOffsiteStagingDir
@@ -92,7 +92,7 @@ app.put(
   `/case/:caseIdentifier/${urls.caseFilesUnloaded}`,
   caseController.caseFilesUnloaded
 );
-app.get('/cases', caseController.allCases);
+app.get('/cases', caseController.allCaseArchives);
 
 app.get('/metrics', async (req, res) => {
   try {

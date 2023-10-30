@@ -6,6 +6,26 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+## 3.4.0 [2023-10-24]
+
+### Added
+
+* Ability to request Vidarr metadata for a case
+
+### Changed
+
+* Standardized URLs: used same URL components for querying by "not completed a step" as "write back to indicate step is complete"
+
+### Fixed
+
+* Can now query by optional "not" steps in `/cases` endpoint
+
+## 3.3.0: [2023-09-25]
+
+### Added
+
+* Ability to query for case archives that have not completed various steps of the archiving process
+
 ## 3.2.0: [2023-08-15]
 
 ### Added
