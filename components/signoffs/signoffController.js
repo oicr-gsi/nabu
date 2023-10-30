@@ -15,8 +15,9 @@ const getSignoff = async (req, res, next) => {
     const signoffs = await signoffDao.getByCaseIdentifier(
       req.params.caseIdentifier
     );
-    if (signoffs) {
+    if (signoffs && signoffs.length) {
       res.status(200).json(signoffs);
+      next();
     } else {
       res.status(404).end();
     }
@@ -27,40 +28,46 @@ const getSignoff = async (req, res, next) => {
 
 const addSignoff = async (req, res, next) => {
   try {
-    const existingSignoff = null;
-    //const existingSignoff = await signoffDao.getByCaseIdentifier(
-    //  req.body.caseIdentifier
-    //);
-    //const validationResults = validateObjectsFromUser(req.body);
-    if (existingSignoff == null) {
-      await upsert(req.body);
-      res.status(201).end();
-    } else if (
-      existingSignoff.username == req.body.username &&
-      existingSignoff.signoff_step_name == req.body.signoff_step_name &&
-      existingSignoff.deliverable_type == req.body.deliverable_type
-    ) {
-      // signoff step is same, replace the old signoff record
-      await upsert(req.body);
-      res.status(201).end();
+    const existingSignoffs = await signoffDao.getByCaseIdentifier(
+      req.body.caseIdentifier
+    );
+
+    const validationResults = validateObjectsFromUser(req.body);
+    if (existingSignoffs == null || !existingSignoffs.length) {
+      const createdSignoff = await upsert(validationResults);
+      return res.status(201).json(createdSignoff);
     } else {
-      // signoff data is different
-      await upsert(req.body);
-      res.status(201).end();
+      for (const [, existingSignoff] of Object.entries(existingSignoffs)) {
+        if (
+          existingSignoff.signoffStepName ==
+            validationResults.signoffStepName &&
+          existingSignoff.deliverableType == validationResults.deliverableType
+        ) {
+          // signoff step is same, replace the old signoff record
+          const createdSignoff = await upsert(validationResults);
+          return res.status(200).json(createdSignoff);
+        } else {
+          // signoff data is different
+          const createdSignoff = await upsert(validationResults);
+          return res.status(201).json(createdSignoff);
+        }
+      }
     }
   } catch (e) {
-    handleErrors(e, 'Error adding cases', logger, next);
+    handleErrors(e, 'Error adding sign-off', logger, next);
   }
 };
 
-const upsert = (caseInfo) => {
-  return signoffDao.addSignoff(caseInfo);
+const upsert = (signoffInfo) => {
+  return signoffDao.addSignoff(signoffInfo);
 };
 
+//Currently are not exposing this as we do not want users
+//to delete sign-off records
 const deleteSignoff = async (req, res, next) => {
   try {
     if (!req.body.id)
-      throw Error(400, 'Error: no "signoffId" provided request body');
+      throw Error(400, 'Error: no "signoffId" provided in request body');
 
     const username = validateUsername(req.body.username);
 
@@ -68,7 +75,7 @@ const deleteSignoff = async (req, res, next) => {
     res.status(200).json(result);
     next();
   } catch (e) {
-    handleErrors(e, 'Error deleting records', logger, next);
+    handleErrors(e, 'Error deleting sign-off records', logger, next);
   }
 };
 
@@ -99,15 +106,11 @@ function validateStepName (param) {
   if (stepname !== 'undefined' && stepname !== null && stepname.length) {
     stepname = stepname.toUpperCase();
   }
-  let validSteps = [
-    'CASE REVIEW',
-    'ANALYSIS REVIEW',
-    'RELEASE APPROVAL',
-    'RELEASED',
-  ];
+  let validSteps = ['ANALYSIS REVIEW', 'RELEASE APPROVAL', 'RELEASE'];
   if (!validSteps.includes(stepname)) {
     return new ValidationError(
-      'Sign-off must be associated with a valid step name: "CASE REVIEW", "ANALYSIS REVIEW", "RELEASE APPROVAL", or "RELEASED"'
+      'Sign-off must be associated with a valid step name: ' +
+        validSteps.toString()
     );
   }
   return stepname;
@@ -121,46 +124,44 @@ function validateDeliverableType (param) {
   let validPipes = ['DATA RELEASE', 'CLINICAL REPORT'];
   if (!validPipes.includes(pipeline)) {
     return new ValidationError(
-      'Sign-off must be associated with a valid deliverable type: "DATA RELEASE" or "CLINICAL REPORT"'
+      'Sign-off must be associated with a valid deliverable type: ' +
+        validPipes.toString()
     );
   }
   return pipeline;
 }
 
-/** returns an object { validated: {}, errors: [] } */
-function validateObjectsFromUser (unvalidatedObjects) {
+/** returns an object validated: {} } */
+function validateObjectsFromUser (unvalidated) {
   let validationErrors = [];
-  let validatedParams = unvalidatedObjects.map((unvalidated) => {
-    let singleEntryValidationErrors = [];
-    let fromUser = {
-      case_identifier: unvalidated.case_identifier,
-      qc_passed: unvalidated.qc_passed,
-      username: validateUsername(unvalidated.username),
-      comment: validateComment(unvalidated.comment),
-      deliverable_type: validateDeliverableType(unvalidated.deliverable_type),
-      signoff_step_name: validateStepName(unvalidated.signoff_step_name),
-    };
-    for (const [, value] of Object.entries(fromUser)) {
-      if (value instanceof ValidationError) {
-        singleEntryValidationErrors.push(value);
-      }
+  let singleEntryValidationErrors = [];
+  let fromUser = {
+    caseIdentifier: unvalidated.caseIdentifier,
+    qcPassed: nullifyIfBlank(unvalidated.qcPassed),
+    username: validateUsername(unvalidated.username),
+    deliverableType: validateDeliverableType(unvalidated.deliverableType),
+    signoffStepName: validateStepName(unvalidated.signoffStepName),
+    comment: validateComment(unvalidated.comment),
+  };
+  for (const [, value] of Object.entries(fromUser)) {
+    if (value instanceof ValidationError) {
+      singleEntryValidationErrors.push(value);
     }
-    if (singleEntryValidationErrors.length) {
-      let fullErrorMessage =
-        fromUser.case_identifier +
-        ' : ' +
-        singleEntryValidationErrors.map((e) => e.message).join('. ');
-      validationErrors.push(fullErrorMessage);
-    } else {
-      return fromUser;
-    }
-  });
+  }
+  if (singleEntryValidationErrors.length) {
+    let fullErrorMessage =
+      fromUser.case_identifier +
+      ' : ' +
+      singleEntryValidationErrors.map((e) => e.message).join('. ');
+    validationErrors.push(fullErrorMessage);
+  } else {
+    return fromUser;
+  }
   if (validationErrors.length) {
     let allErrors = validationErrors.join('. ');
     throw new ValidationError(allErrors);
   }
-  console.log(validatedParams); //TO DELETE LATER
-  return validatedParams;
+  return fromUser;
 }
 
 module.exports = {

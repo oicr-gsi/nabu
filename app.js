@@ -19,6 +19,7 @@ const path = require('path');
 const prom = require('./utils/prometheus');
 const swaggerSpec = require('./swagger.json');
 const swaggerUi = require('swagger-ui-express');
+const signoffController = require('./components/signoffs/signoffController');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -107,6 +108,9 @@ app.get('/metrics', async (req, res) => {
   res.set('Content-Type', prom.prometheus.register.contentType);
   res.end(await prom.prometheus.register.metrics());
 });
+
+app.post('/case/sign-off', signoffController.addSignoff);
+app.get(`/case/:caseIdentifier/${urls.signoff}`, signoffController.getSignoff);
 
 app.use(errorHandler);
 app.use(prom.monitorAfterRequest);

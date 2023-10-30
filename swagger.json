@@ -222,9 +222,18 @@
       "get": {
         "summary": "Get all case archives",
         "description": "A streaming endpoint to get all case archive records",
+        "parameters": [{
+          "in": "query",
+          "name": "not",
+          "required": false,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Optional parameter to filter by outstanding case archiving work. Permitted values are: 'copied-to-offsite-staging', 'sent-offsite', 'sent-to-vidarr-archival', 'unloaded'"
+        }],
         "responses": {
           "200": {
-            "description": "All case archive records",
+            "description": "Case archive records",
             "content": {
               "application/json": {
                 "schema": {
@@ -300,6 +309,14 @@
           "schema": {
             "type": "string"
           }
+        }, {
+          "name": "includeVidarrMetadata",
+          "in": "query",
+          "description": "Whether or not to return the full Vidarr metadata for files sent offsite and files sent to vidarr-archival (true/false)",
+          "required": false,
+          "schema": {
+            "type": "boolean"
+          }
         }],
         "responses": {
           "201": {
@@ -318,7 +335,7 @@
         }
       }
     },
-    "/case/{caseIdentifier}/files-copied-to-offsite-staging-dir": {
+    "/case/{caseIdentifier}/copied-to-offsite-staging": {
       "put": {
         "summary": "Case archive files moved to offsite staging directory",
         "description": "Indicate that this case archive's files have been moved to the offfsite staging directory",
@@ -362,7 +379,7 @@
         }
       }
     },
-    "/case/{caseIdentifier}/files-sent-offsite": {
+    "/case/{caseIdentifier}/sent-offsite": {
       "put": {
         "summary": "Case archive files were sent offsite",
         "description": "Indicate that this case archive's files have been archived offsite",
@@ -410,7 +427,7 @@
         }
       }
     },
-    "/case/{caseIdentifier}/files-loaded-into-vidarr-archival": {
+    "/case/{caseIdentifier}/sent-to-vidarr-archival": {
       "put": {
         "summary": "Case archive files loaded into vidarr-archival",
         "description": "Indicate that this case archive's files have been loaded into vidarr-archival",
@@ -453,7 +470,7 @@
         }
       }
     },
-    "/case/{caseIdentifier}/case-files-unloaded": {
+    "/case/{caseIdentifier}/unloaded": {
       "put": {
         "summary": "Case archive files deleted from production vidarr",
         "description": "Record that this case archive's files have been deleted from production vidarr",
@@ -481,6 +498,85 @@
           },
           "404": {
             "description": "The requested case archive resource was not found"
+          }
+        }
+      }
+    },
+    "/case/sign-off": {
+      "post": {
+        "summary": "Create a sign-off record",
+        "description": "Adds a sign-off record with basic data",
+        "requestBody": {
+          "description": "Fields for creating a new signoff record",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/signoff-new"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sign-off record exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/signoff-response"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Sign-off record created or updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/signoff-response"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Submitted parameters do not match parameters for existing sign-off associated with the same case",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/case/{caseIdentifier}/sign-off": {
+      "get": {
+        "summary": "Get all sign-off records associated with a case",
+        "description": "This resource represents a sign-off record. Each sign-off record is associated with a string `caseIdentifier`. A caseIdentifier may have multiple sign-off records",
+        "parameters": [{
+          "name": "caseIdentifier",
+          "in": "path",
+          "description": "unique case identifier",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }],
+        "responses": {
+          "201": {
+            "description": "Retrieved sign-off record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/signoff-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource was not found"
           }
         }
       }
@@ -790,7 +886,77 @@
         "filesLoadedIntoVidarrArchival",
         "caseFilesUnloaded"
       ]
+    },
+      "signoff-new": {
+        "type": "object",
+        "properties": {
+          "caseIdentifier": {
+            "description": "Unique case identifier",
+            "type": "string"
+          },
+          "qcPassed": {
+            "description": "Whether QC is passed (true/false)",
+            "type": "boolean"
+          },
+          "username": {
+            "description": "Name of person signing-off",
+            "type": "string"
+          },
+          "signoffStepName": {
+            "description": "The QC gate associated with this sign-off",
+            "type": "string"
+          },
+          "deliverableType": {
+            "description": "The pipeline associated with this sign-off",
+            "type": "string"
+          },
+          "comment": {
+            "description": "Optional URL-escaped reason why sign-off is PASS or FAIL",
+            "type": "string"
+          }
+        }
+      },
+      "signoff-response": {
+        "type": "object",
+        "properties": {
+          "created": {
+            "description": "Date that the case was created in Nabu",
+            "type": "string",
+            "format": "date-time"
+          },
+          "caseIdentifier": {
+            "description": "Unique case identifier",
+            "type": "string"
+          },
+          "qcPassed": {
+            "description": "Whether QC is passed (true/false)",
+            "type": "boolean"
+          },
+          "username": {
+            "description": "Name of person QCing the file (only returned if a sign-off record is found)",
+            "type": "string"
+          },
+          "signoffStepName": {
+            "description": "The QC gate associated with this sign-off",
+            "type": "string"
+          },
+          "deliverableType": {
+            "description": "The pipeline associated with this sign-off",
+            "type": "string"
+          },
+          "comment": {
+            "description": "URL-escaped reason why sign-off is PASS or FAIL (only returned if a sign-off record is found and a comment was provided)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "created",
+          "caseIdentifier",
+          "username",
+          "signoffStepName",
+          "deliverableType"
+        ]
+      }
     }
-  }
   }
 }
