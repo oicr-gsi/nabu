@@ -1,5 +1,6 @@
 'use strict';
 
+const { ValidationError } = require('../../utils/controllerUtils');
 const { db, pgp, NotFoundError } = require('../../utils/dbUtils');
 const logger = require('../../utils/logger').logger;
 const queryStream = require('pg-query-stream');
@@ -118,7 +119,7 @@ const deleteSignoff = (signoffId) => {
           // no matching id found
           resolve([]);
         } else {
-          reject(new Error(err));
+          reject(new ValidationError(err));
         }
       });
   });

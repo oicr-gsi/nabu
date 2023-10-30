@@ -18,4 +18,7 @@ INSERT INTO archive (case_id, workflow_run_ids_for_offsite_archive, unload_file_
 DELETE FROM signoff;
 INSERT INTO signoff (case_identifier, qc_passed, username, signoff_step_name, deliverable_type, comment) VALUES
 ('R11_TEST_1000_Xy_Z', TRUE, 'me', 'RELEASE', 'CLINICAL REPORT', ''),
-('R12_TEST_1212_Ab_C', FALSE, 'me', 'ANALYSIS REVIEW', 'DATA RELEASE', '');
+('R12_TEST_1212_Ab_C', FALSE, 'me', 'ANALYSIS REVIEW', 'DATA RELEASE', ''),
+('R12_TEST_9999_De_F', null, 'me', 'RELEASE', 'DATA RELEASE', ''),
+('R12_TEST_9999_De_F', TRUE, 'me', 'ANALYSIS REVIEW', 'DATA RELEASE', ''),
+('R12_TEST_9999_De_F', FALSE, 'me', 'RELEASE APPROVAL', 'DATA RELEASE', '');
