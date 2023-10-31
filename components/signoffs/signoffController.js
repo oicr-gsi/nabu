@@ -5,7 +5,6 @@ const JSONStream = require('JSONStream');
 const {
   handleErrors,
   ValidationError,
-  ConflictingDataError,
 } = require('../../utils/controllerUtils');
 const { signoff } = require('../../utils/urlSlugs');
 const logger = require('../../utils/logger').logger;
@@ -62,23 +61,6 @@ const upsert = (signoffInfo) => {
   return signoffDao.addSignoff(signoffInfo);
 };
 
-//Currently are not exposing this as we do not want users
-//to delete sign-off records
-const deleteSignoff = async (req, res, next) => {
-  try {
-    if (!req.body.id)
-      throw Error(400, 'Error: no "signoffId" provided in request body');
-
-    const username = validateUsername(req.body.username);
-
-    const result = await signoffDao.deleteSignoff(req.body.id);
-    res.status(200).json(result);
-    next();
-  } catch (e) {
-    handleErrors(e, 'Error deleting sign-off records', logger, next);
-  }
-};
-
 function validateUsername (param) {
   const user = nullifyIfBlank(param);
   if (user == null || !user.length)
@@ -110,7 +92,9 @@ function validateStepName (param) {
   if (!validSteps.includes(stepname)) {
     return new ValidationError(
       'Sign-off must be associated with a valid step name: ' +
-        validSteps.toString()
+        validSteps.toString() +
+        ', instead got ' +
+        stepname
     );
   }
   return stepname;
@@ -125,13 +109,15 @@ function validateDeliverableType (param) {
   if (!validPipes.includes(pipeline)) {
     return new ValidationError(
       'Sign-off must be associated with a valid deliverable type: ' +
-        validPipes.toString()
+        validPipes.toString() +
+        ', instead got ' +
+        pipeline
     );
   }
   return pipeline;
 }
 
-/** returns an object validated: {} } */
+/** returns an object with all fields valid or errors */
 function validateObjectsFromUser (unvalidated) {
   let validationErrors = [];
   let singleEntryValidationErrors = [];
@@ -167,5 +153,4 @@ function validateObjectsFromUser (unvalidated) {
 module.exports = {
   addSignoff: addSignoff,
   getSignoff: getSignoff,
-  deleteSignoff: deleteSignoff,
 };

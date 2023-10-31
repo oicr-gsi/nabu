@@ -104,29 +104,7 @@ const getByCaseIdentifier = (caseIdentifier) => {
   });
 };
 
-//Currently are not exposing this as we do not want users
-//to delete sign-off records
-const deleteSignoff = (signoffId) => {
-  return new Promise((resolve, reject) => {
-    const delete_stmt =
-      'DELETE FROM signoff WHERE id=' + signoffId + ' RETURNING id';
-    db.oneOrNone(delete_stmt, signoffId)
-      .then((data) => {
-        resolve(data);
-      })
-      .catch((err) => {
-        if (err.code === qrec.noData) {
-          // no matching id found
-          resolve([]);
-        } else {
-          reject(new ValidationError(err));
-        }
-      });
-  });
-};
-
 module.exports = {
   addSignoff: addSignoff,
   getByCaseIdentifier: getByCaseIdentifier,
-  deleteSignoff: deleteSignoff,
 };
