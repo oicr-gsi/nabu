@@ -38,10 +38,10 @@ const signoffColsCreate = new pgp.helpers.ColumnSet(
   { table: 'signoff' }
 );
 
-const addSignoff = (signed) => {
+const addSignoff = (caseId, signed) => {
   return new Promise((resolve, reject) => {
     const signoffData = {
-      case_identifier: signed.caseIdentifier,
+      case_identifier: caseId,
       username: signed.username,
       qc_passed: signed.qcPassed,
       signoff_step_name: signed.signoffStepName,
@@ -79,14 +79,61 @@ const addSignoff = (signed) => {
   });
 };
 
-const getCaseSignoffQuery = (id) => {
+const getCaseSignoffQueryById = (id) => {
   let query = 'SELECT * FROM "signoff"';
   query = query + ' WHERE case_identifier=\'' + id + '\';';
   return query;
 };
 
+const getCaseSignoffQueryByConstraint = (
+  id,
+  signoffStepName,
+  deliverableType
+) => {
+  let query = 'SELECT * FROM "signoff"';
+  query =
+    query +
+    ' WHERE case_identifier=\'' +
+    id +
+    '\' AND' +
+    ' signoff_step_name=\'' +
+    signoffStepName +
+    '\' AND' +
+    ' deliverable_type=\'' +
+    deliverableType +
+    '\';';
+  return query;
+};
+
 const getByCaseIdentifier = (caseIdentifier) => {
-  const query = getCaseSignoffQuery(caseIdentifier);
+  const query = getCaseSignoffQueryById(caseIdentifier);
+
+  return new Promise((resolve, reject) => {
+    db.any(query)
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        if (err.code === qrec.noData) {
+          // no data found
+          resolve([]);
+        } else {
+          reject(new Error(err));
+        }
+      });
+  });
+};
+
+const getByCaseConstraint = (
+  caseIdentifier,
+  signoffStepName,
+  deliverableType
+) => {
+  const query = getCaseSignoffQueryByConstraint(
+    caseIdentifier,
+    signoffStepName,
+    deliverableType
+  );
 
   return new Promise((resolve, reject) => {
     db.any(query)
@@ -107,4 +154,5 @@ const getByCaseIdentifier = (caseIdentifier) => {
 module.exports = {
   addSignoff: addSignoff,
   getByCaseIdentifier: getByCaseIdentifier,
+  getByCaseConstraint: getByCaseConstraint,
 };

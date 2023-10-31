@@ -502,10 +502,19 @@
         }
       }
     },
-    "/case/sign-off": {
+    "/case/{caseIdentifier}/sign-off": {
       "post": {
         "summary": "Create a sign-off record",
         "description": "Adds a sign-off record with basic data",
+        "parameters": [{
+          "name": "caseIdentifier",
+          "in": "path",
+          "description": "unique case identifier",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }],
         "requestBody": {
           "description": "Fields for creating a new signoff record",
           "required": true,
@@ -549,9 +558,7 @@
             }
           }
         }
-      }
-    },
-    "/case/{caseIdentifier}/sign-off": {
+      },
       "get": {
         "summary": "Get all sign-off records associated with a case",
         "description": "This resource represents a sign-off record. Each sign-off record is associated with a string `caseIdentifier`. A caseIdentifier may have multiple sign-off records",
@@ -780,10 +787,6 @@
     "Case-new": {
       "type": "object",
       "properties": {
-        "caseIdentifier": {
-          "description": "Unique case identifier",
-          "type": "string"
-        },
         "requisitionId": {
           "description": "Requisition number",
           "type": "integer"
@@ -890,10 +893,6 @@
       "signoff-new": {
         "type": "object",
         "properties": {
-          "caseIdentifier": {
-            "description": "Unique case identifier",
-            "type": "string"
-          },
           "qcPassed": {
             "description": "Whether QC is passed (true/false)",
             "type": "boolean"

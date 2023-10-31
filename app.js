@@ -109,7 +109,7 @@ app.get('/metrics', async (req, res) => {
   res.end(await prom.prometheus.register.metrics());
 });
 
-app.post(`/case/${urls.signoff}`, signoffController.addSignoff);
+app.post(`/case/:caseIdentifier/${urls.signoff}`, signoffController.addSignoff);
 app.get(`/case/:caseIdentifier/${urls.signoff}`, signoffController.getSignoff);
 
 app.use(errorHandler);
