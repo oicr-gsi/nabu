@@ -37,10 +37,11 @@ const addSignoff = async (req, res, next) => {
       );
       return res.status(201).json(createdSignoff);
     } else {
-      // signoff step is same, replace the old signoff record
+      // signoff step + deliverable are same, delete the old signoff record and add new one
       const createdSignoff = await upsert(
         req.params.caseIdentifier,
-        validationResults
+        validationResults,
+        existingSignoffs[0].id
       );
       return res.status(200).json(createdSignoff);
     }
@@ -49,8 +50,8 @@ const addSignoff = async (req, res, next) => {
   }
 };
 
-const upsert = (caseIdentifier, signoffInfo) => {
-  return signoffDao.addSignoff(caseIdentifier, signoffInfo);
+const upsert = (caseIdentifier, signoffInfo, oldSignoffId) => {
+  return signoffDao.addSignoff(caseIdentifier, signoffInfo, oldSignoffId);
 };
 
 function validateUsername (param) {

@@ -38,7 +38,7 @@ const signoffColsCreate = new pgp.helpers.ColumnSet(
   { table: 'signoff' }
 );
 
-const addSignoff = (caseId, signed) => {
+const addSignoff = (caseId, signed, oldSignoffId = null) => {
   return new Promise((resolve, reject) => {
     const signoffData = {
       case_identifier: caseId,
@@ -55,27 +55,26 @@ const addSignoff = (caseId, signed) => {
       'signoff'
     );
 
-    const signoffColsCreateExtended = signoffColsCreate.extend([created]);
+    const signoffDelete = 'DELETE FROM signoff WHERE id=' + oldSignoffId + ';';
 
-    const onConflict =
-      ' ON CONFLICT(case_identifier, signoff_step_name, deliverable_type)' +
-      ' DO UPDATE SET ' +
-      signoffColsCreateExtended.assignColumns({
-        from: 'EXCLUDED',
-        skip: [caseIdentifier, signoffStepName, deliverableType],
-      });
+    const signoffQuery = signoffInsert + ' RETURNING *';
 
-    const returning = ' RETURNING *';
-    const signoffQuery = signoffInsert + onConflict + returning;
-
-    return db
-      .one(signoffQuery)
-      .then((data) => {
-        resolve(data);
-      })
-      .catch((err) => {
-        reject(new Error(err));
-      });
+    db.tx('delete-and-add', (tx) => {
+      return tx
+        .oneOrNone(signoffDelete)
+        .then((gone) => {
+          tx.one(signoffQuery)
+            .then((data) => {
+              return resolve(data);
+            })
+            .catch((err) => {
+              reject(new Error(err));
+            });
+        })
+        .catch((err) => {
+          reject(new Error(err));
+        });
+    });
   });
 };
 
