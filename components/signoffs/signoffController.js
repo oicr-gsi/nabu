@@ -32,13 +32,13 @@ const addSignoff = async (req, res, next) => {
     let createdSignoff;
     const validationResults = validateObjectsFromUser(req.body);
     if (existingSignoffs == null || !existingSignoffs.length) {
-      let createdSignoff = await upsert(
+      createdSignoff = await upsert(
         req.params.caseIdentifier,
         validationResults
       );
     } else {
       // signoff step + deliverable are same, delete the old signoff record and add new one
-      let createdSignoff = await upsert(
+      createdSignoff = await upsert(
         req.params.caseIdentifier,
         validationResults,
         existingSignoffs[0].id
