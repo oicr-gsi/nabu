@@ -14,7 +14,7 @@ const getSignoff = async (req, res, next) => {
     const signoffs = await signoffDao.getByCaseIdentifier(
       req.params.caseIdentifier
     );
-    res.status(201).json(signoffs);
+    res.status(200).json(signoffs);
     next();
   } catch (e) {
     handleErrors(e, 'Error getting signoff(s) for case', logger, next);
@@ -29,22 +29,22 @@ const addSignoff = async (req, res, next) => {
       req.body.deliverableType
     );
 
+    let createdSignoff;
     const validationResults = validateObjectsFromUser(req.body);
     if (existingSignoffs == null || !existingSignoffs.length) {
-      const createdSignoff = await upsert(
+      let createdSignoff = await upsert(
         req.params.caseIdentifier,
         validationResults
       );
-      return res.status(201).json(createdSignoff);
     } else {
       // signoff step + deliverable are same, delete the old signoff record and add new one
-      const createdSignoff = await upsert(
+      let createdSignoff = await upsert(
         req.params.caseIdentifier,
         validationResults,
         existingSignoffs[0].id
       );
-      return res.status(200).json(createdSignoff);
     }
+    return res.status(201).json(createdSignoff);
   } catch (e) {
     handleErrors(e, 'Error adding sign-off', logger, next);
   }
