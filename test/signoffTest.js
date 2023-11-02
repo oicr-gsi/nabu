@@ -44,7 +44,7 @@ describe('case sign-off tracking', () => {
     it('it should retrieve a sign-off entry for an existing case identifier', (done) => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       getSignoffsByCaseIdentifier(server, caseIdentifier).end((err, res) => {
-        expect(res.status).to.equal(201);
+        expect(res.status).to.equal(200);
         expect(res.body.length).to.equal(1);
         expect(res.body[0].caseIdentifier).to.be.equal(caseIdentifier);
         done();
@@ -53,7 +53,7 @@ describe('case sign-off tracking', () => {
     it('it should retrieve an empty list if no matching case identifier is found', (done) => {
       let caseIdentifier = 'R1_TEST_0000_Ab_C';
       getSignoffsByCaseIdentifier(server, caseIdentifier).end((err, res) => {
-        expect(res.status).to.equal(201);
+        expect(res.status).to.equal(200);
         expect(res.body).to.be.empty;
         done();
       });
@@ -166,7 +166,7 @@ describe('case sign-off tracking', () => {
       };
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
-        expect(res.status).to.equal(200);
+        expect(res.status).to.equal(201);
         done();
       });
     });
@@ -180,7 +180,7 @@ describe('case sign-off tracking', () => {
       };
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
-        expect(res.status).to.equal(200);
+        expect(res.status).to.equal(201);
         done();
       });
     });
