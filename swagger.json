@@ -558,6 +558,56 @@
             }
           }
         }
+      }
+    },
+      "/case/sign-off": {
+        "post": {
+          "summary": "Create one or more sign-off records",
+          "description": "Adds a series of sign-off records with basic data",
+          "requestBody": {
+            "description": "Fields for creating new signoff records",
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/signoffs-new"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Sign-off record exists",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/signoff-response"
+                  }
+                }
+              }
+            },
+            "201": {
+              "description": "Sign-off records created or updated",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/signoff-response"
+                  }
+                }
+              }
+            },
+            "409": {
+              "description": "Submitted parameters do not match parameters for existing sign-off associated with the same case",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Errors"
+                  }
+                }
+              }
+            }
+          }
+        }
       },
       "get": {
         "summary": "Get all sign-off records associated with a case",
@@ -587,7 +637,6 @@
           }
         }
       }
-    }
   },
   "components": {
     "schemas": {
@@ -893,6 +942,38 @@
       "signoff-new": {
         "type": "object",
         "properties": {
+          "qcPassed": {
+            "description": "Whether QC is passed (true/false)",
+            "type": "boolean"
+          },
+          "username": {
+            "description": "Name of person signing-off",
+            "type": "string"
+          },
+          "signoffStepName": {
+            "description": "The QC gate associated with this sign-off",
+            "type": "string"
+          },
+          "deliverableType": {
+            "description": "The pipeline associated with this sign-off",
+            "type": "string"
+          },
+          "comment": {
+            "description": "Optional URL-escaped reason why sign-off is PASS or FAIL",
+            "type": "string"
+          }
+        }
+      },
+      "signoffs-new": {
+        "type": "object",
+        "properties": {
+          "caseIdentifiers": {
+            "description": "One or more unique case identifiers",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "qcPassed": {
             "description": "Whether QC is passed (true/false)",
             "type": "boolean"

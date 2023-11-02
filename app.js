@@ -110,6 +110,7 @@ app.get('/metrics', async (req, res) => {
 });
 
 app.post(`/case/:caseIdentifier/${urls.signoff}`, signoffController.addSignoff);
+app.post(`/case/${urls.signoff}`, signoffController.addBatchSignoffs);
 app.get(`/case/:caseIdentifier/${urls.signoff}`, signoffController.getSignoff);
 
 app.use(errorHandler);

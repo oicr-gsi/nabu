@@ -59,6 +59,8 @@ const addSignoff = (caseId, signed, oldSignoffId = null) => {
 
     const signoffQuery = signoffInsert + ' RETURNING *';
 
+    // delete matching sign-off if already exists
+    // create new sign-off
     db.tx('delete-and-add', (tx) => {
       return tx
         .oneOrNone(signoffDelete)
@@ -77,6 +79,8 @@ const addSignoff = (caseId, signed, oldSignoffId = null) => {
     });
   });
 };
+
+const addBatchSignoffs = (caseIds, signed, oldSignoffIds = []) => {};
 
 const getCaseSignoffQueryById = (id) => {
   let query = 'SELECT * FROM "signoff"';
@@ -154,4 +158,5 @@ module.exports = {
   addSignoff: addSignoff,
   getByCaseIdentifier: getByCaseIdentifier,
   getByCaseConstraint: getByCaseConstraint,
+  addBatchSignoffs: addBatchSignoffs,
 };

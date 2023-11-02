@@ -19,6 +19,14 @@ const addSignoff = (server, caseIdentifier, requestBody = {}) => {
     .send(requestBody);
 };
 
+const addBatchSignoffs = (server, requestBody = {}) => {
+  return chai
+    .request(server)
+    .post('/case/sign-off')
+    .set('content-type', 'application/json')
+    .send(requestBody);
+};
+
 const getSignoffsByCaseIdentifier = (server, caseIdentifier = {}) => {
   return chai
     .request(server)
@@ -201,6 +209,20 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(400);
+        done();
+      });
+    });
+    it('it should create multiple sign-off entrys', (done) => {
+      let reqBody = {
+        caseIdentifiers: ['bleh1', 'bleh2'],
+        qcPassed: true,
+        username: 'testuser',
+        signoffStepName: 'RELEASE_APPROVAL',
+        deliverableType: 'DATA_RELEASE',
+        comment: '',
+      };
+      addBatchSignoffs(server, reqBody).end((err, res) => {
+        expect(res.status).to.equal(201);
         done();
       });
     });
