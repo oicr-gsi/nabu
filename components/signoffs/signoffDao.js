@@ -80,8 +80,6 @@ const addSignoff = (caseId, signed, oldSignoffId = null) => {
   });
 };
 
-const addBatchSignoffs = (caseIds, signed, oldSignoffIds = []) => {};
-
 const getCaseSignoffQueryById = (id) => {
   let query = 'SELECT * FROM "signoff"';
   query = query + ' WHERE case_identifier=\'' + id + '\';';
@@ -158,5 +156,4 @@ module.exports = {
   addSignoff: addSignoff,
   getByCaseIdentifier: getByCaseIdentifier,
   getByCaseConstraint: getByCaseConstraint,
-  addBatchSignoffs: addBatchSignoffs,
 };

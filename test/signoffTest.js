@@ -223,6 +223,66 @@ describe('case sign-off tracking', () => {
       };
       addBatchSignoffs(server, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
+        expect(res.body.length).to.equal(2);
+        done();
+      });
+    });
+    it('it should create single sign-off entry when single case ID passed in body (not as parameter)', (done) => {
+      let reqBody = {
+        caseIdentifiers: ['newid1'],
+        qcPassed: true,
+        username: 'testuser',
+        signoffStepName: 'RELEASE_APPROVAL',
+        deliverableType: 'DATA_RELEASE',
+        comment: '',
+      };
+      addBatchSignoffs(server, reqBody).end((err, res) => {
+        expect(res.status).to.equal(201);
+        expect(res.body.length).to.equal(1);
+        done();
+      });
+    });
+    it('it should fail create multiple sign-off entrys when signoffStep is bad', (done) => {
+      let reqBody = {
+        caseIdentifiers: ['newid1', 'newid2'],
+        qcPassed: true,
+        username: 'testuser',
+        signoffStepName: 'RELEASE_NOT_APPROVAL',
+        deliverableType: 'DATA_RELEASE',
+        comment: '',
+      };
+      addBatchSignoffs(server, reqBody).end((err, res) => {
+        expect(res.status).to.equal(400);
+        done();
+      });
+    });
+    it('it should create multiple sign-off entrys if one is duplicate', (done) => {
+      let reqBody = {
+        caseIdentifiers: ['newid1', 'R22_TEST_0022_Bb_B'],
+        qcPassed: true,
+        username: 'testuser',
+        signoffStepName: 'RELEASE_APPROVAL',
+        deliverableType: 'DATA_RELEASE',
+        comment: '',
+      };
+      addBatchSignoffs(server, reqBody).end((err, res) => {
+        expect(res.status).to.equal(201);
+        expect(res.body.length).to.equal(2);
+        done();
+      });
+    });
+    it('it should create multiple sign-off entrys if all of them are duplicate', (done) => {
+      let reqBody = {
+        caseIdentifiers: ['R11_TEST_1000_Xy_Z', 'R22_TEST_0022_Bb_B'],
+        qcPassed: true,
+        username: 'testuser',
+        signoffStepName: 'RELEASE_APPROVAL',
+        deliverableType: 'DATA_RELEASE',
+        comment: '',
+      };
+      addBatchSignoffs(server, reqBody).end((err, res) => {
+        expect(res.status).to.equal(201);
+        expect(res.body.length).to.equal(2);
         done();
       });
     });
