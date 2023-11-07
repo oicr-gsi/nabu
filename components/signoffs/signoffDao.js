@@ -59,6 +59,8 @@ const addSignoff = (caseId, signed, oldSignoffId = null) => {
 
     const signoffQuery = signoffInsert + ' RETURNING *';
 
+    // delete matching sign-off if already exists
+    // create new sign-off
     db.tx('delete-and-add', (tx) => {
       return tx
         .oneOrNone(signoffDelete)

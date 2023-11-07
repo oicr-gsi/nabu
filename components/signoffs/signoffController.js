@@ -50,6 +50,42 @@ const addSignoff = async (req, res, next) => {
   }
 };
 
+const addBatchSignoffs = async (req, res, next) => {
+  try {
+    let responses = [];
+    const allCaseIds = req.body.caseIdentifiers;
+
+    for (const caseId of allCaseIds) {
+      try {
+        const existingSignoffs = await signoffDao.getByCaseConstraint(
+          caseId,
+          req.body.signoffStepName,
+          req.body.deliverableType
+        );
+
+        const validationResults = validateObjectsFromUser(req.body);
+        if (existingSignoffs == null || !existingSignoffs.length) {
+          const createdSignoff = await upsert(caseId, validationResults);
+          responses.push(createdSignoff);
+        } else {
+          // signoff step + deliverable are same, delete the old signoff record and add new one
+          const createdSignoff = await upsert(
+            caseId,
+            validationResults,
+            existingSignoffs[0].id
+          );
+          responses.push(createdSignoff);
+        }
+      } catch (e) {
+        handleErrors(e, 'Error adding sign-off ' + caseId, logger, next);
+      }
+    }
+    return res.status(201).json(responses);
+  } catch (e) {
+    handleErrors(e, 'Error adding multiple sign-offs', logger, next);
+  }
+};
+
 const upsert = (caseIdentifier, signoffInfo, oldSignoffId) => {
   return signoffDao.addSignoff(caseIdentifier, signoffInfo, oldSignoffId);
 };
@@ -147,4 +183,5 @@ function validateObjectsFromUser (unvalidated) {
 module.exports = {
   addSignoff: addSignoff,
   getSignoff: getSignoff,
+  addBatchSignoffs: addBatchSignoffs,
 };
