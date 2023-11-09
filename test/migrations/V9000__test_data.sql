@@ -22,3 +22,5 @@ INSERT INTO signoff (case_identifier, qc_passed, username, signoff_step_name, de
 ('R12_TEST_9999_De_F', null, 'me', 'RELEASE', 'DATA_RELEASE', ''),
 ('R12_TEST_9999_De_F', TRUE, 'me', 'ANALYSIS_REVIEW', 'DATA_RELEASE', ''),
 ('R12_TEST_9999_De_F', FALSE, 'me', 'RELEASE_APPROVAL', 'DATA_RELEASE', '');
+
+INSERT INTO token (auth_token, username) VALUES ('testingtoken', 'me');

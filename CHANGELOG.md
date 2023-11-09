@@ -10,6 +10,7 @@ and this project attempts to adhere to Semantic Versioning.
 
 * Sign-off records can be added at endpoint `/case/sign-off`
 * Sign-off records can be retrieved at endpoint `/case/{caseIdentifier}/sign-off`
+* New endpoints require api-key in header for authorization
 
 ## 3.4.0 [2023-10-24]
 

@@ -502,6 +502,75 @@
         }
       }
     },
+    "/token": {
+      "post": {
+        "summary": "Create a token",
+        "description": "Adds a new API token",
+        "parameters": [{
+            "name": "X-API-KEY",
+            "in": "header",
+            "required": true
+          }],
+        "requestBody": {
+          "description": "username",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "description": "Name of person generating token",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": {
+          "ApiKeyAuth": []
+        },
+        "responses": {
+          "201": {
+            "description": "Token created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "X-API-KEY": {
+                      "description": "API token",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Submitted parameters do not match parameters for an existing user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The submission is missing a valid API token in header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/case/{caseIdentifier}/sign-off": {
       "post": {
         "summary": "Create a sign-off record",
@@ -513,8 +582,13 @@
           "required": true,
           "schema": {
             "type": "string"
-          }
-        }],
+            }
+          },
+          {
+            "name": "X-API-KEY",
+            "in": "header",
+            "required": true
+          }],
         "requestBody": {
           "description": "Fields for creating a new signoff record",
           "required": true,
@@ -526,17 +600,10 @@
             }
           }
         },
+        "security": {
+          "ApiKeyAuth": []
+        },
         "responses": {
-          "200": {
-            "description": "Sign-off record exists",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/signoff-response"
-                }
-              }
-            }
-          },
           "201": {
             "description": "Sign-off record created or updated",
             "content": {
@@ -556,53 +623,13 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-      "/case/sign-off": {
-        "post": {
-          "summary": "Create one or more sign-off records",
-          "description": "Adds a series of sign-off records with basic data",
-          "requestBody": {
-            "description": "Fields for creating new signoff records",
-            "required": true,
+          },
+          "401": {
+            "description": "The submission is missing a valid API token in header",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/signoffs-new"
-                }
-              }
-            }
-          },
-          "responses": {
-            "200": {
-              "description": "Sign-off record exists",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/signoff-response"
-                  }
-                }
-              }
-            },
-            "201": {
-              "description": "Sign-off records created or updated",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/signoff-response"
-                  }
-                }
-              }
-            },
-            "409": {
-              "description": "Submitted parameters do not match parameters for existing sign-off associated with the same case",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Errors"
-                  }
+                  "$ref": "#/components/schemas/Errors"
                 }
               }
             }
@@ -620,6 +647,11 @@
           "schema": {
             "type": "string"
           }
+        },
+        {
+          "name": "X-API-KEY",
+          "in": "header",
+          "required": true
         }],
         "responses": {
           "201": {
@@ -627,18 +659,97 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/signoff-response"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/signoff-response"
+                  }
                 }
               }
             }
           },
-          "404": {
-            "description": "The requested resource was not found"
+          "401": {
+            "description": "The submission is missing a valid API token in header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+      "/case/sign-off": {
+        "post": {
+          "summary": "Create one or more sign-off records",
+          "description": "Adds a series of sign-off records with basic data",
+          "parameters": [{
+            "name": "X-API-KEY",
+            "in": "header",
+            "required": true
+          }],
+          "requestBody": {
+            "description": "Fields for creating new signoff records",
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/signoffs-new"
+                }
+              }
+            }
+          },
+          "security": {
+            "ApiKeyAuth": []
+          },
+          "responses": {
+            "201": {
+              "description": "Sign-off records created or updated",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/signoff-response"
+                    }
+                  }
+                }
+              }
+            },
+            "409": {
+              "description": "Submitted parameters do not match parameters for existing sign-off associated with the same case",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Errors"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "The submission is missing a valid API token in header",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Errors"
+                  }
+                }
+              }
+            }
           }
         }
       }
   },
   "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-KEY",
+        "description": "Requests should pass an api-key header"
+      }
+    },
     "schemas": {
     "Errors": {
       "type": "object",
@@ -999,6 +1110,10 @@
       "signoff-response": {
         "type": "object",
         "properties": {
+          "id": {
+            "description": "Unique identifier for sign-off in Nabu",
+            "type": "integer"
+          },
           "created": {
             "description": "Date that the case was created in Nabu",
             "type": "string",

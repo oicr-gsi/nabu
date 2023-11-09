@@ -8,9 +8,14 @@ const {
 } = require('../../utils/controllerUtils');
 const { signoff } = require('../../utils/urlSlugs');
 const logger = require('../../utils/logger').logger;
+const authenticator = require('../../utils/apiAuth');
 
 const getSignoff = async (req, res, next) => {
   try {
+    //authenticate api-key from header before continuing
+    let apiKey = req.header('X-API-KEY');
+    const keyExists = await authenticator.authenticateKey(apiKey);
+
     const signoffs = await signoffDao.getByCaseIdentifier(
       req.params.caseIdentifier
     );
@@ -23,6 +28,10 @@ const getSignoff = async (req, res, next) => {
 
 const addSignoff = async (req, res, next) => {
   try {
+    //authenticate api-key from header before continuing
+    let apiKey = req.header('X-API-KEY');
+    const keyExists = await authenticator.authenticateKey(apiKey);
+
     const existingSignoffs = await signoffDao.getByCaseConstraint(
       req.params.caseIdentifier,
       req.body.signoffStepName,
@@ -52,6 +61,10 @@ const addSignoff = async (req, res, next) => {
 
 const addBatchSignoffs = async (req, res, next) => {
   try {
+    //authenticate api-key from header before continuing
+    let apiKey = req.header('X-API-KEY');
+    const keyExists = await authenticator.authenticateKey(apiKey);
+
     let responses = [];
     const allCaseIds = req.body.caseIdentifiers;
 

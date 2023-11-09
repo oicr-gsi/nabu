@@ -11,10 +11,22 @@ const cmd = require('node-cmd');
 chai.use(chaiHttp);
 chai.use(chaiExclude);
 
+const signoffProperties = [
+  'id',
+  'created',
+  'caseIdentifier',
+  'qcPassed',
+  'username',
+  'signoffStepName',
+  'deliverableType',
+  'comment',
+];
+
 const addSignoff = (server, caseIdentifier, requestBody = {}) => {
   return chai
     .request(server)
     .post('/case/' + caseIdentifier + '/sign-off')
+    .set('X-API-KEY', 'testingtoken')
     .set('content-type', 'application/json')
     .send(requestBody);
 };
@@ -23,6 +35,7 @@ const addBatchSignoffs = (server, requestBody = {}) => {
   return chai
     .request(server)
     .post('/case/sign-off')
+    .set('X-API-KEY', 'testingtoken')
     .set('content-type', 'application/json')
     .send(requestBody);
 };
@@ -31,6 +44,7 @@ const getSignoffsByCaseIdentifier = (server, caseIdentifier = {}) => {
   return chai
     .request(server)
     .get('/case/' + caseIdentifier + '/sign-off')
+    .set('X-API-KEY', 'testingtoken')
     .set('content-type', 'application/json')
     .send();
 };
@@ -40,12 +54,14 @@ describe('case sign-off tracking', () => {
     await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
   });
 
-  describe('case + archive operations', () => {
+  describe('case sign-off operations', () => {
     it('it should retrieve a sign-off entry for an existing case identifier', (done) => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       getSignoffsByCaseIdentifier(server, caseIdentifier).end((err, res) => {
         expect(res.status).to.equal(200);
+        expect(res.body).to.be.a('array');
         expect(res.body.length).to.equal(1);
+        expect(res.body[0]).to.have.keys(signoffProperties);
         expect(res.body[0].caseIdentifier).to.be.equal(caseIdentifier);
         done();
       });
@@ -70,6 +86,7 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R22_TEST_0022_Bb_new';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
+        expect(res.body).to.have.keys(signoffProperties);
         done();
       });
     });
@@ -83,6 +100,7 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R22_TEST_0022_Bb_B';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
+        expect(res.body).to.have.keys(signoffProperties);
         done();
       });
     });
@@ -97,6 +115,7 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R22_TEST_0022_Bb_newbie';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
+        expect(res.body).to.have.keys(signoffProperties);
         done();
       });
     });
@@ -111,6 +130,7 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
+        expect(res.body).to.have.keys(signoffProperties);
         done();
       });
     });
@@ -125,6 +145,7 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
+        expect(res.body).to.have.keys(signoffProperties);
         done();
       });
     });
@@ -139,6 +160,7 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
+        expect(res.body).to.have.keys(signoffProperties);
         done();
       });
     });
@@ -153,6 +175,7 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
+        expect(res.body).to.have.keys(signoffProperties);
         done();
       });
     });
@@ -167,6 +190,7 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
+        expect(res.body).to.have.keys(signoffProperties);
         done();
       });
     });
@@ -181,6 +205,7 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
+        expect(res.body).to.have.keys(signoffProperties);
         done();
       });
     });
@@ -224,6 +249,8 @@ describe('case sign-off tracking', () => {
       addBatchSignoffs(server, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
         expect(res.body.length).to.equal(2);
+        expect(res.body[0]).to.have.keys(signoffProperties);
+        expect(res.body[1]).to.have.keys(signoffProperties);
         done();
       });
     });
@@ -239,10 +266,11 @@ describe('case sign-off tracking', () => {
       addBatchSignoffs(server, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
         expect(res.body.length).to.equal(1);
+        expect(res.body[0]).to.have.keys(signoffProperties);
         done();
       });
     });
-    it('it should fail create multiple sign-off entrys when signoffStep is bad', (done) => {
+    it('it should fail to create multiple sign-off entrys when signoffStep is bad', (done) => {
       let reqBody = {
         caseIdentifiers: ['newid1', 'newid2'],
         qcPassed: true,
@@ -268,6 +296,8 @@ describe('case sign-off tracking', () => {
       addBatchSignoffs(server, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
         expect(res.body.length).to.equal(2);
+        expect(res.body[0]).to.have.keys(signoffProperties);
+        expect(res.body[1]).to.have.keys(signoffProperties);
         done();
       });
     });
@@ -283,6 +313,8 @@ describe('case sign-off tracking', () => {
       addBatchSignoffs(server, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
         expect(res.body.length).to.equal(2);
+        expect(res.body[0]).to.have.keys(signoffProperties);
+        expect(res.body[1]).to.have.keys(signoffProperties);
         done();
       });
     });
