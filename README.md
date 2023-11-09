@@ -71,6 +71,13 @@ After that initial setup, run migrations as necessary using the same command.
 
 Note that if `flyway.url` includes `localhost`, the argument `--network=host` in `package.json`'s `fw:clean` and `fw:migrate` are particularly important.
 
+## Enabling Authentication
+
+Once the database migrations have been applied, a default authentication API key will need to added in order to access any endpoints which require authentication
+
+    $ sudo -u postgres psql
+    $ INSERT INTO token (auth_token, username) VALUES ('{TOKEN}', '{USER}');
+
 ## Setting up the SQLite database ([File Provenance Report](https://github.com/oicr-gsi/provenance))
 Nabu uses a SQLite database to store certain fields from the File Provenance Report. This SQLite database should be created in a directory outside of the Nabu directory.
 
