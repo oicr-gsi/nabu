@@ -654,7 +654,7 @@
           "required": true
         }],
         "responses": {
-          "201": {
+          "200": {
             "description": "Retrieved sign-off record",
             "content": {
               "application/json": {
