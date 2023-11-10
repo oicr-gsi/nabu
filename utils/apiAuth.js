@@ -55,8 +55,6 @@ const genAPIKey = async (user) => {
     auth_id: APIident,
     username: user,
   };
-  console.log('token data ' + tokenData.auth_token);
-  console.log('to be passed ' + APIident + '-' + APIstring);
 
   const tokenInsert = pgp.helpers.insert(tokenData, tokenColsCreate, 'token');
 
