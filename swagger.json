@@ -509,7 +509,7 @@
         "parameters": [{
             "name": "X-API-KEY",
             "in": "header",
-            "required": true
+            "required": false
           }],
         "requestBody": {
           "description": "username",
@@ -544,16 +544,6 @@
                       "type": "string"
                     }
                   }
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Submitted parameters do not match parameters for an existing user",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Errors"
                 }
               }
             }

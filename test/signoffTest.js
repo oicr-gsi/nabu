@@ -22,11 +22,14 @@ const signoffProperties = [
   'comment',
 ];
 
+const testingToken =
+  'wdew0h5hoxvraj1xhrzix4j6nbswhh-oiq8ipt84uj1zkwq8sx0yvfmvfw6no';
+
 const addSignoff = (server, caseIdentifier, requestBody = {}) => {
   return chai
     .request(server)
     .post('/case/' + caseIdentifier + '/sign-off')
-    .set('X-API-KEY', 'testingtoken')
+    .set('X-API-KEY', testingToken)
     .set('content-type', 'application/json')
     .send(requestBody);
 };
@@ -35,7 +38,7 @@ const addBatchSignoffs = (server, requestBody = {}) => {
   return chai
     .request(server)
     .post('/case/sign-off')
-    .set('X-API-KEY', 'testingtoken')
+    .set('X-API-KEY', testingToken)
     .set('content-type', 'application/json')
     .send(requestBody);
 };
@@ -44,7 +47,7 @@ const getSignoffsByCaseIdentifier = (server, caseIdentifier = {}) => {
   return chai
     .request(server)
     .get('/case/' + caseIdentifier + '/sign-off')
-    .set('X-API-KEY', 'testingtoken')
+    .set('X-API-KEY', testingToken)
     .set('content-type', 'application/json')
     .send();
 };

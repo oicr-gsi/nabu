@@ -11,6 +11,9 @@ const cmd = require('node-cmd');
 chai.use(chaiHttp);
 chai.use(chaiExclude);
 
+const testingToken =
+  'wdew0h5hoxvraj1xhrzix4j6nbswhh-oiq8ipt84uj1zkwq8sx0yvfmvfw6no';
+
 const addSignoffSpecifyAuth = (
   server,
   caseIdentifier,
@@ -144,11 +147,11 @@ describe('case sign-off tracking', () => {
         }
       );
     });
-    it('it should create an api-key of length 36', (done) => {
+    it('it should create an api-key', (done) => {
       let reqBody = {
         username: 'testuser',
       };
-      getTokenSpecifyAuth(server, 'testingtoken', reqBody).end((err, res) => {
+      getTokenSpecifyAuth(server, testingToken, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
         expect(res.body).to.have.property('X-API-KEY');
         done();
