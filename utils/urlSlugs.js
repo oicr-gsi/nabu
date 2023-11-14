@@ -5,4 +5,5 @@ module.exports = {
   filesCopiedToOffsiteStagingDir: 'copied-to-offsite-staging',
   filesLoadedIntoVidarrArchival: 'sent-to-vidarr-archival',
   filesSentOffsite: 'sent-offsite',
+  signoff: 'sign-off',
 };

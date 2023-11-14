@@ -19,6 +19,14 @@ class ConflictingDataError extends Error {
   }
 }
 
+class AuthenticationError extends Error {
+  constructor (message = 'Cannot update with current authentication', ...args) {
+    super(message, ...args);
+    this.name = 'AuthenticationError';
+    this.message = message || '';
+  }
+}
+
 function generateError (statusCode, errorMessage) {
   const err = {
     status: statusCode,
@@ -39,6 +47,8 @@ function handleErrors (e, defaultMessage, logger, next) {
     next(generateError(404, null));
   } else if (e instanceof ConflictingDataError) {
     next(generateError(409, e.message));
+  } else if (e instanceof AuthenticationError) {
+    next(generateError(401, e.message));
   } else if (e.status) {
     logger.info({ error: e.errors });
     return next(e); // generateError has already been called, usually because it's a user error
@@ -54,6 +64,7 @@ function handleErrors (e, defaultMessage, logger, next) {
 module.exports = {
   ValidationError: ValidationError,
   ConflictingDataError: ConflictingDataError,
+  AuthenticationError: AuthenticationError,
   generateError: generateError,
   handleErrors: handleErrors,
 };

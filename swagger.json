@@ -501,9 +501,255 @@
           }
         }
       }
-    }
+    },
+    "/token": {
+      "post": {
+        "summary": "Create a token",
+        "description": "Adds a new API token",
+        "parameters": [{
+            "name": "X-API-KEY",
+            "in": "header",
+            "required": false
+          }],
+        "requestBody": {
+          "description": "username",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "description": "Name of person generating token",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": {
+          "ApiKeyAuth": []
+        },
+        "responses": {
+          "201": {
+            "description": "Token created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "X-API-KEY": {
+                      "description": "API token",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The submission is missing a valid API token in header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The sign-off content does not meet requirements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/case/{caseIdentifier}/sign-off": {
+      "post": {
+        "summary": "Create a sign-off record",
+        "description": "Adds a sign-off record with basic data",
+        "parameters": [{
+          "name": "caseIdentifier",
+          "in": "path",
+          "description": "unique case identifier",
+          "required": true,
+          "schema": {
+            "type": "string"
+            }
+          },
+          {
+            "name": "X-API-KEY",
+            "in": "header",
+            "required": true
+          }],
+        "requestBody": {
+          "description": "Fields for creating a new signoff record",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/signoff-new"
+              }
+            }
+          }
+        },
+        "security": {
+          "ApiKeyAuth": []
+        },
+        "responses": {
+          "201": {
+            "description": "Sign-off record created or updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/signoff-response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The submission is missing a valid API token in header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The sign-off content does not meet requirements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Get all sign-off records associated with a case",
+        "description": "This resource represents a sign-off record. Each sign-off record is associated with a string `caseIdentifier`. A caseIdentifier may have multiple sign-off records",
+        "parameters": [{
+          "name": "caseIdentifier",
+          "in": "path",
+          "description": "unique case identifier",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "X-API-KEY",
+          "in": "header",
+          "required": true
+        }],
+        "responses": {
+          "200": {
+            "description": "Retrieved sign-off record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/signoff-response"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The submission is missing a valid API token in header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+      "/case/sign-off": {
+        "post": {
+          "summary": "Create one or more sign-off records",
+          "description": "Adds a series of sign-off records with basic data",
+          "parameters": [{
+            "name": "X-API-KEY",
+            "in": "header",
+            "required": true
+          }],
+          "requestBody": {
+            "description": "Fields for creating new signoff records",
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/signoffs-new"
+                }
+              }
+            }
+          },
+          "security": {
+            "ApiKeyAuth": []
+          },
+          "responses": {
+            "201": {
+              "description": "Sign-off records created or updated",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/signoff-response"
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "The submission is missing a valid API token in header",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Errors"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "The sign-off content does not meet requirements",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Errors"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
   },
   "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-KEY",
+        "description": "Requests should pass an api-key header"
+      }
+    },
     "schemas": {
     "Errors": {
       "type": "object",
@@ -701,10 +947,6 @@
     "Case-new": {
       "type": "object",
       "properties": {
-        "caseIdentifier": {
-          "description": "Unique case identifier",
-          "type": "string"
-        },
         "requisitionId": {
           "description": "Requisition number",
           "type": "integer"
@@ -807,7 +1049,109 @@
         "filesLoadedIntoVidarrArchival",
         "caseFilesUnloaded"
       ]
+    },
+      "signoff-new": {
+        "type": "object",
+        "properties": {
+          "qcPassed": {
+            "description": "Whether QC is passed (true/false)",
+            "type": "boolean"
+          },
+          "username": {
+            "description": "Name of person signing-off",
+            "type": "string"
+          },
+          "signoffStepName": {
+            "description": "The QC gate associated with this sign-off",
+            "type": "string"
+          },
+          "deliverableType": {
+            "description": "The pipeline associated with this sign-off",
+            "type": "string"
+          },
+          "comment": {
+            "description": "Optional URL-escaped reason why sign-off is PASS or FAIL",
+            "type": "string"
+          }
+        }
+      },
+      "signoffs-new": {
+        "type": "object",
+        "properties": {
+          "caseIdentifiers": {
+            "description": "One or more unique case identifiers",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "qcPassed": {
+            "description": "Whether QC is passed (true/false)",
+            "type": "boolean"
+          },
+          "username": {
+            "description": "Name of person signing-off",
+            "type": "string"
+          },
+          "signoffStepName": {
+            "description": "The QC gate associated with this sign-off",
+            "type": "string"
+          },
+          "deliverableType": {
+            "description": "The pipeline associated with this sign-off",
+            "type": "string"
+          },
+          "comment": {
+            "description": "Optional URL-escaped reason why sign-off is PASS or FAIL",
+            "type": "string"
+          }
+        }
+      },
+      "signoff-response": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Unique identifier for sign-off in Nabu",
+            "type": "integer"
+          },
+          "created": {
+            "description": "Date that the case was created in Nabu",
+            "type": "string",
+            "format": "date-time"
+          },
+          "caseIdentifier": {
+            "description": "Unique case identifier",
+            "type": "string"
+          },
+          "qcPassed": {
+            "description": "Whether QC is passed (true/false)",
+            "type": "boolean"
+          },
+          "username": {
+            "description": "Name of person QCing the file (only returned if a sign-off record is found)",
+            "type": "string"
+          },
+          "signoffStepName": {
+            "description": "The QC gate associated with this sign-off",
+            "type": "string"
+          },
+          "deliverableType": {
+            "description": "The pipeline associated with this sign-off",
+            "type": "string"
+          },
+          "comment": {
+            "description": "URL-escaped reason why sign-off is PASS or FAIL (only returned if a sign-off record is found and a comment was provided)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "created",
+          "caseIdentifier",
+          "username",
+          "signoffStepName",
+          "deliverableType"
+        ]
+      }
     }
-  }
   }
 }
