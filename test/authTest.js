@@ -166,7 +166,7 @@ describe('case sign-off tracking', () => {
         done();
       });
     });
-    it('it should fail to create a new api-key when there is an unregistered api-key in header', (done) => {
+    it('it should fail to create a new api-key when there is an no api-key in header', (done) => {
       let reqBody = {
         username: 'testuser',
       };

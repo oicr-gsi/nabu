@@ -557,6 +557,16 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "The sign-off content does not meet requirements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
           }
         }
       }
@@ -606,6 +616,16 @@
           },
           "401": {
             "description": "The submission is missing a valid API token in header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The sign-off content does not meet requirements",
             "content": {
               "application/json": {
                 "schema": {
@@ -697,8 +717,8 @@
                 }
               }
             },
-            "409": {
-              "description": "Submitted parameters do not match parameters for existing sign-off associated with the same case",
+            "401": {
+              "description": "The submission is missing a valid API token in header",
               "content": {
                 "application/json": {
                   "schema": {
@@ -707,8 +727,8 @@
                 }
               }
             },
-            "401": {
-              "description": "The submission is missing a valid API token in header",
+            "400": {
+              "description": "The sign-off content does not meet requirements",
               "content": {
                 "application/json": {
                   "schema": {

@@ -6,6 +6,7 @@ const { db, pgp } = require('./dbUtils');
 const logger = require('./logger').logger;
 const crypto = require('crypto');
 const { Buffer } = require('buffer');
+const { uid } = require('uid');
 
 const qrec = pgp.errors.queryResultErrorCode;
 
@@ -34,20 +35,15 @@ const addNewKey = async (req, res, next) => {
     };
     return res.status(201).json(returnKey);
   } catch (e) {
-    handleErrors(e, 'Error adding sign-off', logger, next);
+    handleErrors(e, 'Error adding API key', logger, next);
   }
 };
 
 const genAPIKey = async (user) => {
-  //create a base-36 string that contains 30 chars in a-z,0-9
-  const APIstring = [...Array(30)]
-    .map((e) => ((Math.random() * 36) | 0).toString(36))
-    .join('');
+  const APIident = uid(36);
 
-  const APIident = [...Array(30)]
-    .map((e) => ((Math.random() * 36) | 0).toString(36))
-    .join('');
-
+  //uid relies on math.random so not secure when used by itself
+  const APIstring = uid(36);
   const APItoken = await hash(APIstring);
 
   const tokenData = {
@@ -123,7 +119,7 @@ const getKeyQuery = (apiIdent) => {
 
 const hash = async (apikey) => {
   return new Promise((resolve, reject) => {
-    const salt = crypto.randomBytes(8).toString('hex');
+    const salt = crypto.randomBytes(16).toString('hex');
 
     crypto.scrypt(apikey, salt, 64, (err, derivedKey) => {
       if (err) reject(err);
