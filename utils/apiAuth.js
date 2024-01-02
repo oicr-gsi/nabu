@@ -96,7 +96,7 @@ const checkIfEmpty = () => {
   return new Promise((resolve, reject) => {
     db.one('SELECT COUNT(*) FROM "token";')
       .then((count) => {
-        resolve(count == 0);
+        resolve(count.count == '0');
       })
       .catch((err) => standardCatch(err, reject));
   });
