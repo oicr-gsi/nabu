@@ -6,6 +6,8 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+## 3.5.0 [2023--11-15]
+
 ### Added
 
 * Sign-off records can be added at endpoint `/case/{caseIdentifier}/sign-off`
