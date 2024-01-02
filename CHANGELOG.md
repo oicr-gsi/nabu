@@ -6,6 +6,10 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Added
+
+* All sign-off records can be retrieved at endpoint `/case/sign-off`
+
 ### Fixed
 
 * An api-key is can be generated without authentication if no existing keys exist

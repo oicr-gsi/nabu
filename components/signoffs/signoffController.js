@@ -26,6 +26,20 @@ const getSignoff = async (req, res, next) => {
   }
 };
 
+const getAllSignoffs = async (req, res, next) => {
+  try {
+    //authenticate api-key from header before continuing
+    let apiKey = req.header('X-API-KEY');
+    const keyExists = await authenticator.authenticateKey(apiKey);
+
+    const signoffs = await signoffDao.getSignoffs();
+    res.status(200).json(signoffs);
+    next();
+  } catch (e) {
+    handleErrors(e, 'Error getting signoff(s) for case', logger, next);
+  }
+};
+
 const addSignoff = async (req, res, next) => {
   try {
     //authenticate api-key from header before continuing
@@ -197,4 +211,5 @@ module.exports = {
   addSignoff: addSignoff,
   getSignoff: getSignoff,
   addBatchSignoffs: addBatchSignoffs,
+  getAllSignoffs: getAllSignoffs,
 };

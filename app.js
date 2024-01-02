@@ -68,6 +68,12 @@ app.get('/', (req, res) => {
 
 app.get('/available', fileQc.getAvailableConstants);
 
+//routes to case sign-off records
+app.get(`/case/${urls.signoff}`, signoffController.getAllSignoffs);
+app.post(`/case/:caseIdentifier/${urls.signoff}`, signoffController.addSignoff);
+app.post(`/case/${urls.signoff}`, signoffController.addBatchSignoffs);
+app.get(`/case/:caseIdentifier/${urls.signoff}`, signoffController.getSignoff);
+
 // routes to fileQC records
 app.post('/get-fileqcs', fileQc.getFileQcs);
 app.post('/add-fileqcs', fileQc.addFileQcs);
@@ -109,10 +115,6 @@ app.get('/metrics', async (req, res) => {
   res.set('Content-Type', prom.prometheus.register.contentType);
   res.end(await prom.prometheus.register.metrics());
 });
-
-app.post(`/case/:caseIdentifier/${urls.signoff}`, signoffController.addSignoff);
-app.post(`/case/${urls.signoff}`, signoffController.addBatchSignoffs);
-app.get(`/case/:caseIdentifier/${urls.signoff}`, signoffController.getSignoff);
 
 app.post('/token', authenticationController.addNewKey);
 
