@@ -67,6 +67,11 @@ const genAPIKey = async (user) => {
   });
 };
 
+const authenticateRequest = async (req) => {
+  let apiKey = req.header('X-API-KEY');
+  const keyExists = await authenticateKey(apiKey);
+};
+
 const authenticateKey = async (apiKey) => {
   try {
     const [identifier, token] = apiKey.split('-');
@@ -142,5 +147,5 @@ const verifyHash = async (apikey, apikeyHash) => {
 
 module.exports = {
   addNewKey: addNewKey,
-  authenticateKey: authenticateKey,
+  authenticateRequest: authenticateRequest,
 };

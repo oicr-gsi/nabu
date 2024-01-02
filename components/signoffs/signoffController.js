@@ -13,8 +13,7 @@ const authenticator = require('../../utils/apiAuth');
 const getSignoff = async (req, res, next) => {
   try {
     //authenticate api-key from header before continuing
-    let apiKey = req.header('X-API-KEY');
-    const keyExists = await authenticator.authenticateKey(apiKey);
+    await authenticator.authenticateRequest(req);
 
     const signoffs = await signoffDao.getByCaseIdentifier(
       req.params.caseIdentifier
@@ -29,8 +28,7 @@ const getSignoff = async (req, res, next) => {
 const getAllSignoffs = async (req, res, next) => {
   try {
     //authenticate api-key from header before continuing
-    let apiKey = req.header('X-API-KEY');
-    const keyExists = await authenticator.authenticateKey(apiKey);
+    await authenticator.authenticateRequest(req);
 
     const signoffs = await signoffDao.getSignoffs();
     res.status(200).json(signoffs);
@@ -43,8 +41,7 @@ const getAllSignoffs = async (req, res, next) => {
 const addSignoff = async (req, res, next) => {
   try {
     //authenticate api-key from header before continuing
-    let apiKey = req.header('X-API-KEY');
-    const keyExists = await authenticator.authenticateKey(apiKey);
+    await authenticator.authenticateRequest(req);
 
     const existingSignoffs = await signoffDao.getByCaseConstraint(
       req.params.caseIdentifier,
@@ -76,8 +73,7 @@ const addSignoff = async (req, res, next) => {
 const addBatchSignoffs = async (req, res, next) => {
   try {
     //authenticate api-key from header before continuing
-    let apiKey = req.header('X-API-KEY');
-    const keyExists = await authenticator.authenticateKey(apiKey);
+    await authenticator.authenticateRequest(req);
 
     let responses = [];
     const allCaseIds = req.body.caseIdentifiers;
