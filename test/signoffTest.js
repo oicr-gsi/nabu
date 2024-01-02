@@ -52,12 +52,30 @@ const getSignoffsByCaseIdentifier = (server, caseIdentifier = {}) => {
     .send();
 };
 
+const getAllSignoffs = (server) => {
+  return chai
+    .request(server)
+    .get('/case/sign-off')
+    .set('X-API-KEY', testingToken)
+    .set('content-type', 'application/json')
+    .send();
+};
+
 describe('case sign-off tracking', () => {
   beforeEach(async () => {
     await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
   });
 
   describe('case sign-off operations', () => {
+    it('it should retrieve all sign-off entries in the database', (done) => {
+      getAllSignoffs(server).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body).to.be.a('array');
+        expect(res.body.length).to.equal(5);
+        done();
+      });
+    });
+
     it('it should retrieve a sign-off entry for an existing case identifier', (done) => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       getSignoffsByCaseIdentifier(server, caseIdentifier).end((err, res) => {
@@ -69,6 +87,7 @@ describe('case sign-off tracking', () => {
         done();
       });
     });
+
     it('it should retrieve an empty list if no matching case identifier is found', (done) => {
       let caseIdentifier = 'R1_TEST_0000_Ab_C';
       getSignoffsByCaseIdentifier(server, caseIdentifier).end((err, res) => {

@@ -67,6 +67,11 @@ const genAPIKey = async (user) => {
   });
 };
 
+const authenticateRequest = async (req) => {
+  let apiKey = req.header('X-API-KEY');
+  const keyExists = await authenticateKey(apiKey);
+};
+
 const authenticateKey = async (apiKey) => {
   try {
     const [identifier, token] = apiKey.split('-');
@@ -96,7 +101,7 @@ const checkIfEmpty = () => {
   return new Promise((resolve, reject) => {
     db.one('SELECT COUNT(*) FROM "token";')
       .then((count) => {
-        resolve(count == 0);
+        resolve(count.count == '0');
       })
       .catch((err) => standardCatch(err, reject));
   });
@@ -142,5 +147,5 @@ const verifyHash = async (apikey, apikeyHash) => {
 
 module.exports = {
   addNewKey: addNewKey,
-  authenticateKey: authenticateKey,
+  authenticateRequest: authenticateRequest,
 };

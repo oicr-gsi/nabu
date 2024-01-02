@@ -125,6 +125,24 @@ const getByCaseIdentifier = (caseIdentifier) => {
   });
 };
 
+const getSignoffs = () => {
+  const query = 'SELECT * FROM "signoff";';
+  return new Promise((resolve, reject) => {
+    db.any(query)
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((err) => {
+        if (err.code === qrec.noData) {
+          // no data found
+          resolve([]);
+        } else {
+          reject(new Error(err));
+        }
+      });
+  });
+};
+
 const getByCaseConstraint = (
   caseIdentifier,
   signoffStepName,
@@ -154,6 +172,7 @@ const getByCaseConstraint = (
 
 module.exports = {
   addSignoff: addSignoff,
+  getSignoffs: getSignoffs,
   getByCaseIdentifier: getByCaseIdentifier,
   getByCaseConstraint: getByCaseConstraint,
 };

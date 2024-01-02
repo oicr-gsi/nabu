@@ -605,7 +605,7 @@
         },
         "responses": {
           "201": {
-            "description": "Sign-off record created or updated",
+            "description": "Sign-off record(s) created or updated",
             "content": {
               "application/json": {
                 "schema": {
@@ -653,9 +653,12 @@
           "in": "header",
           "required": true
         }],
+        "security": {
+          "ApiKeyAuth": []
+        },
         "responses": {
           "200": {
-            "description": "Retrieved sign-off record",
+            "description": "Retrieved sign-off record(s)",
             "content": {
               "application/json": {
                 "schema": {
@@ -705,7 +708,7 @@
           },
           "responses": {
             "201": {
-              "description": "Sign-off records created or updated",
+              "description": "Sign-off record(s) created or updated",
               "content": {
                 "application/json": {
                   "schema": {
@@ -729,6 +732,44 @@
             },
             "400": {
               "description": "The sign-off content does not meet requirements",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Errors"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "get": {
+          "summary": "Get all sign-off records",
+          "description": "Each resource represents a sign-off record. Each sign-off record is associated with a string `caseIdentifier`. A caseIdentifier may have multiple sign-off records",
+          "parameters": [
+          {
+            "name": "X-API-KEY",
+            "in": "header",
+            "required": true
+          }],
+          "security": {
+            "ApiKeyAuth": []
+          },
+          "responses": {
+            "200": {
+              "description": "Retrieved sign-off record(s)",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/signoff-response"
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "The submission is missing a valid API token in header",
               "content": {
                 "application/json": {
                   "schema": {
