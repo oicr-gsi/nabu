@@ -12,7 +12,7 @@ and this project attempts to adhere to Semantic Versioning.
 
 ### Fixed
 
-* An api-key is can be generated without authentication if no existing keys exist
+* An api-key can be generated without authentication if no existing keys exist
 
 
 ## 3.5.0 [2023--11-15]
