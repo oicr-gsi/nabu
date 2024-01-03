@@ -6,6 +6,8 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+## 3.6.0: [2024-01-03]
+
 ### Added
 
 * All sign-off records can be retrieved at endpoint `/case/sign-off`
