@@ -39,8 +39,8 @@ const addBatchSignoffsSpecifyAuth = (server, token, requestBody = {}) => {
 
 const getSignoffsByCaseIdentifierSpecifyAuth = (
   server,
-  token,
-  caseIdentifier = {}
+  caseIdentifier = {},
+  token
 ) => {
   return chai
     .request(server)
