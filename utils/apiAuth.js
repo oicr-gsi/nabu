@@ -69,7 +69,11 @@ const genAPIKey = async (user) => {
 
 const authenticateRequest = async (req) => {
   let apiKey = req.header('X-API-KEY');
-  const keyExists = await authenticateKey(apiKey);
+  if (typeof apiKey == "undefined" || apiKey === null || apiKey.length == 0){
+    throw new AuthenticationError('Unable to authenticate submission');
+  } else {
+    const keyExists = await authenticateKey(apiKey);
+  }
 };
 
 const authenticateKey = async (apiKey) => {
