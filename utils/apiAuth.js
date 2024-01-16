@@ -72,7 +72,7 @@ const authenticateRequest = async (req) => {
   if (typeof apiKey == "undefined" || apiKey === null || apiKey.length == 0){
     throw new AuthenticationError('Unable to authenticate submission');
   } else {
-    const keyExists = await authenticateKey(apiKey);
+    await authenticateKey(apiKey);
   }
 };
 
