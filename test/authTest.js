@@ -39,8 +39,8 @@ const addBatchSignoffsSpecifyAuth = (server, token, requestBody = {}) => {
 
 const getSignoffsByCaseIdentifierSpecifyAuth = (
   server,
-  token,
-  caseIdentifier = {}
+  caseIdentifier = {},
+  token
 ) => {
   return chai
     .request(server)
@@ -65,9 +65,18 @@ describe('case sign-off tracking', () => {
   });
 
   describe('case sign-off authorization operations', () => {
-    it('it should fail to retrieve a sign-off entry when there is no api-key', (done) => {
+    it('it should fail to retrieve a sign-off entry when there is no api-key (null)', (done) => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       getSignoffsByCaseIdentifierSpecifyAuth(server, caseIdentifier, null).end(
+        (err, res) => {
+          expect(res.status).to.equal(401);
+          done();
+        }
+      );
+    });
+    it('it should fail to retrieve a sign-off entry when there is no api-key ("")', (done) => {
+      let caseIdentifier = 'R11_TEST_1000_Xy_Z';
+      getSignoffsByCaseIdentifierSpecifyAuth(server, caseIdentifier, "").end(
         (err, res) => {
           expect(res.status).to.equal(401);
           done();
