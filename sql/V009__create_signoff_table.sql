@@ -8,6 +8,7 @@ CREATE TABLE signoff (
   qc_passed boolean,
   signoff_step_name varchar NOT NULL,
   deliverable_type varchar NOT NULL,
+  deliverable varchar,
   comment text
 );
 

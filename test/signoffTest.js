@@ -19,6 +19,7 @@ const signoffProperties = [
   'username',
   'signoffStepName',
   'deliverableType',
+  'deliverable',
   'comment',
 ];
 
@@ -190,7 +191,7 @@ describe('case sign-off tracking', () => {
       let reqBody = {
         qcPassed: true,
         username: 'me',
-        signoffStepName: 'RELEASE',
+        signoffStepName: 'RELEASE_APPROVAL',
         deliverableType: 'DATA_RELEASE',
         comment: '',
       };
@@ -205,7 +206,7 @@ describe('case sign-off tracking', () => {
       let reqBody = {
         qcPassed: true,
         username: 'testuser',
-        signoffStepName: 'RELEASE',
+        signoffStepName: 'RELEASE_APPROVAL',
         deliverableType: 'CLINICAL_REPORT',
         comment: '',
       };
@@ -220,7 +221,7 @@ describe('case sign-off tracking', () => {
       let reqBody = {
         qcPassed: false,
         username: 'me',
-        signoffStepName: 'RELEASE',
+        signoffStepName: 'RELEASE_APPROVAL',
         deliverableType: 'CLINICAL_REPORT',
         comment: '',
       };
@@ -251,6 +252,52 @@ describe('case sign-off tracking', () => {
         username: 'testuser',
         signoffStepName: 'RELEASE_APPROVAL',
         deliverableType: 'DATA UNRELEASE',
+        comment: '',
+      };
+      let caseIdentifier = 'R11_TEST_1000_Xy_Z';
+      addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
+        expect(res.status).to.equal(400);
+        done();
+      });
+    });
+    it('it should fail to create a sign-off entry if deliverable is not provided for RELEASE step', (done) => {
+      let reqBody = {
+        qcPassed: true,
+        username: 'testuser',
+        signoffStepName: 'RELEASE',
+        deliverableType: 'DATA_RELEASE',
+        deliverable: '',
+        comment: '',
+      };
+      let caseIdentifier = 'R11_TEST_1000_Xy_Z';
+      addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
+        expect(res.status).to.equal(400);
+        done();
+      });
+    });
+    it('it should create a sign-off entry when deliverable is provided for RELEASE step', (done) => {
+      let reqBody = {
+        qcPassed: true,
+        username: 'testuser',
+        signoffStepName: 'RELEASE',
+        deliverableType: 'DATA_RELEASE',
+        deliverable: 'something',
+        comment: '',
+      };
+      let caseIdentifier = 'R11_TEST_1000_Xy_Z';
+      addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
+        expect(res.status).to.equal(201);
+        expect(res.body).to.have.keys(signoffProperties);
+        done();
+      });
+    });
+    it('it should fail to create a sign-off entry if deliverable is provided for a non RELEASE step', (done) => {
+      let reqBody = {
+        qcPassed: true,
+        username: 'testuser',
+        signoffStepName: 'RELEASE_APPROVAL',
+        deliverableType: 'DATA_RELEASE',
+        deliverable: 'something',
         comment: '',
       };
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
