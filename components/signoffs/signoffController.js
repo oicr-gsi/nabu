@@ -133,6 +133,27 @@ function nullifyIfBlank (value) {
   return value;
 }
 
+function validateDeliverable (param, step) {
+  let deliverable = nullifyIfBlank(param);
+  //A deliverable (in addition to deliverableType) is required
+  //for the release sign-off but shouldn't be provided for the other sign-offs
+  if (step == 'RELEASE') {
+    if (deliverable == null) {
+      return new ValidationError(
+        'Sign-off associated with the RELEASE step must have a deliverable provided.'
+      );
+    }
+    deliverable = decodeURIComponent(deliverable.replace(/\+/g, ' '));
+  } else {
+    if (deliverable !== null) {
+      return new ValidationError(
+        'Sign-off associated with ANALYSIS_REVIEW or RELEASE_APPROVAL step cannot have a deliverable.'
+      );
+    }
+  }
+  return deliverable;
+}
+
 function validateStepName (param) {
   let stepname = nullifyIfBlank(param); //required by endpoint so shouldn't ever nullify
   if (stepname !== 'undefined' && stepname !== null && stepname.length) {
@@ -175,11 +196,13 @@ function validateDeliverableType (param) {
 function validateObjectsFromUser (unvalidated) {
   let validationErrors = [];
   let singleEntryValidationErrors = [];
+  let stepname = validateStepName(unvalidated.signoffStepName);
   let fromUser = {
     qcPassed: nullifyIfBlank(unvalidated.qcPassed),
     username: validateUsername(unvalidated.username),
     deliverableType: validateDeliverableType(unvalidated.deliverableType),
-    signoffStepName: validateStepName(unvalidated.signoffStepName),
+    signoffStepName: stepname,
+    deliverable: validateDeliverable(unvalidated.deliverable, stepname),
     comment: validateComment(unvalidated.comment),
   };
   for (const [, value] of Object.entries(fromUser)) {

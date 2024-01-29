@@ -10,6 +10,10 @@ and this project attempts to adhere to Semantic Versioning.
 
 * If no api-key is provided the user will get an Authentication Error
 
+### Added
+
+* Sign-off records now require a `deliverable` field if the stepName is Release
+
 ## 3.6.0: [2024-01-03]
 
 ### Added
