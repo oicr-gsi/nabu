@@ -6,6 +6,8 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+## 3.7.0: [2024-02-22]
+
 ### Fixed
 
 * If no api-key is provided the user will get an Authentication Error
