@@ -1,0 +1,2 @@
+DROP INDEX uniq_caseid_signoffstepname_deliverabletype;
+CREATE UNIQUE INDEX uniq_caseid_signoffstepname_deliverabletype_deliverable ON signoff (case_identifier, signoff_step_name, deliverable_type, deliverable);

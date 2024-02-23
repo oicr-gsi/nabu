@@ -1,12 +1,10 @@
 'use strict';
 
 const signoffDao = require('./signoffDao');
-const JSONStream = require('JSONStream');
 const {
   handleErrors,
   ValidationError,
 } = require('../../utils/controllerUtils');
-const { signoff } = require('../../utils/urlSlugs');
 const logger = require('../../utils/logger').logger;
 const authenticator = require('../../utils/apiAuth');
 
@@ -46,7 +44,8 @@ const addSignoff = async (req, res, next) => {
     const existingSignoffs = await signoffDao.getByCaseConstraint(
       req.params.caseIdentifier,
       req.body.signoffStepName,
-      req.body.deliverableType
+      req.body.deliverableType,
+      req.body.deliverable
     );
 
     let createdSignoff;
@@ -83,7 +82,8 @@ const addBatchSignoffs = async (req, res, next) => {
         const existingSignoffs = await signoffDao.getByCaseConstraint(
           caseId,
           req.body.signoffStepName,
-          req.body.deliverableType
+          req.body.deliverableType,
+          req.body.deliverable
         );
 
         const validationResults = validateObjectsFromUser(req.body);

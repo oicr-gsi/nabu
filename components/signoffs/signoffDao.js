@@ -1,9 +1,6 @@
 'use strict';
 
-const { ValidationError } = require('../../utils/controllerUtils');
-const { db, pgp, NotFoundError } = require('../../utils/dbUtils');
-const logger = require('../../utils/logger').logger;
-const queryStream = require('pg-query-stream');
+const { db, pgp } = require('../../utils/dbUtils');
 const qrec = pgp.errors.queryResultErrorCode;
 
 const id = 'id';
@@ -13,18 +10,8 @@ const username = 'username';
 const qcPassed = 'qc_passed';
 const signoffStepName = 'signoff_step_name';
 const deliverableType = 'deliverable_type';
+const deliverable = 'deliverable';
 const comment = 'comment';
-
-const signoffCols = [
-  id,
-  created,
-  caseIdentifier,
-  username,
-  qcPassed,
-  signoffStepName,
-  deliverableType,
-  comment,
-];
 
 const signoffColsCreate = new pgp.helpers.ColumnSet(
   [
@@ -33,6 +20,7 @@ const signoffColsCreate = new pgp.helpers.ColumnSet(
     qcPassed,
     signoffStepName,
     deliverableType,
+    deliverable,
     comment,
   ],
   { table: 'signoff' }
@@ -46,6 +34,7 @@ const addSignoff = (caseId, signed, oldSignoffId = null) => {
       qc_passed: signed.qcPassed,
       signoff_step_name: signed.signoffStepName,
       deliverable_type: signed.deliverableType,
+      deliverable: signed.deliverable,
       comment: signed.comment,
     };
 
@@ -89,7 +78,8 @@ const getCaseSignoffQueryById = (id) => {
 const getCaseSignoffQueryByConstraint = (
   id,
   signoffStepName,
-  deliverableType
+  deliverableType,
+  deliverable
 ) => {
   let query = 'SELECT * FROM "signoff"';
   query =
@@ -102,7 +92,9 @@ const getCaseSignoffQueryByConstraint = (
     '\' AND' +
     ' deliverable_type=\'' +
     deliverableType +
-    '\';';
+    '\' AND ' +
+    (deliverable ? `deliverable='${deliverable}'` : 'deliverable IS NULL')
+    ';';
   return query;
 };
 
@@ -146,12 +138,14 @@ const getSignoffs = () => {
 const getByCaseConstraint = (
   caseIdentifier,
   signoffStepName,
-  deliverableType
+  deliverableType,
+  deliverable
 ) => {
   const query = getCaseSignoffQueryByConstraint(
     caseIdentifier,
     signoffStepName,
-    deliverableType
+    deliverableType,
+    deliverable
   );
 
   return new Promise((resolve, reject) => {
