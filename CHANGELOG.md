@@ -6,6 +6,8 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+## 3.7.1: [2024-02-26]
+
 ### Fixed
 
 * Deliverable was not being saved for release sign-offs
