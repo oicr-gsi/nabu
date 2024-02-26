@@ -1127,6 +1127,10 @@
             "description": "The pipeline associated with this sign-off",
             "type": "string"
           },
+          "deliverable": {
+            "description": "The deliverable associated with the release step (required where signoffStepName = RELEASE)",
+            "type": "string"
+          },
           "comment": {
             "description": "Optional URL-escaped reason why sign-off is PASS or FAIL",
             "type": "string"
@@ -1160,7 +1164,7 @@
             "type": "string"
           },
           "deliverable": {
-            "description": "The deliverable associated with the release step (required where deliverableType = RELEASE)",
+            "description": "The deliverable associated with the release step (required where signoffStepName = RELEASE)",
             "type": "string"
           },
           "comment": {
@@ -1199,6 +1203,10 @@
           },
           "deliverableType": {
             "description": "The pipeline associated with this sign-off",
+            "type": "string"
+          },
+          "deliverable": {
+            "description": "The deliverable associated with the release step (required where signoffStepName = RELEASE)",
             "type": "string"
           },
           "comment": {
