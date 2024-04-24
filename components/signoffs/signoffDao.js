@@ -93,8 +93,8 @@ const getCaseSignoffQueryByConstraint = (
     ' deliverable_type=\'' +
     deliverableType +
     '\' AND ' +
-    (deliverable ? `deliverable='${deliverable}'` : 'deliverable IS NULL')
-    ';';
+    (deliverable ? `deliverable='${deliverable}'` : 'deliverable IS NULL');
+  (';');
   return query;
 };
 
