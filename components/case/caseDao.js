@@ -110,6 +110,50 @@ const addCase = (kase) => {
   });
 };
 
+const addCaseArchiveOnly = (kase) => {
+  return new Promise((resolve, reject) => {
+    db.task('add-cases', async (tx) => {
+      const caseData = {
+        case_identifier: kase.caseIdentifier,
+        requisition_id: kase.requisitionId,
+        lims_ids: kase.limsIds,
+      };
+
+      const caseInsert = pgp.helpers.insert(
+        caseData,
+        caseColsCreate,
+        'cardea_case'
+      );
+      const onConflict = ' ON CONFLICT(' + caseIdentifier + ') DO NOTHING ';
+      const returning = ' RETURNING id';
+      const caseQuery = caseInsert + onConflict + returning;
+      await tx.one(caseQuery).then(async (data) => {
+        const archiveData = {
+          case_id: data.id,
+          workflow_run_ids_for_offsite_archive:
+            kase.workflowRunIdsForOffsiteArchive,
+          workflow_run_ids_for_vidarr_archival:
+            kase.workflowRunIdsForVidarrArchival,
+        };
+
+        const archiveQuery = pgp.helpers.insert(
+          archiveData,
+          archiveColsCreate,
+          'archive'
+        );
+        await tx.none(archiveQuery);
+        return;
+      });
+    })
+      .then(() => {
+        resolve();
+      })
+      .catch((err) => {
+        reject(new Error(err));
+      });
+  });
+};
+
 const caseArchiveDataQueryWithoutUnloadFiles = `SELECT c.${caseIdentifier}, c.${requisitionId}, c.${limsIds}, a.${created}, a.${modified}, a.${wfrIdsForOffsite}, a.${filesCopiedToOffsiteStagingDir}, a.${commvaultJobId}, a.${wfrIdsForVidarrArchival}, a.${filesLoadedIntoVidarrArchival}, a.${caseFilesUnloaded} FROM cardea_case c JOIN archive a ON c.${id} = a.${caseId}`;
 const caseArchiveDataQueryWithUnloadFiles = `SELECT c.${caseIdentifier}, c.${requisitionId}, c.${limsIds}, a.${created}, a.${modified}, a.${wfrIdsForOffsite}, a.${unloadFileForOffsite}, a.${filesCopiedToOffsiteStagingDir}, a.${commvaultJobId}, a.${wfrIdsForVidarrArchival}, a.${unloadFileForVidarrArchival}, a.${filesLoadedIntoVidarrArchival}, a.${caseFilesUnloaded} FROM cardea_case c JOIN archive a ON c.${id} = a.${caseId}`;
 
@@ -127,7 +171,7 @@ const getCaseArchiveQuery = (includeUnloadFiles = false) => {
 const getByCaseIdentifier = (caseIdentifier, includeUnloadFiles = false) => {
   const query = getCaseArchiveQuery(includeUnloadFiles);
   return new Promise((resolve, reject) => {
-    db.oneOrNone(query, caseIdentifier)
+    db.manyOrNone(query, caseIdentifier)
       .then((data) => {
         resolve(data);
       })
@@ -209,7 +253,7 @@ const getCaseArchiveData = (
     .catch((err) => standardCatch(err, reject));
 };
 
-const filesCopiedToStagingDirQuery = `UPDATE archive SET ${filesCopiedToOffsiteStagingDir} = NOW(), ${unloadFileForOffsite} = $1 WHERE ${caseId} = (SELECT ${id} FROM cardea_case WHERE ${caseIdentifier} = $2)`;
+const filesCopiedToStagingDirQuery = `UPDATE archive SET ${filesCopiedToOffsiteStagingDir} = NOW(), ${unloadFileForOffsite} = $1 WHERE ${caseId} = (SELECT ${id} FROM cardea_case WHERE ${caseIdentifier} = $2) AND ${filesCopiedToOffsiteStagingDir} IS NULL`;
 
 const updateFilesCopiedToOffsiteStagingDir = (caseIdentifier, unloadFile) => {
   return new Promise((resolve, reject) => {
@@ -273,6 +317,7 @@ const streamAllCases = (fn) => {
 
 module.exports = {
   addCase: addCase,
+  addCaseArchiveOnly: addCaseArchiveOnly,
   getByCaseIdentifier: getByCaseIdentifier,
   updateFilesCopiedToOffsiteStagingDir: updateFilesCopiedToOffsiteStagingDir,
   updateFilesLoadedIntoVidarrArchival: updateFilesLoadedIntoVidarrArchival,
