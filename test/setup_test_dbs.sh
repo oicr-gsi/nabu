@@ -24,7 +24,7 @@ echo "Recreated FPR test table"
 cd "${CURRENT}"
 
 # wait for PG_DB_CONTAINER_NAME to be ready
-while ! docker exec -it pgtestdb pg_isready -U postgres; do sleep 1; done
+while ! docker exec pgtestdb pg_isready -U postgres; do sleep 1; done
 
 docker run --rm -v $(pwd)/test:/flyway/conf -v $(pwd)/sql:/flyway/migrations -v $(pwd)/test/migrations:/flyway/testdata --network=host flyway/flyway clean
 docker run --rm -v $(pwd)/test:/flyway/conf -v $(pwd)/sql:/flyway/migrations -v $(pwd)/test/migrations:/flyway/testdata --network=host flyway/flyway migrate
