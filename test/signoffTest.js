@@ -63,8 +63,9 @@ const getAllSignoffs = (server) => {
 };
 
 describe('case sign-off tracking', () => {
-  beforeEach(async () => {
-    await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
+  before(function () {
+    this.timeout(5000);
+    cmd.runSync('npm run fw:test-clean; npm run fw:test-migrate');
   });
 
   describe('case sign-off operations', () => {

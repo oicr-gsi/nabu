@@ -1,6 +1,7 @@
 #!/bin/bash
+set -eu
 
 . test/.env
 
-docker stop "${PG_DB_CONTAINER_NAME}"
+docker rm -f "${PG_DB_CONTAINER_NAME}"
 rm $(pwd)/test/flyway.conf

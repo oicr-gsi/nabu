@@ -12,8 +12,8 @@
     "pre-commit": "npm test && lint-staged",
     "fw:clean": "docker run --rm -v $(pwd)/conf:/flyway/conf -v $(pwd)/sql:/flyway/sql --network=host flyway/flyway clean",
     "fw:migrate": "docker run --rm -v $(pwd)/conf:/flyway/conf -v $(pwd)/sql:/flyway/sql --network=host flyway/flyway migrate",
-    "fw:test-clean": "docker run --rm -v $(pwd)/test:/flyway/conf -v $(pwd)/test/migrations:/flyway/sql --network=host flyway/flyway -cleanDisabled=false clean && sleep .5",
-    "fw:test-migrate": "docker run --rm -v $(pwd)/test:/flyway/conf -v $(pwd)/test/migrations:/flyway/sql --network=host flyway/flyway migrate",
+    "fw:test-clean": "docker run --rm -v $(pwd)/test:/flyway/conf -v $(pwd)/sql:/flyway/migrations -v $(pwd)/test/migrations:/flyway/testdata --network=host flyway/flyway -cleanDisabled=false clean && sleep .5",
+    "fw:test-migrate": "docker run --rm -v $(pwd)/test:/flyway/conf -v $(pwd)/sql:/flyway/migrations -v $(pwd)/test/migrations:/flyway/testdata --network=host flyway/flyway migrate",
     "pretest": ". test/setup_test_dbs.sh",
     "posttest": ". test/stop_test_dbs.sh"
   },

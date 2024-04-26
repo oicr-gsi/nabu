@@ -60,8 +60,9 @@ const getTokenSpecifyAuth = (server, token, requestBody = {}) => {
 };
 
 describe('case sign-off tracking', () => {
-  beforeEach(async () => {
-    await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
+  before(function () {
+    this.timeout(10000);
+    cmd.runSync('npm run fw:test-clean; npm run fw:test-migrate');
   });
 
   describe('case sign-off authorization operations', () => {
