@@ -436,9 +436,9 @@ describe('FileQC', () => {
             expect(
               res.body.fileqcs.filter((f) => f.qcstatus == 'PENDING')
             ).to.have.lengthOf(2);
+            done();
           });
-        });
-        done();
+        });       
       });
     });
 
@@ -532,8 +532,8 @@ describe('FileQC', () => {
           expect(res.body.fileqcs).to.have.lengthOf(1);
           expect(res.body.fileqcs[0]).to.have.property('upstream');
           expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
+          done();
         });
-        done();
       });
     });
 
@@ -566,9 +566,9 @@ describe('FileQC', () => {
             expect(res.body.fileqcs).to.have.lengthOf(1);
             expect(res.body.fileqcs[0]).to.have.property('upstream');
             expect(res.body.fileqcs[0].qcstatus).to.be.equal('FAIL');
+            done();
           });
         });
-        done();
       });
     });
   });
@@ -640,8 +640,8 @@ describe('FileQC', () => {
           getFileQcs(server, { fileswids: ['12016'] }).end((err, res) => {
             expect(res.status).to.equal(200);
             expect(res.body.fileqcs).to.be.empty;
+            done();
           });
-          done();
         });
       });
     });
