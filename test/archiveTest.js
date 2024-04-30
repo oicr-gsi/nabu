@@ -55,9 +55,10 @@ const isValidDate = (date) => {
 };
 
 describe('case archive tracking', () => {
-  beforeEach(async () => {
-    await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
-  });
+   before(function () {
+     this.timeout(10000);
+     cmd.runSync('npm run fw:test-clean; npm run fw:test-migrate');
+   });
 
   describe('case + archive operations', () => {
     it('it should retrieve an archive entry with case data for a given case identifier', (done) => {

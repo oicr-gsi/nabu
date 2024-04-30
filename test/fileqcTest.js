@@ -18,13 +18,8 @@ const controller = rewire('../components/fileqcs/fileQcsController');
 chai.use(chaiHttp);
 chai.use(chaiExclude);
 
-const recreateFprDb = async (cmd) => {
-  await cmd.run(
-    'sqlite3 ' +
-      process.env.SQLITE_LOCATION +
-      '/fpr.db < ' +
-      path.resolve(__dirname, './migrations/create_test_fpr.sql')
-  );
+const recreateFprDb = () => {
+  cmd.runSync('cd ' + process.env.SQLITE_LOCATION + '; sqlite3 fpr.db < create_fpr_table.sql');
 };
 
 describe('Unit test FileQcController', () => {
@@ -258,11 +253,13 @@ const deleteFileQcs = (server, requestBody = {}) => {
 };
 
 describe('available constants', () => {
-  before(async () => {
+  before(function () {
+    this.timeout(10000);
     recreateFprDb(cmd);
   });
-  beforeEach(async () => {
-    await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
+  beforeEach(function () {
+    this.timeout(10000);
+    cmd.runSync('npm run fw:test-clean; npm run fw:test-migrate');
   });
   describe('GET available constants', () => {
     it('it should list available projects and workflows', (done) => {
@@ -279,11 +276,13 @@ describe('available constants', () => {
 });
 
 describe('FileQC', () => {
-  before(async () => {
+  before(function () {
+    this.timeout(10000);
     recreateFprDb(cmd);
   });
-  beforeEach(async () => {
-    await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
+  beforeEach(function () {
+    this.timeout(10000);
+    cmd.runSync('npm run fw:test-clean; npm run fw:test-migrate');
   });
 
   describe('get fileQc by fileid or fileswid', () => {
@@ -437,9 +436,9 @@ describe('FileQC', () => {
             expect(
               res.body.fileqcs.filter((f) => f.qcstatus == 'PENDING')
             ).to.have.lengthOf(2);
+            done();
           });
-        });
-        done();
+        });       
       });
     });
 
@@ -533,8 +532,8 @@ describe('FileQC', () => {
           expect(res.body.fileqcs).to.have.lengthOf(1);
           expect(res.body.fileqcs[0]).to.have.property('upstream');
           expect(res.body.fileqcs[0].qcstatus).to.equal('PASS');
+          done();
         });
-        done();
       });
     });
 
@@ -567,9 +566,9 @@ describe('FileQC', () => {
             expect(res.body.fileqcs).to.have.lengthOf(1);
             expect(res.body.fileqcs[0]).to.have.property('upstream');
             expect(res.body.fileqcs[0].qcstatus).to.be.equal('FAIL');
+            done();
           });
         });
-        done();
       });
     });
   });
@@ -641,8 +640,8 @@ describe('FileQC', () => {
           getFileQcs(server, { fileswids: ['12016'] }).end((err, res) => {
             expect(res.status).to.equal(200);
             expect(res.body.fileqcs).to.be.empty;
+            done();
           });
-          done();
         });
       });
     });
