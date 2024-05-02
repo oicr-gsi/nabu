@@ -12,10 +12,14 @@ const urls = require('../utils/urlSlugs');
 chai.use(chaiHttp);
 chai.use(chaiExclude);
 
+const testingToken =
+  'wdew0h5hoxvraj1xhrzix4j6nbswhh-oiq8ipt84uj1zkwq8sx0yvfmvfw6no';
+
 const addCaseArchives = (server, requestBody = {}) => {
   return chai
     .request(server)
     .post('/case')
+    .set('X-API-KEY', testingToken)
     .set('content-type', 'application/json')
     .send(requestBody);
 };
@@ -30,6 +34,7 @@ const updateCaseArchives = (
   return chai
     .request(server)
     .put(url)
+    .set('X-API-KEY', testingToken)
     .set('content-type', 'application/json')
     .send(requestBody);
 };
