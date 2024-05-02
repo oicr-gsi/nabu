@@ -1,6 +1,5 @@
 'use strict';
-// UNDO ME
-/*
+
 require('dotenv').config({ path: __dirname + '/.env' }); // Use test-specific .env file
 const chai = require('chai');
 const expect = chai.expect;
@@ -12,7 +11,6 @@ const urls = require('../utils/urlSlugs');
 
 chai.use(chaiHttp);
 chai.use(chaiExclude);
-
 
 const addCaseArchives = (server, requestBody = {}) => {
   return chai
@@ -52,23 +50,15 @@ const getCaseByCaseIdentifier = (server, caseIdentifier = {}) => {
     .send();
 };
 
-const getAllCases = (server) => {
-  return chai
-    .request(server)
-    .get('/cases')
-    .set('content-type', 'application/json')
-    .send();
-};
-
 const isValidDate = (date) => {
   return !!Date.parse(date);
 };
 
 describe('case archive tracking', () => {
-   before(function () {
-     this.timeout(10000);
-     cmd.runSync('npm run fw:test-clean; npm run fw:test-migrate');
-   });
+  beforeEach(function () {
+    this.timeout(10000);
+    cmd.runSync('npm run fw:test-clean; npm run fw:test-migrate');
+  });
 
   describe('case + archive operations', () => {
     it('it should retrieve an archive entry with case data for a given case identifier', (done) => {
@@ -88,19 +78,24 @@ describe('case archive tracking', () => {
         done();
       });
     });
-    it('it should get all the case archive information at once', (done) => {
-      getAllCases(server).end((err,res) => {
-        expect(res.status).to.equal(200);
-        done();
-      })
+    it('it should get all the case archive information at once', async () => {
+      const res = await chai
+        .request(server)
+        .get('/cases')
+        .set('content-type', 'application/json')
+        .send();
+
+      expect(res.status).to.equal(200);
     });
     it('it should return data for cases that have not been copied to the archiving staging directory', (done) => {
-      let caseIdentifier = 'R12_TEST_1212_Ab_C';
+      let caseIdentifier0 = 'R12_TEST_1212_Ab_C';
+      let caseIdentifier1 = 'R13_TEST_9999_De_F';
       getCasesByMissing(server, urls.filesCopiedToOffsiteStagingDir).end(
         (err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.length).to.equal(1);
-          expect(res.body[0].caseIdentifier).to.equal(caseIdentifier);
+          expect(res.body.length).to.equal(2);
+          expect(res.body[0].caseIdentifier).to.equal(caseIdentifier0);
+          expect(res.body[1].caseIdentifier).to.equal(caseIdentifier1);
           done();
         }
       );
@@ -150,9 +145,6 @@ describe('case archive tracking', () => {
         );
 
         addCaseArchives(server, reqBody).end((err, res) => {
-          if(err) {
-            console.log(err);
-          }
           expect(res.status).to.equal(200); // 200 means it's the same
         });
         done();
@@ -168,24 +160,23 @@ describe('case archive tracking', () => {
           'vidarr:research/run/f77732c812aa134f61b3a7c11d1c4451cefe70e90e828a11345e8a0cd7704a0f',
           'vidarr:research/run/eeb4c43908e5df3dd4997dcc982c4c0d7285b51d7a800e501da06add9125faa7',
           'vidarr:research/run/e651c4aa01d506904bc8b89a411e948c24d43fc0e841486937f23d72eb7c4fae',
-          'vidarr:research/run/de7b18bb97916885afbb7b085d61f00cfaa28793a8b7260b50c4d4ece3567216'
+          'vidarr:research/run/de7b18bb97916885afbb7b085d61f00cfaa28793a8b7260b50c4d4ece3567216',
         ],
         workflowRunIdsForVidarrArchival: [
-          'vidarr:research/run/da0e6032ed08591ae684a015ad3c58867a47a65b6c61995e421fc417e2c438c1'
-        ]
+          'vidarr:research/run/da0e6032ed08591ae684a015ad3c58867a47a65b6c61995e421fc417e2c438c1',
+        ],
       };
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
         expect(res.status).to.equal(200);
         expect(res.body[0].caseIdentifier).to.be.equal(reqBody.caseIdentifier);
-        expect(res.body[0].requisitionId).not.to.be.equal(reqBody.requisitionId);
+        expect(res.body[0].requisitionId).not.to.be.equal(
+          reqBody.requisitionId
+        );
 
         addCaseArchives(server, reqBody).end((err, res) => {
-          console.log("-----------------------------------");
-          console.log(res.status);
-          //res.status.should.be.equal(409);
-          expect(res.status).to.equal(200);
+          expect(res.status).to.equal(409);
+          done();
         });
-        done();
       });
     });
     it('it should update a case with info that files have been copied to the offsite staging directory', (done) => {
@@ -204,7 +195,9 @@ describe('case archive tracking', () => {
       };
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
         expect(res.status).to.equal(200);
-        expect(res.body.filesCopiedToOffsiteArchiveStagingDir).to.be.a('null');
+        expect(res.body[0].filesCopiedToOffsiteArchiveStagingDir).to.be.a(
+          'null'
+        );
 
         getCasesByMissing(server, urls.filesCopiedToOffsiteStagingDir).end(
           (err, res) => {
@@ -220,12 +213,12 @@ describe('case archive tracking', () => {
             ).end((err, res) => {
               expect(res.status).to.equal(200);
               expect(
-                res.body.filesCopiedToOffsiteArchiveStagingDir
+                res.body[0].filesCopiedToOffsiteArchiveStagingDir
               ).not.to.be.a('null');
               expect(
-                isValidDate(res.body.filesCopiedToOffsiteArchiveStagingDir)
+                isValidDate(res.body[0].filesCopiedToOffsiteArchiveStagingDir)
               ).to.be.true;
-              expect(res.body.filesLoadedIntoVidarrArchival).to.be.a('null');
+              expect(res.body[0].filesLoadedIntoVidarrArchival).to.be.a('null');
 
               getCasesByMissing(
                 server,
@@ -235,15 +228,15 @@ describe('case archive tracking', () => {
                   res.body.filter((c) => c.caseIdentifier == caseIdentifier)
                     .length
                 ).to.equal(0);
+                done();
               });
             });
           }
         );
-        done();
       });
     });
     it('it should not update a case if the case does not exist', (done) => {
-      let caseIdentifier = 'nonexistent';
+      let caseIdentifier = 'very-nonexistent';
       let unloadFile = {
         workflows: ['bcl2fastq', 'consensusCruncher'],
         workflowVersions: [
@@ -266,11 +259,11 @@ describe('case archive tracking', () => {
           unloadFile
         ).end((err, res) => {
           expect(res.status).to.equal(404);
+          done();
         });
-        //done();
       });
     });
-    it('it should update twice that file have been copied to the offsite staging directory', (done) => {
+    it('it should update not update a second time that file have been copied to the offsite staging directory', (done) => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       let unloadFile = {
         workflows: ['bcl2fastq', 'consensusCruncher'],
@@ -286,10 +279,10 @@ describe('case archive tracking', () => {
       };
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
         expect(res.status).to.equal(200);
-        expect(res.body.filesCopiedToOffsiteArchiveStagingDir).not.to.be.a(
+        expect(res.body[0].filesCopiedToOffsiteArchiveStagingDir).not.to.be.a(
           'null'
         );
-        let firstCopyTime = res.body.filesCopiedToOffsiteArchiveStagingDir;
+        let firstCopyTime = res.body[0].filesCopiedToOffsiteArchiveStagingDir;
 
         updateCaseArchives(
           server,
@@ -299,11 +292,12 @@ describe('case archive tracking', () => {
         ).end((err, res) => {
           expect(res.status).to.equal(200);
 
-          let secondCopyTime = res.body.filesCopiedToOffsiteArchiveStagingDir;
+          let secondCopyTime =
+            res.body[0].filesCopiedToOffsiteArchiveStagingDir;
           expect(isValidDate(secondCopyTime)).to.be.true;
-          expect(firstCopyTime).not.to.equal(secondCopyTime);
+          expect(firstCopyTime).to.equal(secondCopyTime);
+          done();
         });
-        done();
       });
     });
     it('it should update a case and save the commvault job ID', (done) => {
@@ -311,41 +305,34 @@ describe('case archive tracking', () => {
       let reqBody = {
         commvaultBackupJobId: 'CJ1212',
       };
+      updateCaseArchives(
+        server,
+        caseIdentifier,
+        urls.filesSentOffsite,
+        reqBody
+      ).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body[0].commvaultBackupJobId).not.to.be.a('null');
+        expect(res.body[0].commvaultBackupJobId).to.equal(
+          reqBody.commvaultBackupJobId
+        );
 
-      getCasesByMissing(server, urls.filesSentOffsite).end((err, res) => {
-        expect(
-          res.body.filter((c) => c.caseIdentifier == caseIdentifier).length
-        ).to.equal(1);
-
-        updateCaseArchives(
-          server,
-          caseIdentifier,
-          urls.filesSentOffsite,
-          reqBody
-        ).end((err, res) => {
-          expect(res.status).to.equal(200);
-          expect(res.body.commvaultBackupJobId).not.to.be.a('null');
-          expect(res.body.commvaultBackupJobId).to.equal(
-            reqBody.commvaultBackupJobId
-          );
-
-          getCasesByMissing(server, urls.filesSentOffsite).end((err, res) => {
-            expect(
-              res.body.filter((c) => c.caseIdentifier == caseIdentifier).length
-            ).to.equal(0);
-          });
+        getCasesByMissing(server, urls.filesSentOffsite).end((err, res) => {
+          expect(
+            res.body.filter((c) => c.caseIdentifier == caseIdentifier).length
+          ).to.equal(0);
+          done();
         });
-        done();
       });
     });
-    it('it should update a commvault job ID if a new one is provided', (done) => {
+    it('it should not update the commvault job ID when a different one is provided', (done) => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       let reqBody = {
         commvaultBackupJobId: 'CJ9999',
       };
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
-        expect(res.body.commvaultBackupJobId).not.to.be.a('null');
-        let firstCvId = res.body.commvaultBackupJobId;
+        expect(res.body[0].commvaultBackupJobId).not.to.be.a('null');
+        let firstCvId = res.body[0].commvaultBackupJobId;
 
         updateCaseArchives(
           server,
@@ -354,13 +341,13 @@ describe('case archive tracking', () => {
           reqBody
         ).end((err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.commvaultBackupJobId).not.to.be.a('null');
-          expect(res.body.commvaultBackupJobId).not.to.equal(firstCvId);
-          expect(res.body.commvaultBackupJobId).to.equal(
+          expect(res.body[0].commvaultBackupJobId).not.to.be.a('null');
+          expect(res.body[0].commvaultBackupJobId).to.equal(firstCvId);
+          expect(res.body[0].commvaultBackupJobId).not.to.equal(
             reqBody.commvaultBackupJobId
           );
+          done();
         });
-        done();
       });
     });
     it('it should update a case to indicate files have been sent to vidarr-archival', (done) => {
@@ -387,8 +374,10 @@ describe('case archive tracking', () => {
             loadFile
           ).end((err, res) => {
             expect(res.status).to.equal(200);
-            expect(res.body.filesLoadedIntoVidarrArchival).not.to.be.a('null');
-            expect(isValidDate(res.body.filesLoadedIntoVidarrArchival)).to.be
+            expect(res.body[0].filesLoadedIntoVidarrArchival).not.to.be.a(
+              'null'
+            );
+            expect(isValidDate(res.body[0].filesLoadedIntoVidarrArchival)).to.be
               .true;
 
             getCasesByMissing(server, urls.filesSentOffsite).end((err, res) => {
@@ -396,13 +385,13 @@ describe('case archive tracking', () => {
                 res.body.filter((c) => c.caseIdentifier == caseIdentifier)
                   .length
               ).to.equal(0);
+              done();
             });
           });
-          done();
         }
       );
     });
-    it('it should update the "files have been sent to vidarr-archival" time', (done) => {
+    it('it should not update the "files have been sent to vidarr-archival" time', (done) => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       let loadFile = {
         workflows: ['crosscheckFingerprintsCollector_fastq'],
@@ -414,7 +403,7 @@ describe('case archive tracking', () => {
         ],
       };
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
-        let firstLoadedDate = res.body.filesLoadedIntoVidarrArchival;
+        let firstLoadedDate = res.body[0].filesLoadedIntoVidarrArchival;
         expect(isValidDate(firstLoadedDate)).to.be.true;
 
         updateCaseArchives(
@@ -424,11 +413,11 @@ describe('case archive tracking', () => {
           loadFile
         ).end((err, res) => {
           expect(res.status).to.equal(200);
-          let secondLoadedDate = res.body.filesLoadedIntoVidarrArchival;
-          expect(firstLoadedDate).not.to.equal(secondLoadedDate);
+          let secondLoadedDate = res.body[0].filesLoadedIntoVidarrArchival;
+          expect(firstLoadedDate).to.equal(secondLoadedDate);
           expect(isValidDate(secondLoadedDate)).to.be.true;
+          done();
         });
-        done();
       });
     });
     it('it should error if attempting to indicate files have been sent to vidarr-archival for a case with an unknown identifier', (done) => {
@@ -454,40 +443,32 @@ describe('case archive tracking', () => {
     });
     it('it should update a case to indicate that the case files have been unloaded from production vidarr', (done) => {
       let caseIdentifier = 'R12_TEST_1212_Ab_C';
+      updateCaseArchives(server, caseIdentifier, urls.caseFilesUnloaded).end(
+        (err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.body[0].caseFilesUnloaded).not.to.be.a('null');
+          expect(isValidDate(res.body[0].caseFilesUnloaded)).to.be.true;
 
-      getCasesByMissing(server, urls.caseFilesUnloaded).end((err, res) => {
-        expect(
-          res.body.filter((c) => c.caseIdentifier == caseIdentifier).length
-        ).to.equal(1);
-
-        updateCaseArchives(server, caseIdentifier, urls.caseFilesUnloaded).end(
-          (err, res) => {
-            expect(res.status).to.equal(200);
-            expect(res.body.caseFilesUnloaded).not.to.be.a('null');
-            expect(isValidDate(res.body.caseFilesUnloaded)).to.be.true;
-
-            getCasesByMissing(server, urls.filesSentOffsite).end((err, res) => {
-              expect(
-                res.body.filter((c) => c.caseIdentifier == caseIdentifier)
-                  .length
-              ).to.equal(0);
-            });
-          }
-        );
-        done();
-      });
+          getCasesByMissing(server, urls.filesSentOffsite).end((err, res) => {
+            expect(
+              res.body.filter((c) => c.caseIdentifier == caseIdentifier).length
+            ).to.equal(0);
+            done();
+          });
+        }
+      );
     });
-    it('it should update the "files have been deleted from production vidarr" time', (done) => {
+    it('it should not update the "files have been deleted from production vidarr" time', (done) => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
-        let firstUnloadDate = res.body.caseFilesUnloaded;
+        let firstUnloadDate = res.body[0].caseFilesUnloaded;
         expect(isValidDate(firstUnloadDate)).to.be.true;
 
         updateCaseArchives(server, caseIdentifier, urls.caseFilesUnloaded).end(
           (err, res) => {
             expect(res.status).to.equal(200);
-            let secondUnloadDate = res.body.caseFilesUnloaded;
-            expect(firstUnloadDate).not.to.equal(secondUnloadDate);
+            let secondUnloadDate = res.body[0].caseFilesUnloaded;
+            expect(firstUnloadDate).to.equal(secondUnloadDate);
             expect(isValidDate(secondUnloadDate)).to.be.true;
           }
         );
@@ -503,5 +484,202 @@ describe('case archive tracking', () => {
         }
       );
     });
+    it('it should create a new archive record when one is completed for a given case identifier', (done) => {
+      let reqBody = {
+        caseIdentifier: 'R12_TEST_1212_Ab_C',
+        requisitionId: 12,
+        limsIds: [
+          '901_1_LDI9001',
+          '901_1_LDI9002',
+          '902_1_LDI9001',
+          '902_1_LDI9002',
+        ],
+        workflowRunIdsForOffsiteArchive: [
+          'vidarr:research/run/qwerty',
+          'vidarr:research/run/9876',
+        ],
+        workflowRunIdsForVidarrArchival: ['vidarr:research/run/abba'],
+      };
+      addCaseArchives(server, reqBody).end((err, res) => {
+        expect(res.status).to.equal(201);
+        done();
+      });
+    });
+    it('it should retrieve two archive entries with case data for a given case identifier', (done) => {
+      let caseIdentifier = 'R13_TEST_9999_De_F';
+      getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
+        expect(res.status).to.equal(200);
+        expect(res.body.length).to.equal(2);
+        done();
+      });
+    });
+    it('it should update only one of two archive entry for a given case identifier (files copied to offsite staging)', (done) => {
+      let caseIdentifier = 'R13_TEST_9999_De_F';
+      let unloadFile = {};
+      getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
+        expect(res.status).to.equal(200);
+        let existingTime = res.body[0].filesCopiedToOffsiteArchiveStagingDir;
+        expect(existingTime).not.to.be.a('null');
+        expect(res.body[1].filesCopiedToOffsiteArchiveStagingDir).to.be.a(
+          'null'
+        );
+        updateCaseArchives(
+          server,
+          caseIdentifier,
+          urls.filesCopiedToOffsiteStagingDir,
+          unloadFile
+        ).end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.body[1].filesCopiedToOffsiteArchiveStagingDir).not.to.be.a(
+            'null'
+          );
+          expect(isValidDate(res.body[1].filesCopiedToOffsiteArchiveStagingDir))
+            .to.be.true;
+          expect(res.body[1].filesLoadedIntoVidarrArchival).to.be.a('null');
+          expect(res.body[0].filesCopiedToOffsiteArchiveStagingDir).to.equal(
+            existingTime
+          );
+          expect(
+            res.body[1].filesCopiedToOffsiteArchiveStagingDir
+          ).not.to.equal(existingTime);
+          done();
+        });
+      });
+    });
+    it('it should update only one of two archive entries for a given case identifier (files unloaded)', (done) => {
+      let caseIdentifier = 'R13_TEST_9999_De_F';
+      let unloadFile = {};
+      getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
+        expect(res.status).to.equal(200);
+        let existingTime = res.body[0].caseFilesUnloaded;
+        expect(existingTime).not.to.be.a('null');
+        expect(res.body[1].caseFilesUnloaded).to.be.a('null');
+        updateCaseArchives(
+          server,
+          caseIdentifier,
+          urls.caseFilesUnloaded,
+          unloadFile
+        ).end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.body[1].caseFilesUnloaded).not.to.be.a('null');
+          expect(isValidDate(res.body[1].caseFilesUnloaded)).to.be.true;
+          expect(res.body[0].caseFilesUnloaded).to.equal(existingTime);
+          expect(res.body[1].caseFilesUnloaded).not.to.equal(existingTime);
+          done();
+        });
+      });
+    });
+    it('it should update only one of two archive entries for a given case identifier (files in vidarr archival)', (done) => {
+      let caseIdentifier = 'R13_TEST_9999_De_F';
+      let unloadFile = {};
+      getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
+        expect(res.status).to.equal(200);
+        let existingTime = res.body[0].filesLoadedIntoVidarrArchival;
+        expect(existingTime).not.to.be.a('null');
+        expect(res.body[1].filesLoadedIntoVidarrArchival).to.be.a('null');
+        updateCaseArchives(
+          server,
+          caseIdentifier,
+          urls.filesLoadedIntoVidarrArchival,
+          unloadFile
+        ).end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.body[1].filesLoadedIntoVidarrArchival).not.to.be.a('null');
+          expect(isValidDate(res.body[1].filesLoadedIntoVidarrArchival)).to.be
+            .true;
+          expect(res.body[0].filesLoadedIntoVidarrArchival).to.equal(
+            existingTime
+          );
+          expect(res.body[1].filesLoadedIntoVidarrArchival).not.to.equal(
+            existingTime
+          );
+          done();
+        });
+      });
+    });
+    it('it should update only one of two archive entries for a given case identifier (files sent offsite)', (done) => {
+      let caseIdentifier = 'R13_TEST_9999_De_F';
+      getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
+        expect(res.status).to.equal(200);
+        let existingID = res.body[0].commvaultBackupJobId;
+        expect(existingID).not.to.be.a('null');
+        expect(res.body[1].commvaultBackupJobId).to.be.a('null');
+        let reqBody = {
+          commvaultBackupJobId: 'JC1313',
+        };
+        updateCaseArchives(
+          server,
+          caseIdentifier,
+          urls.filesSentOffsite,
+          reqBody
+        ).end((err, res) => {
+          expect(res.status).to.equal(200);
+          expect(res.body[1].commvaultBackupJobId).not.to.be.a('null');
+          expect(res.body[1].commvaultBackupJobId).to.equal(
+            reqBody.commvaultBackupJobId
+          );
+          expect(res.body[0].commvaultBackupJobId).to.equal(existingID);
+          done();
+        });
+      });
+    });
+    it('it should create a new archive record when one is completed for a given case identifier', (done) => {
+      let reqBody = {
+        caseIdentifier: 'R12_TEST_1212_Ab_C',
+        requisitionId: 12,
+        limsIds: [
+          '901_1_LDI9001',
+          '901_1_LDI9002',
+          '902_1_LDI9001',
+          '902_1_LDI9002',
+        ],
+        workflowRunIdsForOffsiteArchive: [
+          'vidarr:research/run/qwerty',
+          'vidarr:research/run/9876',
+        ],
+        workflowRunIdsForVidarrArchival: ['vidarr:research/run/abba'],
+      };
+      addCaseArchives(server, reqBody).end((err, res) => {
+        expect(res.status).to.equal(201);
+        done();
+      });
+    });
+    it('it should not create a new archive record when one is completed and reqisition is different', (done) => {
+      let reqBody = {
+        caseIdentifier: 'R12_TEST_1212_Ab_C',
+        requisitionId: 22,
+        limsIds: [
+          '901_1_LDI9001',
+          '901_1_LDI9002',
+          '902_1_LDI9001',
+          '902_1_LDI9002',
+        ],
+        workflowRunIdsForOffsiteArchive: [
+          'vidarr:research/run/asdf',
+          'vidarr:research/run/1234',
+        ],
+        workflowRunIdsForVidarrArchival: ['vidarr:research/run/abba'],
+      };
+      addCaseArchives(server, reqBody).end((err, res) => {
+        expect(res.status).to.equal(409);
+        done();
+      });
+    });
+    it('it should not create a new archive record when one is completed and lims IDs are different', (done) => {
+      let reqBody = {
+        caseIdentifier: 'R12_TEST_1212_Ab_C',
+        requisitionId: 12,
+        limsIds: ['901_1_LDI9001', '901_1_LDI9002'],
+        workflowRunIdsForOffsiteArchive: [
+          'vidarr:research/run/asdf',
+          'vidarr:research/run/1234',
+        ],
+        workflowRunIdsForVidarrArchival: ['vidarr:research/run/abba'],
+      };
+      addCaseArchives(server, reqBody).end((err, res) => {
+        expect(res.status).to.equal(409);
+        done();
+      });
+    });
   });
-}); */
+});

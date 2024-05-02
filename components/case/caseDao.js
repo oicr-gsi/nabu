@@ -59,7 +59,7 @@ const archiveColsLoadIntoVidarrArchival = [
 ];
 const archiveColsCaseFilesUnloaded = [caseId, caseFilesUnloaded];
 
-const addCase = (kase) => {
+const addCase = (kase, newArchive = true) => {
   return new Promise((resolve, reject) => {
     db.task('add-cases', async (tx) => {
       const caseData = {
@@ -92,11 +92,21 @@ const addCase = (kase) => {
             kase.workflowRunIdsForVidarrArchival,
         };
 
-        const archiveQuery = pgp.helpers.insert(
-          archiveData,
-          archiveColsCreate,
-          'archive'
-        );
+        let archiveQuery;
+        if (newArchive) {
+          archiveQuery = pgp.helpers.insert(
+            archiveData,
+            archiveColsCreate,
+            'archive'
+          );
+        } else {
+          archiveQuery = pgp.helpers.update(
+            archiveData,
+            archiveColsCreate,
+            'archive'
+          );
+          archiveQuery = archiveQuery + ` WHERE ${caseId} = ${data.id};`;
+        }
         await tx.none(archiveQuery);
         return;
       });
@@ -112,21 +122,11 @@ const addCase = (kase) => {
 
 const addCaseArchiveOnly = (kase) => {
   return new Promise((resolve, reject) => {
-    db.task('add-cases', async (tx) => {
-      const caseData = {
-        case_identifier: kase.caseIdentifier,
-        requisition_id: kase.requisitionId,
-        lims_ids: kase.limsIds,
-      };
-
-      const caseInsert = pgp.helpers.insert(
-        caseData,
-        caseColsCreate,
-        'cardea_case'
-      );
-      const onConflict = ' ON CONFLICT(' + caseIdentifier + ') DO NOTHING ';
-      const returning = ' RETURNING id';
-      const caseQuery = caseInsert + onConflict + returning;
+    db.task('add-archive', async (tx) => {
+      const caseQuery =
+        'SELECT id FROM cardea_case WHERE case_identifier=\'' +
+        kase.caseIdentifier +
+        '\';';
       await tx.one(caseQuery).then(async (data) => {
         const archiveData = {
           case_id: data.id,
@@ -246,7 +246,7 @@ const getCaseArchiveData = (
   reject
 ) => {
   const query = getCaseArchiveQuery(includeUnloadFiles);
-  db.one(query, caseIdentifier)
+  db.manyOrNone(query, caseIdentifier)
     .then((data) => {
       resolve(data);
     })
@@ -265,7 +265,7 @@ const updateFilesCopiedToOffsiteStagingDir = (caseIdentifier, unloadFile) => {
   });
 };
 
-const filesLoadedIntoVidarrArchivalQuery = `UPDATE archive SET ${filesLoadedIntoVidarrArchival} = NOW(), ${unloadFileForVidarrArchival} = $1 WHERE ${caseId} = (SELECT ${id} FROM cardea_case WHERE ${caseIdentifier} = $2)`;
+const filesLoadedIntoVidarrArchivalQuery = `UPDATE archive SET ${filesLoadedIntoVidarrArchival} = NOW(), ${unloadFileForVidarrArchival} = $1 WHERE ${caseId} = (SELECT ${id} FROM cardea_case WHERE ${caseIdentifier} = $2) AND ${filesLoadedIntoVidarrArchival} IS NULL`;
 
 const updateFilesLoadedIntoVidarrArchival = (caseIdentifier, unloadFile) => {
   return new Promise((resolve, reject) => {
@@ -277,7 +277,7 @@ const updateFilesLoadedIntoVidarrArchival = (caseIdentifier, unloadFile) => {
   });
 };
 
-const filesSentOffsiteQuery = `UPDATE archive SET ${commvaultJobId} = $1 WHERE ${caseId} = (SELECT ${id} FROM cardea_case WHERE ${caseIdentifier} = $2)`;
+const filesSentOffsiteQuery = `UPDATE archive SET ${commvaultJobId} = $1 WHERE ${caseId} = (SELECT ${id} FROM cardea_case WHERE ${caseIdentifier} = $2) AND ${commvaultJobId} IS NULL`;
 
 const updateFilesSentOffsite = (caseIdentifier, commvaultJobId) => {
   return new Promise((resolve, reject) => {
@@ -289,7 +289,7 @@ const updateFilesSentOffsite = (caseIdentifier, commvaultJobId) => {
   });
 };
 
-const filesUnloadedQuery = `UPDATE archive SET ${caseFilesUnloaded} = NOW() WHERE ${caseId} = (SELECT ${id} FROM cardea_case WHERE ${caseIdentifier} = $1)`;
+const filesUnloadedQuery = `UPDATE archive SET ${caseFilesUnloaded} = NOW() WHERE ${caseId} = (SELECT ${id} FROM cardea_case WHERE ${caseIdentifier} = $1) AND ${caseFilesUnloaded} IS NULL`;
 
 const updateFilesUnloaded = (caseIdentifier) => {
   return new Promise((resolve, reject) => {

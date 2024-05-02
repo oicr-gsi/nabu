@@ -86,18 +86,25 @@ const isCompletelyArchived = (kase) => {
   );
 };
 
+const isNotArchived = (kase) => {
+  return (
+    kase.filesCopiedToOffsiteArchiveStagingDir == null &&
+    kase.commvaultBackupJobId == null &&
+    kase.filesLoadedIntoVidarrArchival == null &&
+    kase.caseFilesUnloaded == null
+  );
+};
+
 const addCaseArchive = async (req, res, next) => {
   try {
     const existingCases = await caseDao.getByCaseIdentifier(
       req.body.caseIdentifier
     );
     if (existingCases == null || !existingCases.length) {
-      await upsert(req.body);
+      await upsert(req.body, true);
       res.status(201).end();
     } else {
       for (let existingCase of existingCases) {
-        console.log(existingCase);
-        console.log(req.body);
         if (
           existingCase.requisitionId == req.body.requisitionId &&
           arraysEquals(existingCase.limsIds, req.body.limsIds) &&
@@ -110,45 +117,43 @@ const addCaseArchive = async (req, res, next) => {
             req.body.workflowRunIdsForVidarrArchival
           )
         ) {
-          console.log('case data same');
           // case data is same, no need to update
           res.status(200).end();
           return true;
         } else if (
           existingCase.requisitionId != req.body.requisitionId ||
-          arraysEquals(existingCase.limsIds, req.body.limsIds)
+          !arraysEquals(existingCase.limsIds, req.body.limsIds)
         ) {
-          //res.status(201).end();
-          //return false;
+          // data has changed
           throw new ConflictingDataError(
-            `Cannot modify data for case ${existingCase.caseIdentifier}, does not matching existing data`
+            `Cannot modify data for case ${existingCase.caseIdentifier}, requisition or lims identifier(s) do not matching existing data`
           );
-        } else if (existingCase.filesCopiedToOffsiteArchiveStagingDir == null) {
-          console.log('not yet archived');
+        } else if (isNotArchived(existingCase)) {
           // no harm in modifying a case that hasn't yet been archived
-          await upsert(req.body);
+          await upsert(req.body, false);
           res.status(201).end();
           return true;
         } else if (isCompletelyArchived(existingCase)) {
-          console.log('completed archiving');
-          upsertArchive(req.body);
-          res.status(201).end();
-          return true;
+          // can add a new archive record for a case where ALL are completed
+          continue;
         } else {
-          // case data is different but files have already been copied to archiving directory, and archiving may have begun
+          // case data is different but files have already been copied to archiving directory / archiving may have begun
           throw new ConflictingDataError(
-            `Cannot modify data for case ${existingCase.caseIdentifier} that's already been sent to the archive staging directory`
+            `Cannot modify data for case ${existingCase.caseIdentifier} that's actively being archived`
           );
         }
       }
+      upsertArchive(req.body);
+      res.status(201).end();
+      return true;
     }
   } catch (e) {
     handleErrors(e, 'Error adding cases', logger, next);
   }
 };
 
-const upsert = (caseInfo) => {
-  return caseDao.addCase(caseInfo);
+const upsert = (caseInfo, createNewArchive) => {
+  return caseDao.addCase(caseInfo, createNewArchive);
 };
 
 const upsertArchive = (caseInfo) => {
@@ -166,7 +171,11 @@ const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
       req.params.caseIdentifier,
       JSON.stringify(req.body)
     );
-    res.status(200).send(updatedCase);
+    if (updatedCase && updatedCase.length) {
+      res.status(200).json(updatedCase);
+    } else {
+      res.status(404).end();
+    }
   } catch (e) {
     handleErrors(e, 'Error updating case', logger, next);
   }
@@ -183,7 +192,11 @@ const filesLoadedIntoVidarrArchival = async (req, res, next) => {
       req.params.caseIdentifier,
       JSON.stringify(req.body)
     );
-    res.status(200).send(updatedCase);
+    if (updatedCase && updatedCase.length) {
+      res.status(200).json(updatedCase);
+    } else {
+      res.status(404).end();
+    }
   } catch (e) {
     handleErrors(e, 'Error updating case', logger, next);
   }
@@ -195,7 +208,11 @@ const filesSentOffsite = async (req, res, next) => {
       req.params.caseIdentifier,
       req.body.commvaultBackupJobId
     );
-    res.status(200).send(updatedCase);
+    if (updatedCase && updatedCase.length) {
+      res.status(200).json(updatedCase);
+    } else {
+      res.status(404).end();
+    }
   } catch (e) {
     handleErrors(e, 'Error updating case', logger, next);
   }
@@ -206,7 +223,11 @@ const caseFilesUnloaded = async (req, res, next) => {
     const updatedCase = await caseDao.updateFilesUnloaded(
       req.params.caseIdentifier
     );
-    res.status(200).send(updatedCase);
+    if (updatedCase && updatedCase.length) {
+      res.status(200).json(updatedCase);
+    } else {
+      res.status(404).end();
+    }
   } catch (e) {
     handleErrors(e, 'Error updating case', logger, next);
   }
