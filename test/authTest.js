@@ -125,7 +125,7 @@ describe('API authorization tests', () => {
 
   describe('case archiving authorization operations', () => {
     beforeEach(function () {
-      this.timeout(5000);
+      this.timeout(10000);
       cmd.runSync('npm run fw:test-clean; npm run fw:test-migrate');
     });
     it('it should  fail to create a case + archive entry when no API-key provided', (done) => {
@@ -162,7 +162,7 @@ describe('API authorization tests', () => {
 
   describe('case sign-off authorization operations', () => {
     beforeEach(function () {
-      this.timeout(5000);
+      this.timeout(10000);
       cmd.runSync('npm run fw:test-clean; npm run fw:test-migrate');
     });
     it('it should fail to retrieve a sign-off entry when there is no api-key (null)', (done) => {
