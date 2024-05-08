@@ -134,8 +134,10 @@ const addCaseArchive = async (req, res, next) => {
           res.status(201).end();
           return true;
         } else if (isCompletelyArchived(existingCase)) {
-          // can add a new archive record for a case where ALL are completed
-          continue;
+          // cannot modify a record that has been archived already
+          throw new ConflictingDataError(
+            `Cannot modify data for case ${existingCase.caseIdentifier} that's completed archiving`
+          );
         } else {
           // case data is different but files have already been copied to archiving directory / archiving may have begun
           throw new ConflictingDataError(
@@ -143,9 +145,6 @@ const addCaseArchive = async (req, res, next) => {
           );
         }
       }
-      upsertArchive(req.body);
-      res.status(201).end();
-      return true;
     }
   } catch (e) {
     handleErrors(e, 'Error adding cases', logger, next);
