@@ -8,7 +8,7 @@ and this project attempts to adhere to Semantic Versioning.
 
 ### Changed
 
-* Case Archiving now supports multiple archives for each case ID (only one can be actively archived at a time) 
+* Case Archiving now supports a single archive for each case ID 
 
 ## 3.7.1: [2024-02-26]
 
