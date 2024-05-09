@@ -132,6 +132,7 @@ describe('case archive tracking', () => {
       };
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
         expect(res.status).to.equal(200);
+        expect(res.body.length).to.equal(1);
         expect(res.body[0].caseIdentifier).to.be.equal(reqBody.caseIdentifier);
         expect(res.body[0].requisitionId).to.be.equal(reqBody.requisitionId);
         expect(res.body[0].limsIds).to.include.members(reqBody.limsIds);
@@ -482,7 +483,7 @@ describe('case archive tracking', () => {
         }
       );
     });
-    it('it should error is attempting to create a new archive record when one is completed for a given case identifier', (done) => {
+    it('it should error when attempting to create a new archive record when one is completed for a given case identifier', (done) => {
       let reqBody = {
         caseIdentifier: 'R11_TEST_1000_Xy_Z',
         requisitionId: 12,

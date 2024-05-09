@@ -120,13 +120,12 @@ const addCase = (kase, newArchive = true) => {
   });
 };
 
+const getByCaseIdentifierQuery = `SELECT id FROM cardea_case WHERE case_identifier=${caseIdentifier};`;
+
 const addCaseArchiveOnly = (kase) => {
   return new Promise((resolve, reject) => {
     db.task('add-archive', async (tx) => {
-      const caseQuery =
-        'SELECT id FROM cardea_case WHERE case_identifier=\'' +
-        kase.caseIdentifier +
-        '\';';
+      const caseQuery = getByCaseIdentifierQuery;
       await tx.one(caseQuery).then(async (data) => {
         const archiveData = {
           case_id: data.id,
