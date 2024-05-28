@@ -1005,6 +1005,10 @@
     "Case-new": {
       "type": "object",
       "properties": {
+        "caseIdentifier": {
+          "description": "Case identifier",
+          "type": "string"
+        },
         "requisitionId": {
           "description": "Requisition number",
           "type": "integer"

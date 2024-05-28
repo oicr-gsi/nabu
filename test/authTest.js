@@ -77,7 +77,7 @@ describe('case sign-off tracking', () => {
     });
     it('it should fail to retrieve a sign-off entry when there is no api-key ("")', (done) => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
-      getSignoffsByCaseIdentifierSpecifyAuth(server, caseIdentifier, "").end(
+      getSignoffsByCaseIdentifierSpecifyAuth(server, caseIdentifier, '').end(
         (err, res) => {
           expect(res.status).to.equal(401);
           done();

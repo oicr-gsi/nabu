@@ -7,7 +7,6 @@ const chaiExclude = require('chai-exclude');
 const chaiHttp = require('chai-http');
 const server = require('../app');
 const cmd = require('node-cmd');
-const path = require('path');
 
 // mock out the databases in the controller to be able to unit test the private functions
 // this will throw a 'duplicate db connection' error when the class is first rewired,
@@ -19,7 +18,11 @@ chai.use(chaiHttp);
 chai.use(chaiExclude);
 
 const recreateFprDb = () => {
-  cmd.runSync('cd ' + process.env.SQLITE_LOCATION + '; sqlite3 fpr.db < create_fpr_table.sql');
+  cmd.runSync(
+    'cd ' +
+      process.env.SQLITE_LOCATION +
+      '; sqlite3 fpr.db < create_fpr_table.sql'
+  );
 };
 
 describe('Unit test FileQcController', () => {
@@ -438,7 +441,7 @@ describe('FileQC', () => {
             ).to.have.lengthOf(2);
             done();
           });
-        });       
+        });
       });
     });
 
