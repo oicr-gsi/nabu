@@ -252,6 +252,14 @@
       "post": {
         "summary": "Create a case archive record",
         "description": "Adds a case archive record with basic data",
+        "parameters": [{
+          "name": "X-API-KEY",
+          "in": "header",
+          "required": true,
+          "schema":{
+            "type": "string"
+          }
+        }],
         "requestBody": {
           "description": "Fields for creating a new case archive record",
           "required": true,
@@ -262,6 +270,9 @@
               }
             }
           }
+        },
+        "security": {
+          "ApiKeyAuth": []
         },
         "responses": {
           "200": {
@@ -280,6 +291,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Case-response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The submission is missing a valid API token in header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
                 }
               }
             }
@@ -348,6 +369,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "X-API-KEY",
+            "in": "header",
+            "required": true,
+            "schema":{
+              "type": "string"
+            }
           }
         ], 
         "requestBody": {
@@ -361,6 +390,9 @@
             }
           }
         },
+        "security": {
+          "ApiKeyAuth": []
+        },
         "responses": {
           "200": {
             "description": "Case archive record was updated",
@@ -368,6 +400,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Case-response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The submission is missing a valid API token in header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
                 }
               }
             }
@@ -392,8 +434,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "X-API-KEY",
+            "in": "header",
+            "required": true,
+            "schema":{
+              "type": "string"
+            }
           }
         ],
+        "security": {
+          "ApiKeyAuth": []
+        },
         "requestBody": {
           "description": "ID of Commvault backup job for sending the files offsite",
           "required": true,
@@ -421,6 +474,16 @@
               }
             }
           },
+          "401": {
+            "description": "The submission is missing a valid API token in header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          },
           "404": {
             "description": "The requested case archive resource was not found"
           }
@@ -440,6 +503,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "X-API-KEY",
+            "in": "header",
+            "required": true,
+            "schema":{
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -453,6 +524,9 @@
             }
           }
         },
+        "security": {
+          "ApiKeyAuth": []
+        },
         "responses": {
           "200": {
             "description": "Case archive record was updated",
@@ -460,6 +534,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Case-response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The submission is missing a valid API token in header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
                 }
               }
             }
@@ -483,8 +567,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "X-API-KEY",
+            "in": "header",
+            "required": true,
+            "schema":{
+              "type": "string"
+            }
           }
         ],
+        "security": {
+          "ApiKeyAuth": []
+        },
         "responses": {
           "200": {
             "description": "Case archive record was updated",
@@ -492,6 +587,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Case-response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The submission is missing a valid API token in header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
                 }
               }
             }

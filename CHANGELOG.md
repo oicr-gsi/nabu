@@ -10,6 +10,10 @@ and this project attempts to adhere to Semantic Versioning.
 
 * Case Archiving now supports a single archive for each case ID 
 
+### Added
+
+* All POST endpoints involved in case archiving require API-key authentication
+
 ## 3.7.1: [2024-02-26]
 
 ### Fixed

@@ -9,6 +9,7 @@ const {
 } = require('../../utils/controllerUtils');
 const logger = require('../../utils/logger').logger;
 const urls = require('../../utils/urlSlugs');
+const authenticator = require('../../utils/apiAuth');
 
 function arraysEquals (array1, array2) {
   return (
@@ -97,6 +98,9 @@ const isNotArchived = (kase) => {
 
 const addCaseArchive = async (req, res, next) => {
   try {
+    //Must provide API-key to modify archive
+    await authenticator.authenticateRequest(req);
+
     const existingCases = await caseDao.getByCaseIdentifier(
       req.body.caseIdentifier
     );
@@ -161,6 +165,9 @@ const upsertArchive = (caseInfo) => {
 
 const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
   try {
+    //Must provide API-key to modify archive
+    await authenticator.authenticateRequest(req);
+
     if (!req.body) {
       throw new ValidationError(
         'Must provide an unload file\'s contents in request body'
@@ -182,6 +189,9 @@ const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
 
 const filesLoadedIntoVidarrArchival = async (req, res, next) => {
   try {
+    //Must provide API-key to modify archive
+    await authenticator.authenticateRequest(req);
+
     if (!req.body) {
       throw new ValidationError(
         'Must provide an unload file\'s contents in request body'
@@ -203,6 +213,9 @@ const filesLoadedIntoVidarrArchival = async (req, res, next) => {
 
 const filesSentOffsite = async (req, res, next) => {
   try {
+    //Must provide API-key to modify archive
+    await authenticator.authenticateRequest(req);
+
     const updatedCase = await caseDao.updateFilesSentOffsite(
       req.params.caseIdentifier,
       req.body.commvaultBackupJobId
@@ -219,6 +232,9 @@ const filesSentOffsite = async (req, res, next) => {
 
 const caseFilesUnloaded = async (req, res, next) => {
   try {
+    //Must provide API-key to modify archive
+    await authenticator.authenticateRequest(req);
+
     const updatedCase = await caseDao.updateFilesUnloaded(
       req.params.caseIdentifier
     );
