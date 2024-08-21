@@ -118,7 +118,7 @@ const addCaseArchive = async (req, res, next) => {
           )
         ) {
           // case data is same, no need to update
-          res.status(200).end();
+          res.status(200).json(existingCase);
           return true;
         } else if (
           existingCase.requisitionId != req.body.requisitionId ||
