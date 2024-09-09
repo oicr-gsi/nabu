@@ -23,7 +23,7 @@ const getCaseArchive = async (req, res, next) => {
       req.params.caseIdentifier,
       req.query.includeVidarrMetadata ? req.query.includeVidarrMetadata : false
     );
-    if (cardeaCase) {
+    if (cardeaCase && cardeaCase.length) {
       res.status(200).json(cardeaCase);
     } else {
       res.status(404).end();
@@ -77,39 +77,73 @@ const allCaseArchives = async (req, res, next) => {
   }
 };
 
+const isCompletelyArchived = (kase) => {
+  return (
+    kase.filesCopiedToOffsiteArchiveStagingDir != null &&
+    kase.commvaultBackupJobId != null &&
+    kase.filesLoadedIntoVidarrArchival != null &&
+    kase.caseFilesUnloaded != null
+  );
+};
+
+const isNotArchived = (kase) => {
+  return (
+    kase.filesCopiedToOffsiteArchiveStagingDir == null &&
+    kase.commvaultBackupJobId == null &&
+    kase.filesLoadedIntoVidarrArchival == null &&
+    kase.caseFilesUnloaded == null
+  );
+};
+
 const addCaseArchive = async (req, res, next) => {
   try {
-    const existingCase = await caseDao.getByCaseIdentifier(
+    const existingCases = await caseDao.getByCaseIdentifier(
       req.body.caseIdentifier
     );
-    if (existingCase == null) {
-      await upsert(req.body);
+    if (existingCases == null || !existingCases.length) {
+      await upsert(req.body, true);
       res.status(201).end();
     } else {
-      if (existingCase.filesCopiedToOffsiteArchiveStagingDir == null) {
-        // no harm in modifying a case that hasn't yet been archived
-        await upsert(req.body);
-        res.status(201).end();
-        return true;
-      } else if (
-        existingCase.requisitionId == req.body.requisitionId &&
-        arraysEquals(existingCase.limsIds, req.body.limsIds) &&
-        arraysEquals(
-          existingCase.workflowRunIdsForOffsiteArchive,
-          req.body.workflowRunIdsForOffsiteArchive
-        ) &&
-        arraysEquals(
-          existingCase.workflowRunIdsForVidarrArchival,
-          req.body.workflowRunIdsForVidarrArchival
-        )
-      ) {
-        // case data is same, no need to update
-        res.status(200).end();
-      } else {
-        // case data is different but files have already been copied to archiving directory, and archiving may have begun
-        throw new ConflictingDataError(
-          `Cannot modify data for case ${existingCase.caseIdentifier} that's already been sent to the archive staging directory`
-        );
+      for (let existingCase of existingCases) {
+        if (
+          existingCase.requisitionId == req.body.requisitionId &&
+          arraysEquals(existingCase.limsIds, req.body.limsIds) &&
+          arraysEquals(
+            existingCase.workflowRunIdsForOffsiteArchive,
+            req.body.workflowRunIdsForOffsiteArchive
+          ) &&
+          arraysEquals(
+            existingCase.workflowRunIdsForVidarrArchival,
+            req.body.workflowRunIdsForVidarrArchival
+          )
+        ) {
+          // case data is same, no need to update
+          res.status(200).end();
+          return true;
+        } else if (
+          existingCase.requisitionId != req.body.requisitionId ||
+          !arraysEquals(existingCase.limsIds, req.body.limsIds)
+        ) {
+          // data has changed
+          throw new ConflictingDataError(
+            `Cannot modify data for case ${existingCase.caseIdentifier}, requisition or lims identifier(s) do not matching existing data`
+          );
+        } else if (isNotArchived(existingCase)) {
+          // no harm in modifying a case that hasn't yet been archived
+          await upsert(req.body, false);
+          res.status(201).end();
+          return true;
+        } else if (isCompletelyArchived(existingCase)) {
+          // cannot modify a record that has been archived already
+          throw new ConflictingDataError(
+            `Cannot modify data for case ${existingCase.caseIdentifier} that's completed archiving`
+          );
+        } else {
+          // case data is different but files have already been copied to archiving directory / archiving may have begun
+          throw new ConflictingDataError(
+            `Cannot modify data for case ${existingCase.caseIdentifier} that's actively being archived`
+          );
+        }
       }
     }
   } catch (e) {
@@ -117,8 +151,12 @@ const addCaseArchive = async (req, res, next) => {
   }
 };
 
-const upsert = (caseInfo) => {
-  return caseDao.addCase(caseInfo);
+const upsert = (caseInfo, createNewArchive) => {
+  return caseDao.addCase(caseInfo, createNewArchive);
+};
+
+const upsertArchive = (caseInfo) => {
+  return caseDao.addCaseArchiveOnly(caseInfo);
 };
 
 const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
@@ -132,7 +170,11 @@ const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
       req.params.caseIdentifier,
       JSON.stringify(req.body)
     );
-    res.status(200).send(updatedCase);
+    if (updatedCase && updatedCase.length) {
+      res.status(200).json(updatedCase);
+    } else {
+      res.status(404).end();
+    }
   } catch (e) {
     handleErrors(e, 'Error updating case', logger, next);
   }
@@ -149,7 +191,11 @@ const filesLoadedIntoVidarrArchival = async (req, res, next) => {
       req.params.caseIdentifier,
       JSON.stringify(req.body)
     );
-    res.status(200).send(updatedCase);
+    if (updatedCase && updatedCase.length) {
+      res.status(200).json(updatedCase);
+    } else {
+      res.status(404).end();
+    }
   } catch (e) {
     handleErrors(e, 'Error updating case', logger, next);
   }
@@ -161,7 +207,11 @@ const filesSentOffsite = async (req, res, next) => {
       req.params.caseIdentifier,
       req.body.commvaultBackupJobId
     );
-    res.status(200).send(updatedCase);
+    if (updatedCase && updatedCase.length) {
+      res.status(200).json(updatedCase);
+    } else {
+      res.status(404).end();
+    }
   } catch (e) {
     handleErrors(e, 'Error updating case', logger, next);
   }
@@ -172,7 +222,11 @@ const caseFilesUnloaded = async (req, res, next) => {
     const updatedCase = await caseDao.updateFilesUnloaded(
       req.params.caseIdentifier
     );
-    res.status(200).send(updatedCase);
+    if (updatedCase && updatedCase.length) {
+      res.status(200).json(updatedCase);
+    } else {
+      res.status(404).end();
+    }
   } catch (e) {
     handleErrors(e, 'Error updating case', logger, next);
   }

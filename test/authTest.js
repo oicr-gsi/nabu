@@ -60,8 +60,9 @@ const getTokenSpecifyAuth = (server, token, requestBody = {}) => {
 };
 
 describe('case sign-off tracking', () => {
-  beforeEach(async () => {
-    await cmd.run('npm run fw:test-clean; npm run fw:test-migrate');
+  before(function () {
+    this.timeout(10000);
+    cmd.runSync('npm run fw:test-clean; npm run fw:test-migrate');
   });
 
   describe('case sign-off authorization operations', () => {
@@ -76,7 +77,7 @@ describe('case sign-off tracking', () => {
     });
     it('it should fail to retrieve a sign-off entry when there is no api-key ("")', (done) => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
-      getSignoffsByCaseIdentifierSpecifyAuth(server, caseIdentifier, "").end(
+      getSignoffsByCaseIdentifierSpecifyAuth(server, caseIdentifier, '').end(
         (err, res) => {
           expect(res.status).to.equal(401);
           done();
