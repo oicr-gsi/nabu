@@ -6,6 +6,12 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+## 3.8.0: [2024-05-28]
+
+### Changed
+
+* Case Archiving now supports a single archive for each case ID 
+
 ## 3.7.1: [2024-02-26]
 
 ### Fixed

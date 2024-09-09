@@ -8,7 +8,8 @@ INSERT INTO fileqc (fileid, fileswid, md5sum, project, workflow, filepath, qcpas
 DELETE FROM cardea_case;
 INSERT INTO cardea_case (case_identifier, requisition_id, lims_ids) VALUES
 ('R11_TEST_1000_Xy_Z', 11, '{"109_1_LDI5432", "109_1_LDI4321"}'),
-('R12_TEST_1212_Ab_C', 12, '{"901_1_LDI9001", "901_1_LDI9002", "902_1_LDI9001", "902_1_LDI9002"}');
+('R12_TEST_1212_Ab_C', 12, '{"901_1_LDI9001", "901_1_LDI9002", "902_1_LDI9001", "902_1_LDI9002"}'),
+('R13_TEST_9999_De_F', 13, '{"109_1_LDI1234", "109_1_LDI4321"}');
 
 DELETE FROM archive;
 INSERT INTO archive (case_id, workflow_run_ids_for_offsite_archive, unload_file_for_offsite_archive, files_copied_to_offsite_archive_staging_dir, commvault_backup_job_id, workflow_run_ids_for_vidarr_archival, unload_file_for_vidarr_archival, files_loaded_into_vidarr_archival, case_files_unloaded) VALUES
