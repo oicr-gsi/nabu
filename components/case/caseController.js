@@ -9,6 +9,7 @@ const {
 } = require('../../utils/controllerUtils');
 const logger = require('../../utils/logger').logger;
 const urls = require('../../utils/urlSlugs');
+const authenticator = require('../../utils/apiAuth');
 
 function arraysEquals (array1, array2) {
   return (
@@ -97,6 +98,9 @@ const isNotArchived = (kase) => {
 
 const addCaseArchive = async (req, res, next) => {
   try {
+    //authenticate api-key from header before continuing
+    await authenticator.authenticateRequest(req);
+
     const existingCases = await caseDao.getByCaseIdentifier(
       req.body.caseIdentifier
     );
@@ -147,7 +151,7 @@ const addCaseArchive = async (req, res, next) => {
       }
     }
   } catch (e) {
-    handleErrors(e, 'Error adding cases', logger, next);
+    handleErrors(e, 'Error adding case', logger, next);
   }
 };
 

@@ -9,6 +9,9 @@ const server = require('../app');
 const cmd = require('node-cmd');
 const urls = require('../utils/urlSlugs');
 
+const testingToken =
+  'wdew0h5hoxvraj1xhrzix4j6nbswhh-oiq8ipt84uj1zkwq8sx0yvfmvfw6no';
+
 chai.use(chaiHttp);
 chai.use(chaiExclude);
 
@@ -16,6 +19,7 @@ const addCaseArchives = (server, requestBody = {}) => {
   return chai
     .request(server)
     .post('/case')
+    .set('X-API-KEY', testingToken)
     .set('content-type', 'application/json')
     .send(requestBody);
 };
