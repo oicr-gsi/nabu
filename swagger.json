@@ -252,6 +252,15 @@
       "post": {
         "summary": "Create a case archive record",
         "description": "Adds a case archive record with basic data",
+        "parameters": [
+          {
+            "name": "X-API-KEY",
+            "in": "header",
+            "required": true,
+            "schema":{
+              "type": "string"
+            }
+          }],
         "requestBody": {
           "description": "Fields for creating a new case archive record",
           "required": true,
@@ -262,6 +271,9 @@
               }
             }
           }
+        },
+        "security": {
+          "ApiKeyAuth": []
         },
         "responses": {
           "200": {
@@ -286,6 +298,26 @@
           },
           "409": {
             "description": "Submitted parameters do not match parameters for existing case with the same caseIdentifier",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The sign-off content does not meet requirements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The submission is missing a valid API token in header",
             "content": {
               "application/json": {
                 "schema": {
