@@ -6,6 +6,8 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+## 3.9.0: [2024-09-16]
+
 ### Changed
 
 * An API key is required to submit a new case (endpoint `/case/` POST)
