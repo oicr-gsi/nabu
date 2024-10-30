@@ -6,6 +6,10 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Changed
+
+* Add optional release status (boolean) to sign-off records
+
 ## 3.9.0: [2024-09-16]
 
 ### Changed
