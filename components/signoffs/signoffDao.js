@@ -12,6 +12,7 @@ const signoffStepName = 'signoff_step_name';
 const deliverableType = 'deliverable_type';
 const deliverable = 'deliverable';
 const comment = 'comment';
+const release = 'release';
 
 const signoffColsCreate = new pgp.helpers.ColumnSet(
   [
@@ -22,6 +23,7 @@ const signoffColsCreate = new pgp.helpers.ColumnSet(
     deliverableType,
     deliverable,
     comment,
+    release,
   ],
   { table: 'signoff' }
 );
@@ -36,6 +38,7 @@ const addSignoff = (caseId, signed, oldSignoffId = null) => {
       deliverable_type: signed.deliverableType,
       deliverable: signed.deliverable,
       comment: signed.comment,
+      release: signed.release,
     };
 
     const signoffInsert = pgp.helpers.insert(
