@@ -1,0 +1,1 @@
+ALTER TABLE signoff ADD COLUMN release boolean NULL;
