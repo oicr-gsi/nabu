@@ -21,6 +21,7 @@ const signoffProperties = [
   'deliverableType',
   'deliverable',
   'comment',
+  'release',
 ];
 
 const testingToken =

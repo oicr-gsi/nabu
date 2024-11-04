@@ -1170,6 +1170,10 @@
           "comment": {
             "description": "Optional URL-escaped reason why sign-off is PASS or FAIL",
             "type": "string"
+          },
+          "release": {
+            "description": "Optional boolean for release status",
+            "type": "boolean"
           }
         }
       },
@@ -1206,6 +1210,10 @@
           "comment": {
             "description": "Optional URL-escaped reason why sign-off is PASS or FAIL",
             "type": "string"
+          },
+          "release": {
+            "description": "Optional boolean for release status",
+            "type": "boolean"
           }
         }
       },
@@ -1248,6 +1256,10 @@
           "comment": {
             "description": "URL-escaped reason why sign-off is PASS or FAIL (only returned if a sign-off record is found and a comment was provided)",
             "type": "string"
+          },
+          "release": {
+            "description": "Optional boolean for release status",
+            "type": "boolean"
           }
         },
         "required": [

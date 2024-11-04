@@ -204,6 +204,7 @@ function validateObjectsFromUser (unvalidated) {
     signoffStepName: stepname,
     deliverable: validateDeliverable(unvalidated.deliverable, stepname),
     comment: validateComment(unvalidated.comment),
+    release: nullifyIfBlank(unvalidated.release),
   };
   for (const [, value] of Object.entries(fromUser)) {
     if (value instanceof ValidationError) {

@@ -17,11 +17,11 @@ INSERT INTO archive (case_id, workflow_run_ids_for_offsite_archive, unload_file_
 ((SELECT id FROM cardea_case WHERE case_identifier = 'R12_TEST_1212_Ab_C'), '{"vidarr:research/run/ac7fa728822f4b801f17cb6aa5d597e32642e6e36a2089fb3c947e4d7d679203", "vidarr:research/run/93d25e166f7ea82c6eb17e48e62e4134939fcaf75c9b9f953819797f4878d961", "vidarr:research/run/8b7fb588926f5efcdfe9824e867b91c93829c383f4177f87b92288b2f2554f8f", "vidarr:research/run/88065a62eeb0ad351f48ff9a3a32cdbdbe4bedf1e386603c1d4d8cfd46d5acd0", "vidarr:research/run/86b9da7b2b84174daef0f29beecf84453d8f987c46805121bf3109e0de48dc14"}', NULL, NULL, NULL, '{"vidarr:research/run/d8cc36839b0dd246af6940f175f089bf2007f5dcb01a00bc53a55526060250f9"}', NULL, NULL, NULL);
 
 DELETE FROM signoff;
-INSERT INTO signoff (case_identifier, qc_passed, username, signoff_step_name, deliverable_type, deliverable, comment) VALUES
-('R11_TEST_1000_Xy_Z', TRUE, 'me', 'RELEASE', 'CLINICAL_REPORT', 'X', ''),
-('R12_TEST_1212_Ab_C', FALSE, 'me', 'ANALYSIS_REVIEW', 'DATA_RELEASE', '', ''),
-('R12_TEST_9999_De_F', null, 'me', 'RELEASE', 'DATA_RELEASE', 'X', ''),
-('R12_TEST_9999_De_F', TRUE, 'me', 'ANALYSIS_REVIEW', 'DATA_RELEASE', '', ''),
-('R12_TEST_9999_De_F', FALSE, 'me', 'RELEASE_APPROVAL', 'DATA_RELEASE', '', '');
+INSERT INTO signoff (case_identifier, qc_passed, username, signoff_step_name, deliverable_type, deliverable, comment, release) VALUES
+('R11_TEST_1000_Xy_Z', TRUE, 'me', 'RELEASE', 'CLINICAL_REPORT', 'X', '', NULL),
+('R12_TEST_1212_Ab_C', FALSE, 'me', 'ANALYSIS_REVIEW', 'DATA_RELEASE', '', '', NULL),
+('R12_TEST_9999_De_F', null, 'me', 'RELEASE', 'DATA_RELEASE', 'X', '', NULL),
+('R12_TEST_9999_De_F', TRUE, 'me', 'ANALYSIS_REVIEW', 'DATA_RELEASE', '', '', NULL),
+('R12_TEST_9999_De_F', FALSE, 'me', 'RELEASE_APPROVAL', 'DATA_RELEASE', '', '', NULL);
 
 INSERT INTO token (auth_token, auth_id, username) VALUES ('7e9668724e31742d:164f53c7057e2667de55ae8ad9c1df7fbf85f261f4d89e8f696a81b1ed9972652ed33269eaaa61f738f04cfb8310372e99faad26b1dee5dd1488d3d2dcfcf835', 'wdew0h5hoxvraj1xhrzix4j6nbswhh','inital');
