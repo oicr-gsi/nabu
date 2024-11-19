@@ -86,6 +86,7 @@ Nabu uses a SQLite database to store certain fields from the File Provenance Rep
 
 
 The [rsync_full_fpr.sh](components/fpr/rsync_full_fpr.sh) script will pull the latest version of the file provenance report, provided your environmental variables in `.env` are correctly set. If you are working with a local copy of the file provenance report, move or copy it to the `$SQLITE_LOCATION` directory you just created. The script can then be run without the line that begins with `rsync`. 
+  * Note that the syntax this script uses is specific to `gawk`
 
 ## Running the application
 Start PostgreSQL using `pg_ctl start -l {DB LOG FILE LOCATION}` or any other method.
