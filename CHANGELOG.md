@@ -9,6 +9,7 @@ and this project attempts to adhere to Semantic Versioning.
 ### Changed
 
 * Add optional release status (boolean) to sign-off records
+* Dependency updates
 
 ## 3.9.0: [2024-09-16]
 
