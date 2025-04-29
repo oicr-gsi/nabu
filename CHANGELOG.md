@@ -6,6 +6,10 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Added
+
+* metadata column to archive table
+
 ## 3.10.0: [2024-12-16]
 
 ### Changed
