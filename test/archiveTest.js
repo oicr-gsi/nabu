@@ -112,6 +112,7 @@ describe('case archive tracking', () => {
           'vidarr:research/run/1234',
         ],
         workflowRunIdsForVidarrArchival: ['vidarr:research/run/abba'],
+	metadata: {"case_total_size": 37648386327, "case_current_size": 37648386327, "offsite_archive_size": 26183363820, "onsite_archive_size": 0},
       };
       addCaseArchives(server, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
@@ -133,6 +134,7 @@ describe('case archive tracking', () => {
         workflowRunIdsForVidarrArchival: [
           'vidarr:research/run/da0e6032ed08591ae684a015ad3c58867a47a65b6c61995e421fc417e2c438c1',
         ],
+	metadata: {"case_total_size": 3764836327, "case_current_size": 3764836327, "offsite_archive_size": 2618336320, "onsite_archive_size": 200},
       };
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
         expect(res.status).to.equal(200);
@@ -146,6 +148,9 @@ describe('case archive tracking', () => {
         expect(res.body[0].workflowRunIdsForVidarrArchival).to.include.members(
           reqBody.workflowRunIdsForVidarrArchival
         );
+	expect(res.body[0].metadata.case_total_size).to.be.equal(reqBody.metadata.case_total_size);
+	expect(res.body[0].metadata.case_current_size).to.be.equal(reqBody.metadata.case_current_size);
+	
 
         addCaseArchives(server, reqBody).end((err, res) => {
           expect(res.status).to.equal(200); // 200 means it's the same
@@ -168,6 +173,7 @@ describe('case archive tracking', () => {
         workflowRunIdsForVidarrArchival: [
           'vidarr:research/run/da0e6032ed08591ae684a015ad3c58867a47a65b6c61995e421fc417e2c438c1',
         ],
+	metadata: {}
       };
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
         expect(res.status).to.equal(200);

@@ -24,6 +24,7 @@ const wfrIdsForVidarrArchival = 'workflow_run_ids_for_vidarr_archival';
 const unloadFileForVidarrArchival = 'unload_file_for_vidarr_archival';
 const filesLoadedIntoVidarrArchival = 'files_loaded_into_vidarr_archival';
 const caseFilesUnloaded = 'case_files_unloaded';
+const metadata = 'metadata';
 
 const caseCols = [id, caseIdentifier, requisitionId, limsIds];
 const archiveCols = [
@@ -39,13 +40,14 @@ const archiveCols = [
   unloadFileForVidarrArchival,
   filesLoadedIntoVidarrArchival,
   caseFilesUnloaded,
+  metadata,
 ];
 
 const caseColsCreate = new pgp.helpers.ColumnSet(
   [caseIdentifier, requisitionId, limsIds],
   { table: 'cardea_case' }
 );
-const archiveColsCreate = [caseId, wfrIdsForOffsite, wfrIdsForVidarrArchival];
+const archiveColsCreate = [caseId, wfrIdsForOffsite, wfrIdsForVidarrArchival, metadata];
 const archiveColsCopyToOffsiteStagingDir = [
   caseId,
   unloadFileForOffsite,
@@ -90,6 +92,7 @@ const addCase = (kase, newArchive = true) => {
             kase.workflowRunIdsForOffsiteArchive,
           workflow_run_ids_for_vidarr_archival:
             kase.workflowRunIdsForVidarrArchival,
+          metadata: kase.metadata,
         };
 
         let archiveQuery;
@@ -133,6 +136,7 @@ const addCaseArchiveOnly = (kase) => {
             kase.workflowRunIdsForOffsiteArchive,
           workflow_run_ids_for_vidarr_archival:
             kase.workflowRunIdsForVidarrArchival,
+	  metadata: kase.metadata,
         };
 
         const archiveQuery = pgp.helpers.insert(
@@ -153,8 +157,8 @@ const addCaseArchiveOnly = (kase) => {
   });
 };
 
-const caseArchiveDataQueryWithoutUnloadFiles = `SELECT c.${caseIdentifier}, c.${requisitionId}, c.${limsIds}, a.${created}, a.${modified}, a.${wfrIdsForOffsite}, a.${filesCopiedToOffsiteStagingDir}, a.${commvaultJobId}, a.${wfrIdsForVidarrArchival}, a.${filesLoadedIntoVidarrArchival}, a.${caseFilesUnloaded} FROM cardea_case c JOIN archive a ON c.${id} = a.${caseId}`;
-const caseArchiveDataQueryWithUnloadFiles = `SELECT c.${caseIdentifier}, c.${requisitionId}, c.${limsIds}, a.${created}, a.${modified}, a.${wfrIdsForOffsite}, a.${unloadFileForOffsite}, a.${filesCopiedToOffsiteStagingDir}, a.${commvaultJobId}, a.${wfrIdsForVidarrArchival}, a.${unloadFileForVidarrArchival}, a.${filesLoadedIntoVidarrArchival}, a.${caseFilesUnloaded} FROM cardea_case c JOIN archive a ON c.${id} = a.${caseId}`;
+const caseArchiveDataQueryWithoutUnloadFiles = `SELECT c.${caseIdentifier}, c.${requisitionId}, c.${limsIds}, a.${created}, a.${modified}, a.${wfrIdsForOffsite}, a.${filesCopiedToOffsiteStagingDir}, a.${commvaultJobId}, a.${wfrIdsForVidarrArchival}, a.${filesLoadedIntoVidarrArchival}, a.${caseFilesUnloaded}, a.${metadata} FROM cardea_case c JOIN archive a ON c.${id} = a.${caseId}`;
+const caseArchiveDataQueryWithUnloadFiles = `SELECT c.${caseIdentifier}, c.${requisitionId}, c.${limsIds}, a.${created}, a.${modified}, a.${wfrIdsForOffsite}, a.${unloadFileForOffsite}, a.${filesCopiedToOffsiteStagingDir}, a.${commvaultJobId}, a.${wfrIdsForVidarrArchival}, a.${unloadFileForVidarrArchival}, a.${filesLoadedIntoVidarrArchival}, a.${caseFilesUnloaded}, a.${metadata} FROM cardea_case c JOIN archive a ON c.${id} = a.${caseId}`;
 
 const getCaseArchiveQuery = (includeUnloadFiles = false) => {
   let query;

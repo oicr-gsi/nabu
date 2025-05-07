@@ -1065,7 +1065,11 @@
           "items": {
             "type": "string"
           }
-        }
+        },
+	"metadata": {
+          "description": "Metadata for the case archive",
+	  "type": "object"
+	}
       }
     },
     "Case-response": {
@@ -1128,6 +1132,10 @@
           "description": "Date that the case was last modified in Nabu",
           "type": "string",
           "format": "date-time"
+        },
+	"metadata": {
+          "description": "Metadata associated with the case archive",
+	  "type": "object"
         }
       },
       "required": [
