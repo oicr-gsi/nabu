@@ -28,23 +28,22 @@
           "content": {
             "application/json": {
               "schema": {
-                  "$ref": "#/components/schemas/FileQC-add"
-                }
+                "$ref": "#/components/schemas/FileQC-add"
               }
             }
           }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "Successfully created FileQCs"
         },
-        "responses": {
-          "201": {
-            "description": "Successfully created FileQCs"
-          },
-          "400": {
-            "description": "Failures during save caused no FileQCs to be created",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/Errors"
-                }
+        "400": {
+          "description": "Failures during save caused no FileQCs to be created",
+          "content": {
+            "text/plain": {
+              "schema": {
+                "$ref": "#/components/schemas/Errors"
               }
             }
           }
@@ -76,16 +75,16 @@
                       "items": {
                         "type": "string"
                       }
-                   }
-                 }
-               }
-             }
-           }
-         }
-       }
-     }
-   },
-   "/delete-fileqcs": {
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/delete-fileqcs": {
       "post": {
         "summary": "Batch delete FileQC records",
         "description": "Deletes FileQC records for the given File IDs",
@@ -133,7 +132,7 @@
                 }
               }
             }
-     }
+    }
           },
           "400": {
             "description": "Failed to delete any FileQCs",
@@ -388,14 +387,14 @@
         ], 
         "requestBody": {
           "required": true,
-          "description": "Vidarr unload file containing metadata about the files to be moved to the offsite staging directory",
+          "description": "Vidarr copy-out file containing metadata about the files to be sent offsite",
           "content": {
             "application/json": {
               "schema": {
                 "type": "object"
               }
             }
-          }const filesCopiedToStagingDirQuery = `UPDATE archive SET ${filesCopiedToOffsiteStagingDir} = NOW(), ${unloadFileForOffsite} = $1 WHERE ${caseId} = (SELECT ${id} FROM cardea_case WHERE ${caseIdentifier} = $2) AND ${filesCopiedToOffsiteStagingDir} IS NULL`;
+          }
         },
         "responses": {
           "200": {
@@ -728,110 +727,110 @@
         }
       }
     },
-      "/case/sign-off": {
-        "post": {
-          "summary": "Create one or more sign-off records",
-          "description": "Adds a series of sign-off records with basic data",
-          "parameters": [{
-            "name": "X-API-KEY",
-            "in": "header",
-            "required": true,
-            "schema":{
-              "type": "string"
-            }
-          }],
-          "requestBody": {
-            "description": "Fields for creating new signoff records",
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/signoffs-new"
-                }
-              }
-            }
-          },
-          "security": {
-            "ApiKeyAuth": []
-          },
-          "responses": {
-            "201": {
-              "description": "Sign-off record(s) created or updated",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/signoff-response"
-                    }
-                  }
-                }
-              }
-            },
-            "401": {
-              "description": "The submission is missing a valid API token in header",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Errors"
-                  }
-                }
-              }
-            },
-            "400": {
-              "description": "The sign-off content does not meet requirements",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Errors"
-                  }
-                }
+    "/case/sign-off": {
+      "post": {
+        "summary": "Create one or more sign-off records",
+        "description": "Adds a series of sign-off records with basic data",
+        "parameters": [{
+          "name": "X-API-KEY",
+          "in": "header",
+          "required": true,
+          "schema":{
+            "type": "string"
+          }
+        }],
+        "requestBody": {
+          "description": "Fields for creating new signoff records",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/signoffs-new"
               }
             }
           }
         },
-        "get": {
-          "summary": "Get all sign-off records",
-          "description": "Each resource represents a sign-off record. Each sign-off record is associated with a string `caseIdentifier`. A caseIdentifier may have multiple sign-off records",
-          "parameters": [
-          {
-            "name": "X-API-KEY",
-            "in": "header",
-            "required": true,
-            "schema":{
-              "type": "string"
-            }
-          }],
-          "security": {
-            "ApiKeyAuth": []
-          },
-          "responses": {
-            "200": {
-              "description": "Retrieved sign-off record(s)",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/signoff-response"
-                    }
+        "security": {
+          "ApiKeyAuth": []
+        },
+        "responses": {
+          "201": {
+            "description": "Sign-off record(s) created or updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/signoff-response"
                   }
                 }
               }
-            },
-            "401": {
-              "description": "The submission is missing a valid API token in header",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Errors"
+            }
+          },
+          "401": {
+            "description": "The submission is missing a valid API token in header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The sign-off content does not meet requirements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Get all sign-off records",
+        "description": "Each resource represents a sign-off record. Each sign-off record is associated with a string `caseIdentifier`. A caseIdentifier may have multiple sign-off records",
+        "parameters": [
+        {
+          "name": "X-API-KEY",
+          "in": "header",
+          "required": true,
+          "schema":{
+            "type": "string"
+          }
+        }],
+        "security": {
+          "ApiKeyAuth": []
+        },
+        "responses": {
+          "200": {
+            "description": "Retrieved sign-off record(s)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/signoff-response"
                   }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The submission is missing a valid API token in header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
                 }
               }
             }
           }
         }
       }
+    }
   },
   "components": {
     "securitySchemes": {
@@ -1070,10 +1069,21 @@
             "type": "string"
           }
         },
-	"metadata": {
+	      "metadata": {
           "description": "Metadata for the case archive",
-	  "type": "object"
-	}
+	        "type": "object"
+	      },
+        "archiveTarget": {
+          "description": "Archive target information",
+          "type": "string"
+        },
+        "archiveWith": {
+          "description": "List of case IDs that this case should be archived with",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
     "Case-response": {
@@ -1137,9 +1147,28 @@
           "type": "string",
           "format": "date-time"
         },
-	"metadata": {
+        "metadata": {
           "description": "Metadata associated with the case archive",
-	  "type": "object"
+          "type": "object"
+        },
+        "archiveTarget": {
+          "description": "Archive target information",
+          "type": "string"
+        },
+        "archiveWith": {
+          "description": "List of case IDs that this case should be archived with",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "batchId": {
+          "description": "Archive batch ID",
+          "type": "string"
+        },
+        "stopProcessing": {
+          "description": "Whether the case archive is flagged to stop all processing",
+          "type": "boolean"
         }
       },
       "required": [
@@ -1153,7 +1182,9 @@
         "commvaultBackupJobId",
         "workflowRunIdsForVidarrArchival",
         "filesLoadedIntoVidarrArchival",
-        "caseFilesUnloaded"
+        "caseFilesUnloaded",
+        "archiveTarget",
+        "archiveWith"
       ]
     },
       "signoff-new": {

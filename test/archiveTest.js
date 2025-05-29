@@ -54,9 +54,21 @@ const getCaseByCaseIdentifier = (server, caseIdentifier = {}) => {
     .send();
 };
 
+const resumeArchiving = (server, caseIdentifier) => {
+  let url = `/case/${caseIdentifier}/${urls.resumeArchiving}`;
+  return chai
+    .request(server)
+    .post(url)
+    .set('content-type', 'application/json')
+    .send();
+};
+
 const isValidDate = (date) => {
   return !!Date.parse(date);
 };
+
+const r11ArchiveWith = ["R99_ANOTHER_100_Xy_Z"];
+const r11ArchiveTarget = 'GLACIER_2Y';
 
 describe('case archive tracking', () => {
   beforeEach(function () {
@@ -112,7 +124,9 @@ describe('case archive tracking', () => {
           'vidarr:research/run/1234',
         ],
         workflowRunIdsForVidarrArchival: ['vidarr:research/run/abba'],
-	metadata: {"case_total_size": 37648386327, "case_current_size": 37648386327, "offsite_archive_size": 26183363820, "onsite_archive_size": 0},
+	      metadata: {"case_total_size": 37648386327, "case_current_size": 37648386327, "offsite_archive_size": 26183363820, "onsite_archive_size": 0},
+        archiveWith: ['R14_TEST_0033_Cc_C'],
+        archiveTarget: 'GLACIER_6M',
       };
       addCaseArchives(server, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
@@ -134,7 +148,9 @@ describe('case archive tracking', () => {
         workflowRunIdsForVidarrArchival: [
           'vidarr:research/run/da0e6032ed08591ae684a015ad3c58867a47a65b6c61995e421fc417e2c438c1',
         ],
-	metadata: {"case_total_size": 3764836327, "case_current_size": 3764836327, "offsite_archive_size": 2618336320, "onsite_archive_size": 200},
+	      metadata: {"case_total_size": 3764836327, "case_current_size": 3764836327, "offsite_archive_size": 2618336320, "onsite_archive_size": 200},
+        archiveWith: r11ArchiveWith,
+        archiveTarget: r11ArchiveTarget,
       };
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
         expect(res.status).to.equal(200);
@@ -148,8 +164,11 @@ describe('case archive tracking', () => {
         expect(res.body[0].workflowRunIdsForVidarrArchival).to.include.members(
           reqBody.workflowRunIdsForVidarrArchival
         );
-	expect(res.body[0].metadata.case_total_size).to.be.equal(reqBody.metadata.case_total_size);
-	expect(res.body[0].metadata.case_current_size).to.be.equal(reqBody.metadata.case_current_size);
+        expect(res.body[0].metadata.case_total_size).to.be.equal(reqBody.metadata.case_total_size);
+        expect(res.body[0].metadata.case_current_size).to.be.equal(reqBody.metadata.case_current_size);
+        expect(res.body[0].archiveWith).to.include.members(reqBody.archiveWith);
+        expect(res.body[0].archiveTarget).to.be.equal(reqBody.archiveTarget);
+        expect(res.body[0].stopProcessing).to.be.false;
 	
 
         addCaseArchives(server, reqBody).end((err, res) => {
@@ -158,32 +177,24 @@ describe('case archive tracking', () => {
         done();
       });
     });
-    it('it should error when a case is submitted with the same case identifier but different case data', (done) => {
+    it('it should error and be flagged to stop processing when a case is submitted with the same case identifier but different case data, and that the stop processing flag can be cleared', (done) => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
-      let reqBody = {
-        caseIdentifier: caseIdentifier,
-        requisitionId: 1111111,
-        limsIds: ['109_1_LDI5432', '109_1_LDI4321'],
-        workflowRunIdsForOffsiteArchive: [
-          'vidarr:research/run/f77732c812aa134f61b3a7c11d1c4451cefe70e90e828a11345e8a0cd7704a0f',
-          'vidarr:research/run/eeb4c43908e5df3dd4997dcc982c4c0d7285b51d7a800e501da06add9125faa7',
-          'vidarr:research/run/e651c4aa01d506904bc8b89a411e948c24d43fc0e841486937f23d72eb7c4fae',
-          'vidarr:research/run/de7b18bb97916885afbb7b085d61f00cfaa28793a8b7260b50c4d4ece3567216',
-        ],
-        workflowRunIdsForVidarrArchival: [
-          'vidarr:research/run/da0e6032ed08591ae684a015ad3c58867a47a65b6c61995e421fc417e2c438c1',
-        ],
-	metadata: {}
-      };
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
         expect(res.status).to.equal(200);
-        expect(res.body[0].caseIdentifier).to.be.equal(reqBody.caseIdentifier);
-        expect(res.body[0].requisitionId).not.to.be.equal(
-          reqBody.requisitionId
-        );
+        let newReq = res.body[0];
+        newReq.workflowRunIdsForOffsiteArchive = ["vidarr:test/run/abcdef12345"];
 
-        addCaseArchives(server, reqBody).end((err, res) => {
+        addCaseArchives(server, newReq).end((err, res) => {
           expect(res.status).to.equal(409);
+
+          getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
+            expect(res.body[0].stopProcessing).to.be.true;
+
+            resumeArchiving(server, caseIdentifier).end((err, res) => {
+              expect(res.status).to.equal(200);
+              expect(res.body[0].stopProcessing).to.be.false;
+            });
+          })
           done();
         });
       });
@@ -202,6 +213,7 @@ describe('case archive tracking', () => {
           { run3: 'yet more values' },
         ],
       };
+      let batchId = 'batch_123'
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
         expect(res.status).to.equal(200);
         expect(res.body[0].filesCopiedToOffsiteArchiveStagingDir).to.be.a(
@@ -217,13 +229,14 @@ describe('case archive tracking', () => {
             updateCaseArchives(
               server,
               caseIdentifier,
-              urls.filesCopiedToOffsiteStagingDir,
+              `${urls.filesCopiedToOffsiteStagingDir}/${batchId}`,
               unloadFile
             ).end((err, res) => {
               expect(res.status).to.equal(200);
               expect(
                 res.body[0].filesCopiedToOffsiteArchiveStagingDir
               ).not.to.be.a('null');
+              expect(res.body[0].batchId).to.be.equal(batchId);
               expect(
                 isValidDate(res.body[0].filesCopiedToOffsiteArchiveStagingDir)
               ).to.be.true;
@@ -264,7 +277,7 @@ describe('case archive tracking', () => {
         updateCaseArchives(
           server,
           caseIdentifier,
-          urls.filesCopiedToOffsiteStagingDir,
+          `${urls.filesCopiedToOffsiteStagingDir}/noBatchId`,
           unloadFile
         ).end((err, res) => {
           expect(res.status).to.equal(404);
@@ -296,7 +309,7 @@ describe('case archive tracking', () => {
         updateCaseArchives(
           server,
           caseIdentifier,
-          urls.filesCopiedToOffsiteStagingDir,
+          `${urls.filesCopiedToOffsiteStagingDir}/badBatch`,
           unloadFile
         ).end((err, res) => {
           expect(res.status).to.equal(200);

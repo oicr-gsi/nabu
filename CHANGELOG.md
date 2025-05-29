@@ -6,6 +6,17 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Added
+
+* `archiveWith`, `archiveTarget`, `batchId`, `stopProcessing` fields for case archive
+  * if a case archive is resubmitted with changed data and the case has already begun archiving, the case will be set to `stopProcessing` and monitoring will be updated
+* `/case/<caseIdentifier>/resume-archiving` endpoint to manually resume archiving if a case had been set to `stopProcessing`
+
+### Changed
+
+* URL for marking that a case has been copied to the offsite staging directory is now `/case/<caseIdentifier>/copied-to-offsite-staging/<batchId>`, where `<batchId>` is the archiving batch ID
+* Improve error messages
+
 ## 3.11.0: [2025-05-07]
 
 ### Added
