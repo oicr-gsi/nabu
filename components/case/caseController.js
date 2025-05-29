@@ -62,7 +62,7 @@ const allCaseArchives = async (req, res, next) => {
         stream.pipe(JSONStream.stringify()).pipe(res);
         stream.on('error', (err) => {
           // log the error and prematurely end the response
-          logger.log(err);
+          logger.error(err);
           res.end();
         });
       });

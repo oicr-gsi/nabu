@@ -115,7 +115,7 @@ const standardCatch = (err, reject) => {
   if (err.code === qrec.noData) {
     reject(new AuthenticationError('Unable to authenticate submission'));
   } else {
-    logger.log(err);
+    logger.error(err);
     reject(new Error(err));
   }
 };

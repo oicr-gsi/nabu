@@ -329,7 +329,7 @@ const standardCatch = (err, reject) => {
   if (err.code === qrec.noData) {
     reject(new NotFoundError());
   } else {
-    logger.log(err);
+    logger.error(err);
     reject(new Error(err));
   }
 };
