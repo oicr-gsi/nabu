@@ -172,6 +172,7 @@ const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
     }
     const updatedCase = await caseDao.updateFilesCopiedToOffsiteStagingDir(
       req.params.caseIdentifier,
+      req.params.batchId,
       JSON.stringify(req.body)
     );
     if (updatedCase && updatedCase.length) {

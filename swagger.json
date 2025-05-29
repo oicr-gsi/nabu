@@ -367,7 +367,7 @@
         }
       }
     },
-    "/case/{caseIdentifier}/copied-to-offsite-staging": {
+    "/case/{caseIdentifier}/copied-to-offsite-staging/{batchId}": {
       "put": {
         "summary": "Case archive files moved to offsite staging directory",
         "description": "Indicate that this case archive's files have been moved to the offfsite staging directory",
@@ -376,6 +376,14 @@
             "name": "caseIdentifier",
             "in": "path",
             "description": "unique case identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }, {
+            "name": "batchId",
+            "in": "path",
+            "description": "archiving batch identifier",
             "required": true,
             "schema": {
               "type": "string"
@@ -391,7 +399,7 @@
                 "type": "object"
               }
             }
-          }
+          }const filesCopiedToStagingDirQuery = `UPDATE archive SET ${filesCopiedToOffsiteStagingDir} = NOW(), ${unloadFileForOffsite} = $1 WHERE ${caseId} = (SELECT ${id} FROM cardea_case WHERE ${caseIdentifier} = $2) AND ${filesCopiedToOffsiteStagingDir} IS NULL`;
         },
         "responses": {
           "200": {
