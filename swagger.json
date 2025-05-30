@@ -28,18 +28,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "fileqcs": {
-                    "$ref": "#/components/schemas/FileQC-add"
-                  }
+                  "$ref": "#/components/schemas/FileQC-add"
                 }
               }
             }
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Successfully created FileQCs"
           },
           "400": {
