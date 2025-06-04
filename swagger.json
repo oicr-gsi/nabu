@@ -5,18 +5,17 @@
     "title": "FileQC API",
     "description": "API for the FileQC project"
   },
-  "servers": [{
-    "url": "/",
-    "variables": {
-      "protocol": {
-        "enum": [
-          "http",
-          "https"
-        ],
-        "default": "https"
+  "servers": [
+    {
+      "url": "/",
+      "variables": {
+        "protocol": {
+          "enum": ["http", "https"],
+          "default": "https"
+        }
       }
     }
-  }],
+  ],
   "paths": {
     "/add-fileqcs": {
       "post": {
@@ -75,6 +74,7 @@
                       "items": {
                         "type": "string"
                       }
+                    }
                   }
                 }
               }
@@ -82,9 +82,8 @@
           }
         }
       }
-    }
-  },
-  "/delete-fileqcs": {
+    },
+    "/delete-fileqcs": {
       "post": {
         "summary": "Batch delete FileQC records",
         "description": "Deletes FileQC records for the given File IDs",
@@ -116,23 +115,23 @@
                   "type": "object",
                   "properties": {
                     "success": {
-                    "type": "array",
-                    "description": "Message containing the IDs of the FileQCs which were deleted",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "errors": {
-                    "type": "array",
-                    "description": "Message containing the IDs of the FileQCs which were not deleted",
-                    "items": {
-                      "type": "string"
+                      "type": "array",
+                      "description": "Message containing the IDs of the FileQCs which were deleted",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "errors": {
+                      "type": "array",
+                      "description": "Message containing the IDs of the FileQCs which were not deleted",
+                      "items": {
+                        "type": "string"
+                      }
                     }
                   }
                 }
               }
             }
-    }
           },
           "400": {
             "description": "Failed to delete any FileQCs",
@@ -217,15 +216,17 @@
       "get": {
         "summary": "Get all case archives",
         "description": "A streaming endpoint to get all case archive records",
-        "parameters": [{
-          "in": "query",
-          "name": "not",
-          "required": false,
-          "schema": {
-            "type": "string"
-          },
-          "description": "Optional parameter to filter by outstanding case archiving work. Permitted values are: 'copied-to-offsite-staging', 'sent-offsite', 'sent-to-vidarr-archival', 'unloaded'"
-        }],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "not",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional parameter to filter by outstanding case archiving work. Permitted values are: 'copied-to-offsite-staging', 'sent-offsite', 'sent-to-vidarr-archival', 'unloaded'"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Case archive records",
@@ -252,10 +253,11 @@
             "name": "X-API-KEY",
             "in": "header",
             "required": true,
-            "schema":{
+            "schema": {
               "type": "string"
             }
-          }],
+          }
+        ],
         "requestBody": {
           "description": "Fields for creating a new case archive record",
           "required": true,
@@ -328,23 +330,26 @@
       "get": {
         "summary": "Get a case archive record",
         "description": "This resource represents a case and archive record. Each case and archive record is identified by a string `caseIdentifier`",
-        "parameters": [{
-          "name": "caseIdentifier",
-          "in": "path",
-          "description": "unique case identifier",
-          "required": true,
-          "schema": {
-            "type": "string"
+        "parameters": [
+          {
+            "name": "caseIdentifier",
+            "in": "path",
+            "description": "unique case identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeVidarrMetadata",
+            "in": "query",
+            "description": "Whether or not to return the full Vidarr metadata for files sent offsite and files sent to vidarr-archival (true/false)",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
           }
-        }, {
-          "name": "includeVidarrMetadata",
-          "in": "query",
-          "description": "Whether or not to return the full Vidarr metadata for files sent offsite and files sent to vidarr-archival (true/false)",
-          "required": false,
-          "schema": {
-            "type": "boolean"
-          }
-        }],
+        ],
         "responses": {
           "201": {
             "description": "Created case archive record",
@@ -375,7 +380,8 @@
             "schema": {
               "type": "string"
             }
-          }, {
+          },
+          {
             "name": "batchId",
             "in": "path",
             "description": "archiving batch identifier",
@@ -384,7 +390,7 @@
               "type": "string"
             }
           }
-        ], 
+        ],
         "requestBody": {
           "required": true,
           "description": "Vidarr copy-out file containing metadata about the files to be sent offsite",
@@ -410,7 +416,6 @@
           "404": {
             "description": "The requested case archive resource was not found"
           }
-
         }
       }
     },
@@ -541,14 +546,16 @@
       "post": {
         "summary": "Create a token",
         "description": "Adds a new API token",
-        "parameters": [{
+        "parameters": [
+          {
             "name": "X-API-KEY",
             "in": "header",
             "required": false,
-            "schema":{
+            "schema": {
               "type": "string"
             }
-          }],
+          }
+        ],
         "requestBody": {
           "description": "username",
           "required": true,
@@ -613,23 +620,25 @@
       "post": {
         "summary": "Create a sign-off record",
         "description": "Adds a sign-off record with basic data",
-        "parameters": [{
-          "name": "caseIdentifier",
-          "in": "path",
-          "description": "unique case identifier",
-          "required": true,
-          "schema": {
-            "type": "string"
+        "parameters": [
+          {
+            "name": "caseIdentifier",
+            "in": "path",
+            "description": "unique case identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           },
           {
             "name": "X-API-KEY",
             "in": "header",
             "required": true,
-            "schema":{
+            "schema": {
               "type": "string"
             }
-          }],
+          }
+        ],
         "requestBody": {
           "description": "Fields for creating a new signoff record",
           "required": true,
@@ -680,23 +689,25 @@
       "get": {
         "summary": "Get all sign-off records associated with a case",
         "description": "This resource represents a sign-off record. Each sign-off record is associated with a string `caseIdentifier`. A caseIdentifier may have multiple sign-off records",
-        "parameters": [{
-          "name": "caseIdentifier",
-          "in": "path",
-          "description": "unique case identifier",
-          "required": true,
-          "schema": {
-            "type": "string"
+        "parameters": [
+          {
+            "name": "caseIdentifier",
+            "in": "path",
+            "description": "unique case identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-API-KEY",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
-        },
-        {
-          "name": "X-API-KEY",
-          "in": "header",
-          "required": true,
-          "schema":{
-            "type": "string"
-          }
-        }],
+        ],
         "security": {
           "ApiKeyAuth": []
         },
@@ -731,14 +742,16 @@
       "post": {
         "summary": "Create one or more sign-off records",
         "description": "Adds a series of sign-off records with basic data",
-        "parameters": [{
-          "name": "X-API-KEY",
-          "in": "header",
-          "required": true,
-          "schema":{
-            "type": "string"
+        "parameters": [
+          {
+            "name": "X-API-KEY",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
-        }],
+        ],
         "requestBody": {
           "description": "Fields for creating new signoff records",
           "required": true,
@@ -793,14 +806,15 @@
         "summary": "Get all sign-off records",
         "description": "Each resource represents a sign-off record. Each sign-off record is associated with a string `caseIdentifier`. A caseIdentifier may have multiple sign-off records",
         "parameters": [
-        {
-          "name": "X-API-KEY",
-          "in": "header",
-          "required": true,
-          "schema":{
-            "type": "string"
+          {
+            "name": "X-API-KEY",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
-        }],
+        ],
         "security": {
           "ApiKeyAuth": []
         },
@@ -835,7 +849,7 @@
   "components": {
     "securitySchemes": {
       "ApiKeyAuth": {
-        "schema":{
+        "schema": {
           "type": "string"
         },
         "in": "header",
@@ -844,349 +858,349 @@
       }
     },
     "schemas": {
-    "Errors": {
-      "type": "object",
-      "properties": {
-        "errors": {
-          "description": "List of errors",
-          "type": "array",
-          "items": {
+      "Errors": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "description": "List of errors",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "FileQC-get": {
+        "type": "object",
+        "properties": {
+          "fileids": {
+            "description": "Filter by File IDs",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "fileswids": {
+            "description": "Filter by file SWIDs (deprecated)",
+            "type": "string"
+          },
+          "project": {
+            "description": "Filter by Project short name",
+            "type": "string"
+          },
+          "qcstatus": {
+            "description": "Filter by qc status (PASS, FAIL, PENDING)",
+            "type": "string"
+          },
+          "workflow": {
+            "description": "Filter by workflow name. Must be used with `project` query",
             "type": "string"
           }
         }
-      }
-    },
-    "FileQC-get": {
-      "type": "object",
-      "properties": {
-        "fileids": {
-          "description": "Filter by File IDs",
-          "type": "array",
-          "items": {
+      },
+      "FileQC-response": {
+        "type": "object",
+        "properties": {
+          "alert": {
+            "description": "Lists known issues for FileQCs",
+            "type": "string"
+          },
+          "comment": {
+            "description": "URL-escaped reason why FileQC is PASS or FAIL (only returned if a FileQC record is found and a comment was provided)",
+            "type": "string"
+          },
+          "fileid": {
+            "description": "File ID",
+            "type": "string"
+          },
+          "filepath": {
+            "description": "File Path",
+            "type": "string"
+          },
+          "fileqcid": {
+            "description": "Unique FileQC ID",
+            "type": "integer"
+          },
+          "fileswid": {
+            "description": "File SWID",
+            "type": "integer"
+          },
+          "md5sum": {
+            "description": "File md5sum",
+            "type": "string"
+          },
+          "project": {
+            "description": "Project",
+            "type": "string"
+          },
+          "qcdate": {
+            "description": "QC Date (only returned if a FileQC record is found)",
+            "type": "string"
+          },
+          "qcstatus": {
+            "description": "FileQC status (PASS, FAIL, PENDING)",
+            "type": "string"
+          },
+          "skip": {
+            "description": "Whether file is skipped in analysis (only returned if a File Provenance Reprot record is found)",
+            "type": "boolean"
+          },
+          "stalestatus": {
+            "description": "Whether file has been superseded by a more recent analysis (OKAY, STALE, NOT IN PROVENANCE)",
+            "type": "string"
+          },
+          "upstream": {
+            "description": "List of input File IDs (only returned if a File Provenance Report record is found)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "username": {
+            "description": "Name of person QCing the file (only returned if a FileQC record is found)",
+            "type": "string"
+          },
+          "workflow": {
+            "description": "Workflow",
             "type": "string"
           }
-        },
-        "fileswids": {
-          "description": "Filter by file SWIDs (deprecated)",
-          "type": "string"
-        },
-        "project": {
-          "description": "Filter by Project short name",
-          "type": "string"
-        },
-        "qcstatus": {
-          "description": "Filter by qc status (PASS, FAIL, PENDING)",
-          "type": "string"
-        },
-        "workflow": {
-          "description": "Filter by workflow name. Must be used with `project` query",
-          "type": "string"
         }
-      }
-    },
-    "FileQC-response": {
-      "type": "object",
-      "properties": {
-        "alert": {
-          "description": "Lists known issues for FileQCs",
-          "type": "string"
-        },
-        "comment": {
-          "description": "URL-escaped reason why FileQC is PASS or FAIL (only returned if a FileQC record is found and a comment was provided)",
-          "type": "string"
-        },
-        "fileid": {
-          "description": "File ID",
-          "type": "string"
-        },
-        "filepath": {
-          "description": "File Path",
-          "type": "string"
-        },
-        "fileqcid": {
-          "description": "Unique FileQC ID",
-          "type": "integer"
-        },
-        "fileswid": {
-          "description": "File SWID",
-          "type": "integer"
-        },
-        "md5sum": {
-          "description": "File md5sum",
-          "type": "string"
-        },
-        "project": {
-          "description": "Project",
-          "type": "string"
-        },
-        "qcdate": {
-          "description": "QC Date (only returned if a FileQC record is found)",
-          "type": "string"
-        },
-        "qcstatus": {
-          "description": "FileQC status (PASS, FAIL, PENDING)",
-          "type": "string"
-        },
-        "skip": {
-          "description": "Whether file is skipped in analysis (only returned if a File Provenance Reprot record is found)",
-          "type": "boolean"
-        },
-        "stalestatus": {
-          "description": "Whether file has been superseded by a more recent analysis (OKAY, STALE, NOT IN PROVENANCE)",
-          "type": "string"
-        },
-        "upstream": {
-          "description": "List of input File IDs (only returned if a File Provenance Report record is found)",
-          "type": "array",
-          "items": {
+      },
+      "FileQCs-response": {
+        "type": "object",
+        "properties": {
+          "fileqcs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileQC-response"
+            }
+          }
+        }
+      },
+      "FileQCs-only-response": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "description": "Further information about the QC status",
+            "type": "string"
+          },
+          "fileid": {
+            "description": "File ID",
+            "type": "string"
+          },
+          "filepath": {
+            "description": "File Path",
+            "type": "string"
+          },
+          "fileqcid": {
+            "description": "Unique FileQC ID",
+            "type": "integer"
+          },
+          "fileswid": {
+            "description": "File SWID",
+            "type": "integer"
+          },
+          "project": {
+            "description": "Project name",
+            "type": "string"
+          },
+          "qcdate": {
+            "description": "QC Date",
+            "type": "string"
+          },
+          "qcpassed": {
+            "description": "Is FileQC PASS?",
+            "type": "boolean"
+          },
+          "workflow": {
+            "description": "Workflow name",
+            "type": "string"
+          },
+          "username": {
+            "description": "Name of person QCing the file",
             "type": "string"
           }
-        },
-        "username": {
-          "description": "Name of person QCing the file (only returned if a FileQC record is found)",
-          "type": "string"
-        },
-        "workflow": {
-          "description": "Workflow",
-          "type": "string"
         }
-      }
-    },
-    "FileQCs-response": {
-      "type": "object",
-      "properties": {
-        "fileqcs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/components/schemas/FileQC-response"
-          }
-        }
-      }
-    },
-    "FileQCs-only-response": {
-      "type": "object",
-      "properties": {
-        "comment": {
-          "description": "Further information about the QC status",
-          "type": "string"
-        },
-        "fileid": {
-          "description": "File ID",
-          "type": "string"
-        },
-        "filepath": {
-          "description": "File Path",
-          "type": "string"
-        },
-        "fileqcid": {
-          "description": "Unique FileQC ID",
-          "type": "integer"
-        },
-        "fileswid": {
-          "description": "File SWID",
-          "type": "integer"
-        },
-        "project": {
-          "description": "Project name",
-          "type": "string"
-        },
-        "qcdate": {
-          "description": "QC Date",
-          "type": "string"
-        },
-        "qcpassed": {
-          "description": "Is FileQC PASS?",
-          "type": "boolean"
-        },
-        "workflow": {
-          "description": "Workflow name",
-          "type": "string"
-        },
-        "username": {
-          "description": "Name of person QCing the file",
-          "type": "string"
-        }
-      }
-    },
-    "FileQC-add": {
-      "type": "object",
-      "properties": {
-        "fileqcs": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "comment": {
-                "description": "optional URL-escaped reason why FileQC is PASS or FAIL",
-                "type": "string"
-              },
-             "fileid": {
-                "description": "File ID",
-                "type": "string"
-              },
-              "qcstatus": {
-                "description": "PASS or FAIL or PENDING",
-                "type": "string"
-              },
-              "username": {
-                "description": "Name of person QCing the file",
-                "type": "string"
+      },
+      "FileQC-add": {
+        "type": "object",
+        "properties": {
+          "fileqcs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "comment": {
+                  "description": "optional URL-escaped reason why FileQC is PASS or FAIL",
+                  "type": "string"
+                },
+                "fileid": {
+                  "description": "File ID",
+                  "type": "string"
+                },
+                "qcstatus": {
+                  "description": "PASS or FAIL or PENDING",
+                  "type": "string"
+                },
+                "username": {
+                  "description": "Name of person QCing the file",
+                  "type": "string"
+                }
               }
             }
           }
         }
-      }
-    },
-    "Case-new": {
-      "type": "object",
-      "properties": {
-        "caseIdentifier": {
-          "description": "Case identifier",
-          "type": "string"
-        },
-        "requisitionId": {
-          "description": "Requisition number",
-          "type": "integer"
-        },
-        "limsIds": {
-          "description": "LIMS IDs associated with the case",
-          "type": "array",
-          "items": {
+      },
+      "Case-new": {
+        "type": "object",
+        "properties": {
+          "caseIdentifier": {
+            "description": "Case identifier",
             "type": "string"
-          }
-        },
-        "workflowRunIdsForOffsiteArchive": {
-          "description": "Vidarr workflow run IDs whose files need to be archived offsite",
-          "type": "array",
-          "items": {
+          },
+          "requisitionId": {
+            "description": "Requisition number",
+            "type": "integer"
+          },
+          "limsIds": {
+            "description": "LIMS IDs associated with the case",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "workflowRunIdsForOffsiteArchive": {
+            "description": "Vidarr workflow run IDs whose files need to be archived offsite",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "workflowRunIdsForVidarrArchival": {
+            "description": "Vidarr workflow run IDs whose files need to be stored in vidarr-archival",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "metadata": {
+            "description": "Metadata for the case archive",
+            "type": "object"
+          },
+          "archiveTarget": {
+            "description": "Archive target information",
             "type": "string"
+          },
+          "archiveWith": {
+            "description": "List of case IDs that this case should be archived with",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
-        },
-        "workflowRunIdsForVidarrArchival": {
-          "description": "Vidarr workflow run IDs whose files need to be stored in vidarr-archival",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-	      "metadata": {
-          "description": "Metadata for the case archive",
-	        "type": "object"
-	      },
-        "archiveTarget": {
-          "description": "Archive target information",
-          "type": "string"
-        },
-        "archiveWith": {
-          "description": "List of case IDs that this case should be archived with",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "Case-response": {
-      "type": "object",
-      "properties": {
-        "created": {
-          "description": "Date that the case was created in Nabu",
-          "type": "string",
-          "format": "date-time"
-        },
-        "modified": {
-          "description": "Date that the case was last modified in Nabu",
-          "type": "string",
-          "format": "date-time"
-        },
-        "caseIdentifier": {
-          "description": "Unique case identifier",
-          "type": "string"
-        },
-        "requisitionId": {
-          "description": "Requisition number",
-          "type": "integer"
-        },
-        "limsIds": {
-          "description": "LIMS IDs associated with the case",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "workflowRunIdsForOffsiteArchive": {
-          "description": "Vidarr workflow run IDs whose files need to be archived offsite",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "filesCopiedToOffsiteArchiveStagingDir": {
-          "description": "Date that the case was copied to the offsite archive staging directory",
-          "type": "string",
-          "format": "date-time"
-        },
-        "commvaultBackupJobId": {
-          "description": "Commvault identifier for the backup job for sending the case to offsite location",
-          "type": "string"
-        },
-        "workflowRunIdsForVidarrArchival": {
-          "description": "Vidarr workflow run IDs whose files need to be stored in vidarr-archival",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "filesLoadedIntoVidarrArchival": {
-          "description": "Date that the case was last modified in Nabu",
-          "type": "string",
-          "format": "date-time"
-        },
-        "caseFilesUnloaded": {
-          "description": "Date that the case was last modified in Nabu",
-          "type": "string",
-          "format": "date-time"
-        },
-        "metadata": {
-          "description": "Metadata associated with the case archive",
-          "type": "object"
-        },
-        "archiveTarget": {
-          "description": "Archive target information",
-          "type": "string"
-        },
-        "archiveWith": {
-          "description": "List of case IDs that this case should be archived with",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "batchId": {
-          "description": "Archive batch ID",
-          "type": "string"
-        },
-        "stopProcessing": {
-          "description": "Whether the case archive is flagged to stop all processing",
-          "type": "boolean"
         }
       },
-      "required": [
-        "created",
-        "modified",
-        "caseIdentifier",
-        "requisitionId",
-        "limsIds",
-        "workflowRunIdsForOffsiteArchive",
-        "filesCopiedToOffsiteArchiveStagingDir",
-        "commvaultBackupJobId",
-        "workflowRunIdsForVidarrArchival",
-        "filesLoadedIntoVidarrArchival",
-        "caseFilesUnloaded",
-        "archiveTarget",
-        "archiveWith"
-      ]
-    },
+      "Case-response": {
+        "type": "object",
+        "properties": {
+          "created": {
+            "description": "Date that the case was created in Nabu",
+            "type": "string",
+            "format": "date-time"
+          },
+          "modified": {
+            "description": "Date that the case was last modified in Nabu",
+            "type": "string",
+            "format": "date-time"
+          },
+          "caseIdentifier": {
+            "description": "Unique case identifier",
+            "type": "string"
+          },
+          "requisitionId": {
+            "description": "Requisition number",
+            "type": "integer"
+          },
+          "limsIds": {
+            "description": "LIMS IDs associated with the case",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "workflowRunIdsForOffsiteArchive": {
+            "description": "Vidarr workflow run IDs whose files need to be archived offsite",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "filesCopiedToOffsiteArchiveStagingDir": {
+            "description": "Date that the case was copied to the offsite archive staging directory",
+            "type": "string",
+            "format": "date-time"
+          },
+          "commvaultBackupJobId": {
+            "description": "Commvault identifier for the backup job for sending the case to offsite location",
+            "type": "string"
+          },
+          "workflowRunIdsForVidarrArchival": {
+            "description": "Vidarr workflow run IDs whose files need to be stored in vidarr-archival",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "filesLoadedIntoVidarrArchival": {
+            "description": "Date that the case was last modified in Nabu",
+            "type": "string",
+            "format": "date-time"
+          },
+          "caseFilesUnloaded": {
+            "description": "Date that the case was last modified in Nabu",
+            "type": "string",
+            "format": "date-time"
+          },
+          "metadata": {
+            "description": "Metadata associated with the case archive",
+            "type": "object"
+          },
+          "archiveTarget": {
+            "description": "Archive target information",
+            "type": "string"
+          },
+          "archiveWith": {
+            "description": "List of case IDs that this case should be archived with",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "batchId": {
+            "description": "Archive batch ID",
+            "type": "string"
+          },
+          "stopProcessing": {
+            "description": "Whether the case archive is flagged to stop all processing",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "created",
+          "modified",
+          "caseIdentifier",
+          "requisitionId",
+          "limsIds",
+          "workflowRunIdsForOffsiteArchive",
+          "filesCopiedToOffsiteArchiveStagingDir",
+          "commvaultBackupJobId",
+          "workflowRunIdsForVidarrArchival",
+          "filesLoadedIntoVidarrArchival",
+          "caseFilesUnloaded",
+          "archiveTarget",
+          "archiveWith"
+        ]
+      },
       "signoff-new": {
         "type": "object",
         "properties": {
