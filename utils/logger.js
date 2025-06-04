@@ -34,7 +34,14 @@ const transportsForEnvironment =
   process.env.NODE_ENV == 'test' ? testingTransport : fileTransports;
 
 const logger = createLogger({
-  format: format.combine(format.timestamp(), format.json()),
+  format: format.combine(
+    format.errors({stack: true}),
+    format.timestamp(),
+    format.printf(({timestamp, level, message, stack}) => {
+      const text = `${timestamp} ${level.toUpperCase()} ${JSON.stringify(message)}`;
+      return stack ? text + '\n' + stack : text;
+    })
+  ),
   transports: transportsForEnvironment,
 });
 

@@ -40,7 +40,6 @@ const getCaseArchive = async (req, res, next) => {
       res.status(404).end();
     }
   } catch (e) {
-    logger.error(e);
     handleErrors(e, `Error getting case ${req.params.caseIdentifier}`, logger, next);
   }
 };
@@ -85,7 +84,6 @@ const allCaseArchives = async (req, res, next) => {
     }
     next();
   } catch (e) {
-    logger.error(e);
     handleErrors(e, 'Error getting cases', logger, next);
   }
 };
@@ -180,7 +178,6 @@ const addCaseArchive = async (req, res, next) => {
       }
     }
   } catch (e) {
-    logger.error(e);
     handleErrors(e, `Error adding case ${req.body.caseIdentifier}`, logger, next);
   }
 };
@@ -214,7 +211,6 @@ const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
       res.status(404).end();
     }
   } catch (e) {
-    logger.error(e);
     handleErrors(e, `Error updating case ${req.params.caseIdentifier}`, logger, next);
   }
 };
@@ -236,7 +232,6 @@ const filesLoadedIntoVidarrArchival = async (req, res, next) => {
       res.status(404).end();
     }
   } catch (e) {
-    logger.error(e);
     handleErrors(e, `Error updating case ${req.params.caseIdentifier}`, logger, next);
   }
 };
@@ -253,7 +248,6 @@ const filesSentOffsite = async (req, res, next) => {
       res.status(404).end();
     }
   } catch (e) {
-    logger.error(e);
     handleErrors(e, `Error updating case ${req.params.caseIdentifier}`, logger, next);
   }
 };
@@ -269,7 +263,6 @@ const caseFilesUnloaded = async (req, res, next) => {
       res.status(404).end();
     }
   } catch (e) {
-    logger.error(e);
     handleErrors(e, `Error updating case ${req.params.caseIdentifier}`, logger, next);
   }
 };
@@ -281,7 +274,6 @@ const resumeCaseArchiveProcessing = async (req, res, next) => {
     const caseArchive = await caseDao.getByCaseIdentifier(req.params.caseIdentifier, false);
     res.status(200).json(caseArchive);
   } catch (e) {
-    logger.error(e);
     handleErrors(e, `Error resuming processing for case ${req.params.caseIdentifier}`, logger, next);
   }
 }
