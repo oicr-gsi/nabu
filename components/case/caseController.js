@@ -192,18 +192,22 @@ const upsertArchive = (caseInfo) => {
 
 const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
   try {
-    if (!req.body) {
-      throw new ValidationError(
-        'Must provide an unload file\'s contents in request body'
+    let errors = [];
+    if (!req.body.copyOutFile) {
+      errors.push(
+        'Must provide a copyOutFile in request body'
       );
     }
-    if (!req.params.batchId) {
-      throw new ValidationError('Must provide a batch ID in URL')
+    if (!req.body.batchId) {
+      errors.push('Must provide a batchId')
+    }
+    if (errors.length) {
+      throw new ValidationError(errors.join("\n"));
     }
     const updatedCase = await caseDao.updateFilesCopiedToOffsiteStagingDir(
       req.params.caseIdentifier,
-      req.params.batchId,
-      JSON.stringify(req.body)
+      req.body.batchId,
+      JSON.stringify(req.body.copyOutFile)
     );
     if (updatedCase && updatedCase.length) {
       res.status(200).json(updatedCase);

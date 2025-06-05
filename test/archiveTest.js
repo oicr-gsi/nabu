@@ -201,19 +201,22 @@ describe('case archive tracking', () => {
     });
     it('it should update a case with info that files have been copied to the offsite staging directory', (done) => {
       let caseIdentifier = 'R12_TEST_1212_Ab_C';
-      let unloadFile = {
-        workflows: ['bcl2fastq', 'consensusCruncher'],
-        workflowVersions: [
-          { name: 'bcl2fastq', version: '1.0.1' },
-          { name: 'consensusCruncher', version: '2.0.0' },
-        ],
-        workflowRuns: [
-          { run1: 'values' },
-          { run2: 'more values' },
-          { run3: 'yet more values' },
-        ],
-      };
       let batchId = 'batch_123'
+      let requestBody = {
+        'batchId': batchId,
+        'copyOutFile': {
+            workflows: ['bcl2fastq', 'consensusCruncher'],
+            workflowVersions: [
+              { name: 'bcl2fastq', version: '1.0.1' },
+              { name: 'consensusCruncher', version: '2.0.0' },
+            ],
+            workflowRuns: [
+              { run1: 'values' },
+              { run2: 'more values' },
+              { run3: 'yet more values' },
+            ],
+          }
+      };
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
         expect(res.status).to.equal(200);
         expect(res.body[0].filesCopiedToOffsiteArchiveStagingDir).to.be.a(
@@ -229,8 +232,8 @@ describe('case archive tracking', () => {
             updateCaseArchives(
               server,
               caseIdentifier,
-              `${urls.filesCopiedToOffsiteStagingDir}/${batchId}`,
-              unloadFile
+              `${urls.filesCopiedToOffsiteStagingDir}`,
+              requestBody
             ).end((err, res) => {
               expect(res.status).to.equal(200);
               expect(
@@ -259,17 +262,20 @@ describe('case archive tracking', () => {
     });
     it('it should not update a case if the case does not exist', (done) => {
       let caseIdentifier = 'very-nonexistent';
-      let unloadFile = {
-        workflows: ['bcl2fastq', 'consensusCruncher'],
-        workflowVersions: [
-          { name: 'bcl2fastq', version: '1.0.1' },
-          { name: 'consensusCruncher', version: '2.0.0' },
-        ],
-        workflowRuns: [
-          { run1: 'values' },
-          { run2: 'more values' },
-          { run3: 'yet more values' },
-        ],
+      let requestBody = {
+        'batchId': 'badBatch',
+        'copyOutFile': {
+          workflows: ['bcl2fastq', 'consensusCruncher'],
+          workflowVersions: [
+            { name: 'bcl2fastq', version: '1.0.1' },
+            { name: 'consensusCruncher', version: '2.0.0' },
+          ],
+          workflowRuns: [
+            { run1: 'values' },
+            { run2: 'more values' },
+            { run3: 'yet more values' },
+          ],
+        }
       };
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
         expect(res.status).to.equal(404);
@@ -277,8 +283,8 @@ describe('case archive tracking', () => {
         updateCaseArchives(
           server,
           caseIdentifier,
-          `${urls.filesCopiedToOffsiteStagingDir}/noBatchId`,
-          unloadFile
+          `${urls.filesCopiedToOffsiteStagingDir}`,
+          requestBody
         ).end((err, res) => {
           expect(res.status).to.equal(404);
           done();
@@ -287,17 +293,20 @@ describe('case archive tracking', () => {
     });
     it('it should update not update a second time that file have been copied to the offsite staging directory', (done) => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
-      let unloadFile = {
-        workflows: ['bcl2fastq', 'consensusCruncher'],
-        workflowVersions: [
-          { name: 'bcl2fastq', version: '1.0.1' },
-          { name: 'consensusCruncher', version: '2.0.0' },
-        ],
-        workflowRuns: [
-          { run1: 'values' },
-          { run2: 'more values' },
-          { run3: 'yet more values' },
-        ],
+      let requestBody = {
+        'batchId': 'badBatch',
+        'copyOutFile': {
+          workflows: ['bcl2fastq', 'consensusCruncher'],
+          workflowVersions: [
+            { name: 'bcl2fastq', version: '1.0.1' },
+            { name: 'consensusCruncher', version: '2.0.0' },
+          ],
+          workflowRuns: [
+            { run1: 'values' },
+            { run2: 'more values' },
+            { run3: 'yet more values' },
+          ],
+        }
       };
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
         expect(res.status).to.equal(200);
@@ -309,8 +318,8 @@ describe('case archive tracking', () => {
         updateCaseArchives(
           server,
           caseIdentifier,
-          `${urls.filesCopiedToOffsiteStagingDir}/badBatch`,
-          unloadFile
+          `${urls.filesCopiedToOffsiteStagingDir}`,
+          requestBody
         ).end((err, res) => {
           expect(res.status).to.equal(200);
 

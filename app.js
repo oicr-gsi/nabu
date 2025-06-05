@@ -84,7 +84,7 @@ app.post('/delete-fileqcs', fileQc.deleteFileQcs);
 app.post('/case', caseController.addCaseArchive);
 app.get('/case/:caseIdentifier', caseController.getCaseArchive);
 app.put(
-  `/case/:caseIdentifier/${urls.filesCopiedToOffsiteStagingDir}/:batchId`,
+  `/case/:caseIdentifier/${urls.filesCopiedToOffsiteStagingDir}`,
   caseController.filesCopiedToOffsiteStagingDir
 );
 app.put(

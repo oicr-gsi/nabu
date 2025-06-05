@@ -367,7 +367,7 @@
         }
       }
     },
-    "/case/{caseIdentifier}/copied-to-offsite-staging/{batchId}": {
+    "/case/{caseIdentifier}/copied-to-offsite-staging": {
       "put": {
         "summary": "Case archive files moved to offsite staging directory",
         "description": "Indicate that this case archive's files have been moved to the offfsite staging directory",
@@ -380,25 +380,14 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "batchId",
-            "in": "path",
-            "description": "archiving batch identifier",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "requestBody": {
           "required": true,
-          "description": "Vidarr copy-out file containing metadata about the files to be sent offsite",
+          "description": "Vidarr copy-out file and archiving batch ID",
           "content": {
             "application/json": {
-              "schema": {
-                "type": "object"
-              }
+              "schema": "#/components/schemas/CaseArchive-copied-to-offsite-staging-dir"
             }
           }
         },
@@ -1200,6 +1189,19 @@
           "archiveTarget",
           "archiveWith"
         ]
+      },
+      "CaseArchive-copied-to-offsite-staging-dir": {
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "description":"Archiving batch identifier",
+            "type": "string"
+          },
+          "copyOutFile": {
+            "description": "Vidarr copy-out file containing metadata about the files to be sent offsite",
+            "type": "object"
+          }
+        }
       },
       "signoff-new": {
         "type": "object",
