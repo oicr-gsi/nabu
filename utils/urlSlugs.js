@@ -6,4 +6,5 @@ module.exports = {
   filesLoadedIntoVidarrArchival: 'sent-to-vidarr-archival',
   filesSentOffsite: 'sent-offsite',
   signoff: 'sign-off',
+  resumeArchiving: 'resume-archiving',
 };
