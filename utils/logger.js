@@ -4,16 +4,6 @@ const uid = require('uid').uid;
 const { createLogger, format, transports } = require('winston');
 const logLocation = process.env.LOG_LOCATION || 'logs';
 
-const monitoredEndpoints = [
-  '/available',
-  '/fileqc',
-  '/fileqcs',
-  '/fileqcs-only',
-  '/delete-fileqcs',
-];
-const isEndpointMonitored = (url) => {
-  return monitoredEndpoints.some((endpoint) => url.startsWith(endpoint));
-};
 
 const fileTransports = [
   new transports.File({
@@ -21,12 +11,14 @@ const fileTransports = [
     filename: `${logLocation}/combined.log`,
     level: 'info',
     handleException: true,
+    humanReadableUnhandledException: true,
   }),
   new transports.File({
     name: 'error-log',
     filename: `${logLocation}/error.log`,
     level: 'error',
     handleException: true,
+    humanReadableUnhandledException: true,
   }),
 ];
 
@@ -42,7 +34,14 @@ const transportsForEnvironment =
   process.env.NODE_ENV == 'test' ? testingTransport : fileTransports;
 
 const logger = createLogger({
-  format: format.combine(format.timestamp(), format.json()),
+  format: format.combine(
+    format.errors({stack: true}),
+    format.timestamp(),
+    format.printf(({timestamp, level, message, stack}) => {
+      const text = `${timestamp} ${level.toUpperCase()} ${JSON.stringify(message)}`;
+      return stack ? text + '\n' + stack : text;
+    })
+  ),
   transports: transportsForEnvironment,
 });
 
@@ -68,14 +67,12 @@ const logRequestInfo = (req, res, next) => {
     (req.headers['x-forwarded-for']
       ? req.headers['x-forwarded-for'].split(',')[0]
       : req.connection && req.connection.remoteAddress) || 'unknown';
-  if (isEndpointMonitored(req.originalUrl)) {
-    logger.info({
-      uid: req.uid,
-      method: req.method,
-      url: req.originalUrl,
-      origin: remoteAddress,
-    });
-  }
+  logger.info({
+    uid: req.uid,
+    method: req.method,
+    url: req.originalUrl,
+    origin: remoteAddress,
+  });
   next();
 };
 
