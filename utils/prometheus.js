@@ -2,17 +2,6 @@
 
 const prometheus = require('prom-client');
 
-const monitoredEndpoints = [
-  '/available',
-  '/fileqc',
-  '/fileqcs',
-  '/fileqcs-only',
-  '/delete-fileqcs',
-];
-const isEndpointMonitored = (url) => {
-  return monitoredEndpoints.some((endpoint) => url.startsWith(endpoint));
-};
-
 // Prometheus monitoring
 prometheus.collectDefaultMetrics();
 const httpRequestDurationMilliseconds = new prometheus.Histogram({
@@ -28,6 +17,7 @@ const httpRequestCounter = new prometheus.Counter({
   labelNames: ['route', 'method', 'status'],
 });
 
+
 const mostRecentFprImport = new prometheus.Gauge({
   name: 'fpr_most_recent_import',
   help:
@@ -35,16 +25,17 @@ const mostRecentFprImport = new prometheus.Gauge({
 });
 
 const monitorAfterRequest = (req, res, next) => {
-  // log metrics after every request
-  if (isEndpointMonitored(req.originalUrl)) {
+  res.on('finish', () => {
+    // log metrics after every request
+    // req.route.path is the abstracted form, like '/case/:identifier'
     const path = req.route ? req.route.path : req.originalUrl;
     if (Object.prototype.hasOwnProperty.call(req, '_startTime')) {
       // if it doesn't, it's due to a user URL entry error causing the request to be cut short
       const responseTimeInMs = Date.now() - Date.parse(req._startTime);
       httpRequestDurationMilliseconds.labels(path).observe(responseTimeInMs);
     }
-    httpRequestCounter.labels(path, req.method, res.statusCode).inc();
-  }
+    httpRequestCounter.inc({'route': path, 'method': req.method, 'status': res.statusCode});
+  });
   next();
 };
 

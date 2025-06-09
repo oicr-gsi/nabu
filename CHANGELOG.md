@@ -19,6 +19,10 @@ and this project attempts to adhere to Semantic Versioning.
   * `copyOutFile`, the contents of the Vidarr copy-out file for the case
 * Improve error messages
 
+### Fixed
+
+* Prometheus HTTP monitoring
+
 ## 3.11.0: [2025-05-07]
 
 ### Added
