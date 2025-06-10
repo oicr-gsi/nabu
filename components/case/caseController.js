@@ -106,6 +106,17 @@ const addCaseArchive = async (req, res, next) => {
     //authenticate api-key from header before continuing
     await authenticator.authenticateRequest(req);
 
+    let shouldntBeEmpty = [];
+    if (!req.body.archiveTarget) shouldntBeEmpty.push("archiveTarget");
+    if (!req.body.limsIds) shouldntBeEmpty.push("limsIds");
+    if (!req.body.caseIdentifier) shouldntBeEmpty.push("caseIdentifier");
+    if (!req.body.requisitionId) shouldntBeEmpty.push("requisitionId");
+    if (shouldntBeEmpty.length) {
+      throw new ValidationError(`Required field(s) were empty or null: ${shouldntBeEmpty.join(", ")}`)
+    }
+    if (req.body.archiveWith == null) {
+      throw new ValidationError("Required field must not be null: archiveWith");
+    }
     const existingCases = await caseDao.getByCaseIdentifier(
       req.body.caseIdentifier
     );

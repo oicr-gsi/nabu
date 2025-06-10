@@ -6,6 +6,10 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Added
+
+* Improve data validation for case archive fields
+
 ## 3.12.0: [2025-06-10]
 
 ### Added
