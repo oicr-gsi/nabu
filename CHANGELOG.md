@@ -6,6 +6,8 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+## 3.12.0: [2025-06-10]
+
 ### Added
 
 * `archiveWith`, `archiveTarget`, `batchId`, `stopProcessing` fields for case archive
