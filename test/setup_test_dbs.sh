@@ -14,7 +14,7 @@ echo "flyway.cleanDisabled=false" >> test/flyway.conf
 echo "flyway.locations=filesystem:/flyway/migrations,filesystem:/flyway/testdata" >> test/flyway.conf
 
 # set up the Postgres database
-docker run -d --rm --name "${PG_DB_CONTAINER_NAME}" -p 5436:5432 -e POSTGRES_USER="${DB_USER}" -e POSTGRES_PASSWORD="${DB_PW}" -e POSTGRES_DB="${DB_NAME}" postgres:12-alpine -c shared_buffers=500MB -c fsync=off
+docker run -d --rm --name "${PG_DB_CONTAINER_NAME}" -p 5436:5432 -e POSTGRES_USER="${DB_USER}" -e POSTGRES_PASSWORD="${DB_PW}" -e POSTGRES_DB="${DB_NAME}" postgres:17-alpine -c shared_buffers=500MB -c fsync=off
 
 CURRENT=$(pwd)
 cd test/

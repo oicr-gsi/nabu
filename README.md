@@ -5,9 +5,9 @@
 # Getting started
 
 ## Requirements
-  * Node 18 or higher
+  * Node 22 or higher
   * NPM
-  * PostgreSQL 9.5 or higher
+  * PostgreSQL 17 or higher
   * SQLite3 (system software)
   * Docker (for database migrations)
 
@@ -107,7 +107,7 @@ Install _husky_ which will lint and prettify files on precommit. Note that this 
 
 Pull Docker images for postgres and flyway:
 
-    docker pull postgres:12-alpine
+    docker pull postgres:17-alpine
     docker pull flyway/flyway
 
 

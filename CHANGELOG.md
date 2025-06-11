@@ -6,6 +6,10 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Changed
+
+* Updated tests, CI and readme to modern versions of NodeJS and PostgreSQL
+
 ## 3.12.1: [2025-06-11]
 
 ### Fixed
