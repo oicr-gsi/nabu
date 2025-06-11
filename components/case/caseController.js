@@ -163,12 +163,14 @@ const addCaseArchive = async (req, res, next) => {
         if (!hasArchivingStarted(existingCase)) {
           // can modify a case that hasn't been archived if there are no errors
           await upsert(req.body, false);
-          res.status(200).end();
+          let updatedCase = await caseDao.getByCaseIdentifier(req.body.caseIdentifier, false);
+          res.status(200).send(updatedCase);
           return true;
         } else {
           // if case has started archiving, can only modify case metadata
           await caseDao.updateMetadata(req.params.caseIdentifier, req.body.metadata);
-          res.status(200).end();
+          let updatedCase = await caseDao.getByCaseIdentifier(req.body.caseIdentifier, false);
+          res.status(200).send(updatedCase);
           return true;
         }
         /* NOTE: if we keep encountering HALP actions that don't require any further fixing other than

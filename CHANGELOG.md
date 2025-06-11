@@ -6,7 +6,15 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Fixed
+
+* adding or updating a case archive now returns case archive data, instead of empty response
+
 ## 3.12.0: [2025-06-10]
+
+### Known Issues
+
+* adding or updating a case archive returns an empty response on success
 
 ### Added
 
