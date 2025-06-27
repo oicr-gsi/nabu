@@ -173,21 +173,8 @@ function validateStepName (param) {
 
 function validateDeliverableType (param) {
   let deliverable = nullifyIfBlank(param); //required by endpoint so shouldn't ever nullify
-  if (
-    deliverable !== 'undefined' &&
-    deliverable !== null &&
-    deliverable.length
-  ) {
-    deliverable = deliverable.toUpperCase();
-  }
-  let validDeliverables = ['DATA_RELEASE', 'CLINICAL_REPORT'];
-  if (!validDeliverables.includes(deliverable)) {
-    return new ValidationError(
-      'Sign-off must be associated with a valid deliverable type: ' +
-        validDeliverables.toString() +
-        ', instead got ' +
-        deliverable
-    );
+  if (!deliverable) {
+    return new ValidationError('Sign-off must be associated with a deliverable type');
   }
   return deliverable;
 }
