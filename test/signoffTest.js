@@ -248,12 +248,12 @@ describe('case sign-off tracking', () => {
         done();
       });
     });
-    it('it should fail to create a sign-off entry if deliverable type is not a valid option', (done) => {
+    it('it should fail to create a sign-off entry if deliverable type is not specified', (done) => {
       let reqBody = {
         qcPassed: true,
         username: 'testuser',
         signoffStepName: 'RELEASE_APPROVAL',
-        deliverableType: 'DATA UNRELEASE',
+        deliverableType: '',
         comment: '',
       };
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
