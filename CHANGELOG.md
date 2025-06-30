@@ -9,6 +9,7 @@ and this project attempts to adhere to Semantic Versioning.
 ### Changed
 
 * Updated tests, CI and readme to modern versions of NodeJS and PostgreSQL
+* Signoff deliverable type now accepts any string
 
 ## 3.12.1: [2025-06-11]
 
