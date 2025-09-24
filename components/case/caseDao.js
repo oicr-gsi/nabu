@@ -54,7 +54,14 @@ const caseColsCreate = new pgp.helpers.ColumnSet(
   [caseIdentifierColumn, requisitionId, limsIds],
   { table: 'cardea_case' }
 );
-const archiveColsCreate = [caseId, wfrIdsForOffsite, wfrIdsForVidarrArchival, metadata, archiveTarget, archiveWith];
+const archiveColsCreate = [
+  caseId,
+  wfrIdsForOffsite,
+  wfrIdsForVidarrArchival,
+  metadata,
+  archiveTarget,
+  archiveWith,
+];
 const archiveColsAddBatchId = [caseId, batchId];
 const archiveColsCopyToOffsiteStagingDir = [
   caseId,
@@ -147,7 +154,7 @@ const addCaseArchiveOnly = (kase) => {
             kase.workflowRunIdsForOffsiteArchive,
           workflow_run_ids_for_vidarr_archival:
             kase.workflowRunIdsForVidarrArchival,
-	        metadata: kase.metadata,
+          metadata: kase.metadata,
           archive_target: kase.archiveTarget,
           archive_with: kase.archiveWith,
         };
@@ -273,10 +280,12 @@ const stopProcessingQuery = `UPDATE archive SET ${stopProcessing} = true WHERE $
 const setCaseArchiveDoNotProcess = (caseIdentifier) => {
   return new Promise((resolve, reject) => {
     db.none(stopProcessingQuery, caseIdentifier)
-      .then(() => { resolve(); })
+      .then(() => {
+        resolve();
+      })
       .catch((err) => standardCatch(err, reject));
   });
-}
+};
 
 const resumeProcessingQuery = `UPDATE archive SET ${stopProcessing} = false WHERE ${caseId} = (SELECT ${id} FROM cardea_case WHERE ${caseIdentifierColumn} = $1)`;
 const resumeCaseArchiveProcessing = (caseIdentifier) => {
@@ -285,7 +294,7 @@ const resumeCaseArchiveProcessing = (caseIdentifier) => {
       .then(() => resolve())
       .catch((err) => standardCatch(err, reject));
   });
-}
+};
 
 const updateMetadataQuery = `UPDATE archive SET ${metadata} = $1 WHERE ${caseId} = (SELECT ${id} FROM cardea_case WHERE ${caseIdentifierColumn} = $2)`;
 
@@ -295,11 +304,15 @@ const updateMetadata = (caseIdentifier, metadata) => {
       .then(() => resolve())
       .catch((err) => standardCatch(err, reject));
   });
-}
+};
 
 const filesCopiedToStagingDirQuery = `UPDATE archive SET ${filesCopiedToOffsiteStagingDir} = NOW(), ${unloadFileForOffsite} = $1, ${batchId} = $2 WHERE ${caseId} = (SELECT ${id} FROM cardea_case WHERE ${caseIdentifierColumn} = $3) AND ${filesCopiedToOffsiteStagingDir} IS NULL`;
 
-const updateFilesCopiedToOffsiteStagingDir = (caseIdentifier, batchId, unloadFile) => {
+const updateFilesCopiedToOffsiteStagingDir = (
+  caseIdentifier,
+  batchId,
+  unloadFile
+) => {
   return new Promise((resolve, reject) => {
     db.none(filesCopiedToStagingDirQuery, [unloadFile, batchId, caseIdentifier])
       .then(() => {

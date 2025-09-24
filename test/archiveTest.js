@@ -67,7 +67,7 @@ const isValidDate = (date) => {
   return !!Date.parse(date);
 };
 
-const r11ArchiveWith = ["R99_ANOTHER_100_Xy_Z"];
+const r11ArchiveWith = ['R99_ANOTHER_100_Xy_Z'];
 const r11ArchiveTarget = 'GLACIER_2Y';
 
 describe('case archive tracking', () => {
@@ -124,7 +124,12 @@ describe('case archive tracking', () => {
           'vidarr:research/run/1234',
         ],
         workflowRunIdsForVidarrArchival: ['vidarr:research/run/abba'],
-	      metadata: {"case_total_size": 37648386327, "case_current_size": 37648386327, "offsite_archive_size": 26183363820, "onsite_archive_size": 0},
+        metadata: {
+          case_total_size: 37648386327,
+          case_current_size: 37648386327,
+          offsite_archive_size: 26183363820,
+          onsite_archive_size: 0,
+        },
         archiveWith: ['R14_TEST_0033_Cc_C'],
         archiveTarget: 'GLACIER_6M',
       };
@@ -148,7 +153,12 @@ describe('case archive tracking', () => {
         workflowRunIdsForVidarrArchival: [
           'vidarr:research/run/da0e6032ed08591ae684a015ad3c58867a47a65b6c61995e421fc417e2c438c1',
         ],
-	      metadata: {"case_total_size": 3764836327, "case_current_size": 3764836327, "offsite_archive_size": 2618336320, "onsite_archive_size": 200},
+        metadata: {
+          case_total_size: 3764836327,
+          case_current_size: 3764836327,
+          offsite_archive_size: 2618336320,
+          onsite_archive_size: 200,
+        },
         archiveWith: r11ArchiveWith,
         archiveTarget: r11ArchiveTarget,
       };
@@ -164,12 +174,15 @@ describe('case archive tracking', () => {
         expect(res.body[0].workflowRunIdsForVidarrArchival).to.include.members(
           reqBody.workflowRunIdsForVidarrArchival
         );
-        expect(res.body[0].metadata.case_total_size).to.be.equal(reqBody.metadata.case_total_size);
-        expect(res.body[0].metadata.case_current_size).to.be.equal(reqBody.metadata.case_current_size);
+        expect(res.body[0].metadata.case_total_size).to.be.equal(
+          reqBody.metadata.case_total_size
+        );
+        expect(res.body[0].metadata.case_current_size).to.be.equal(
+          reqBody.metadata.case_current_size
+        );
         expect(res.body[0].archiveWith).to.include.members(reqBody.archiveWith);
         expect(res.body[0].archiveTarget).to.be.equal(reqBody.archiveTarget);
         expect(res.body[0].stopProcessing).to.be.false;
-	
 
         addCaseArchives(server, reqBody).end((err, res) => {
           expect(res.status).to.equal(200); // 200 means it's the same
@@ -182,7 +195,9 @@ describe('case archive tracking', () => {
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
         expect(res.status).to.equal(200);
         let newReq = res.body[0];
-        newReq.workflowRunIdsForOffsiteArchive = ["vidarr:test/run/abcdef12345"];
+        newReq.workflowRunIdsForOffsiteArchive = [
+          'vidarr:test/run/abcdef12345',
+        ];
 
         addCaseArchives(server, newReq).end((err, res) => {
           expect(res.status).to.equal(409);
@@ -194,28 +209,28 @@ describe('case archive tracking', () => {
               expect(res.status).to.equal(200);
               expect(res.body[0].stopProcessing).to.be.false;
             });
-          })
+          });
           done();
         });
       });
     });
     it('it should update a case with info that files have been copied to the offsite staging directory', (done) => {
       let caseIdentifier = 'R12_TEST_1212_Ab_C';
-      let batchId = 'batch_123'
+      let batchId = 'batch_123';
       let requestBody = {
-        'batchId': batchId,
-        'copyOutFile': {
-            workflows: ['bcl2fastq', 'consensusCruncher'],
-            workflowVersions: [
-              { name: 'bcl2fastq', version: '1.0.1' },
-              { name: 'consensusCruncher', version: '2.0.0' },
-            ],
-            workflowRuns: [
-              { run1: 'values' },
-              { run2: 'more values' },
-              { run3: 'yet more values' },
-            ],
-          }
+        batchId: batchId,
+        copyOutFile: {
+          workflows: ['bcl2fastq', 'consensusCruncher'],
+          workflowVersions: [
+            { name: 'bcl2fastq', version: '1.0.1' },
+            { name: 'consensusCruncher', version: '2.0.0' },
+          ],
+          workflowRuns: [
+            { run1: 'values' },
+            { run2: 'more values' },
+            { run3: 'yet more values' },
+          ],
+        },
       };
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
         expect(res.status).to.equal(200);
@@ -263,8 +278,8 @@ describe('case archive tracking', () => {
     it('it should not update a case if the case does not exist', (done) => {
       let caseIdentifier = 'very-nonexistent';
       let requestBody = {
-        'batchId': 'badBatch',
-        'copyOutFile': {
+        batchId: 'badBatch',
+        copyOutFile: {
           workflows: ['bcl2fastq', 'consensusCruncher'],
           workflowVersions: [
             { name: 'bcl2fastq', version: '1.0.1' },
@@ -275,7 +290,7 @@ describe('case archive tracking', () => {
             { run2: 'more values' },
             { run3: 'yet more values' },
           ],
-        }
+        },
       };
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
         expect(res.status).to.equal(404);
@@ -294,8 +309,8 @@ describe('case archive tracking', () => {
     it('it should update not update a second time that file have been copied to the offsite staging directory', (done) => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       let requestBody = {
-        'batchId': 'badBatch',
-        'copyOutFile': {
+        batchId: 'badBatch',
+        copyOutFile: {
           workflows: ['bcl2fastq', 'consensusCruncher'],
           workflowVersions: [
             { name: 'bcl2fastq', version: '1.0.1' },
@@ -306,7 +321,7 @@ describe('case archive tracking', () => {
             { run2: 'more values' },
             { run3: 'yet more values' },
           ],
-        }
+        },
       };
       getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
         expect(res.status).to.equal(200);
