@@ -125,14 +125,12 @@ const addCaseArchive = async (req, res, next) => {
           errors.push(
             `Requisition (${req.body.requisitionId}) from request does not match requisition ${existingCase.requisitionId} for case ${req.body.caseIdentifier}`
           );
-          await caseDao.setCaseArchiveDoNotProcess(existingCase.caseIdentifier);
           caseStoppedProcessing = true;
         }
         if (!arraysEquals(existingCase.limsIds, req.body.limsIds)) {
           errors.push(
             `LIMS IDs (${req.body.limsIds}) from request do not match LIMS IDs ${existingCase.limsIds} for case ${req.body.caseIdentifier}`
           );
-          await caseDao.setCaseArchiveDoNotProcess(existingCase.caseIdentifier);
           caseStoppedProcessing = true;
         }
         if (
@@ -144,7 +142,6 @@ const addCaseArchive = async (req, res, next) => {
           errors.push(
             `Requested offsite archive files list ${req.body.workflowRunIdsForOffsiteArchive} does not match offsite files archive list ${existingCase.workflowRunIdsForOffsiteArchive} for case ${existingCase.caseIdentifier}`
           );
-          await caseDao.setCaseArchiveDoNotProcess(existingCase.caseIdentifier);
           caseStoppedProcessing = true;
         }
         if (
@@ -156,24 +153,22 @@ const addCaseArchive = async (req, res, next) => {
           errors.push(
             `Requested onsite archive files list ${req.body.workflowRunIdsForVidarrArchival} does not match onsite archive files list ${existingCase.workflowRunIdsForVidarrArchival} for case ${existingCase.caseIdentifier}`
           );
-          await caseDao.setCaseArchiveDoNotProcess(existingCase.caseIdentifier);
           caseStoppedProcessing = true;
         }
         if (!arraysEquals(existingCase.archiveWith, req.body.archiveWith)) {
           errors.push(
             `Requested archive_with=${req.body.archiveWith} from request does not match archive_with=${existingCase.archiveWith} for case ${req.body.caseIdentifier}`
           );
-          await caseDao.setCaseArchiveDoNotProcess(existingCase.caseIdentifier);
           caseStoppedProcessing = true;
         }
         if (existingCase.archiveTarget != req.body.archiveTarget) {
           errors.push(
             `Archive target '${req.body.archiveTarget}' from request does not match archive target '${existingCase.archiveTarget}' for case ${req.body.caseIdentifier}`
           );
-          await caseDao.setCaseArchiveDoNotProcess(existingCase.caseIdentifier);
           caseStoppedProcessing = true;
         }
         if (caseStoppedProcessing) {
+          await caseDao.setCaseArchiveDoNotProcess(existingCase.caseIdentifier);
           caseArchiveStopProcessing.inc({
             caseIdentifier: existingCase.caseIdentifier,
           });
