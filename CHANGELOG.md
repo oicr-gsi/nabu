@@ -6,6 +6,9 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Changed
+
+* stopProcessing is now set when any potentially breaking change is submitted to an existing case archive
 
 
 ## 3.13.0: [2025-06-30]
