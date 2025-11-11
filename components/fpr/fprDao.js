@@ -59,12 +59,14 @@ const listWorkflows = () => {
 };
 
 const getByProjects = (projects, workflows) => {
-  const select =
-    'SELECT * FROM fpr WHERE project IN (' +
-    getQuestionMarkPlaceholders(projects) +
-    ')' +
+  let select = 'SELECT * FROM fpr WHERE';
+  if (projects.length > 0)
+    select =
+      select + ' project IN (' + getQuestionMarkPlaceholders(projects) + ')';
+  select =
+    select +
     (workflows == undefined || workflows == null
-      ? ''
+      ? ';'
       : ' AND workflow IN (' + getQuotedPlaceholders(workflows) + ');');
   return new Promise((resolve, reject) => {
     fpr.all(select, projects, (err, data) => {
