@@ -348,6 +348,7 @@ function validateObjectsFromUser (unvalidatedObjects) {
 }
 
 function getAllProjectNames (proj) {
+  if (proj == null) return [];
   const ary = [proj];
   if (Object.keys(project_mappings).indexOf(proj) != -1)
     ary.push(project_mappings[proj]);
