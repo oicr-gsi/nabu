@@ -61,7 +61,7 @@ const listWorkflows = () => {
 const getByProjects = (projects, workflows) => {
   let select = 'SELECT * FROM fpr';
   if (projects.length == 0 && (workflows == undefined || workflows == null))
-    return [];
+    return Promise.resolve([]);
   else if (projects.length > 0)
     select =
       select +
@@ -70,13 +70,13 @@ const getByProjects = (projects, workflows) => {
       ')' +
       (workflows == undefined || workflows == null
         ? ''
-        : ' AND workflow IN (' + getQuotedPlaceholders(workflows) + ');');
+        : ' AND workflow IN (' + getQuotedPlaceholders(workflows) + ')');
   else
     select =
       select +
       (workflows == undefined || workflows == null
         ? ''
-        : ' WHERE workflow IN (' + getQuotedPlaceholders(workflows) + ');');
+        : ' WHERE workflow IN (' + getQuotedPlaceholders(workflows) + ')');
   select = select + ';';
   return new Promise((resolve, reject) => {
     fpr.all(select, projects, (err, data) => {
