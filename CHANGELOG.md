@@ -6,7 +6,9 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
-### Changed
+## 3.13.1: [2025-11-13]
+
+### Fixed
 
 * stopProcessing is now set when any potentially breaking change is submitted to an existing case archive
 * fix fileQCs being incorrectly filtered out
