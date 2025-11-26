@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-  caseFilesUnloaded: 'unloaded',
+  filesUnloaded: 'unloaded',
   filesCopiedToOffsiteStagingDir: 'copied-to-offsite-staging',
   filesLoadedIntoVidarrArchival: 'sent-to-vidarr-archival',
   filesSentOffsite: 'sent-offsite',

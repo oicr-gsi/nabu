@@ -1,6 +1,6 @@
 'use strict';
 
-const caseDao = require('./caseDao');
+const archiveDao = require('./archiveDao');
 const JSONStream = require('JSONStream');
 const {
   handleErrors,
@@ -11,6 +11,7 @@ const logger = require('../../utils/logger').logger;
 const urls = require('../../utils/urlSlugs');
 const authenticator = require('../../utils/apiAuth');
 const prometheus = require('../../utils/prometheus').prometheus;
+const caseEntityType = 'CASE';
 
 const caseArchiveStopProcessing = new prometheus.Gauge({
   name: 'nabu_case_archive_stop_processing',
@@ -29,12 +30,13 @@ function arraysEquals (array1, array2) {
 
 const getCaseArchive = async (req, res, next) => {
   try {
-    const cardeaCase = await caseDao.getByCaseIdentifier(
+    let cardeaCase = await archiveDao.getByArchiveEntityIdentifier(
       req.params.caseIdentifier,
-      req.query.includeVidarrMetadata ? req.query.includeVidarrMetadata : false
+      req.query.includeVidarrMetadata ? req.query.includeVidarrMetadata : false,
+      caseEntityType
     );
     if (cardeaCase && cardeaCase.length) {
-      res.status(200).json(cardeaCase);
+      res.status(200).json(replaceGenericKeyName(cardeaCase));
     } else {
       res.status(404).end();
     }
@@ -58,22 +60,29 @@ const allCaseArchives = async (req, res, next) => {
     let cases;
     if (query) {
       if (query == urls.filesCopiedToOffsiteStagingDir) {
-        cases = await caseDao.getByFilesNotCopiedToOffsiteStagingDir();
-        res.status(200).send(cases);
+        cases = await archiveDao.getByFilesNotCopiedToOffsiteStagingDir(
+          caseEntityType
+        );
+        res.status(200).send(replaceGenericKeyName(cases));
       } else if (query == urls.filesSentOffsite) {
-        cases = await caseDao.getByFilesNotSentOffsite();
-        res.status(200).send(cases);
+        cases = await archiveDao.getByFilesNotSentOffsite(caseEntityType);
+        res.status(200).send(replaceGenericKeyName(cases));
       } else if (query == urls.filesLoadedIntoVidarrArchival) {
-        cases = await caseDao.getByFilesNotLoadedIntoVidarrArchival();
-        res.status(200).send(cases);
-      } else if (query == urls.caseFilesUnloaded) {
-        cases = await caseDao.getByFilesNotUnloaded();
-        res.status(200).send(cases);
+        cases = await archiveDao.getByFilesNotLoadedIntoVidarrArchival(
+          caseEntityType
+        );
+        res.status(200).send(replaceGenericKeyName(cases));
+      } else if (query == urls.filesUnloaded) {
+        cases = await archiveDao.getByFilesNotUnloaded(caseEntityType);
+        res.status(200).send(replaceGenericKeyName(cases));
       }
     } else {
-      cases = await caseDao.streamAllCases((stream) => {
+      cases = await archiveDao.streamAllCases((stream) => {
         res.status(200);
-        stream.pipe(JSONStream.stringify()).pipe(res);
+        stream
+          .pipe(createCaseKeyReplacementStream())
+          .pipe(JSONStream.stringify())
+          .pipe(res);
         stream.on('error', (err) => {
           // log the error and prematurely end the response
           logger.error(err);
@@ -97,7 +106,7 @@ const isCompletelyArchived = (kase) => {
     kase.filesCopiedToOffsiteArchiveStagingDir != null &&
     kase.commvaultBackupJobId != null &&
     kase.filesLoadedIntoVidarrArchival != null &&
-    kase.caseFilesUnloaded != null
+    kase.filesUnloaded != null
   );
 };
 
@@ -110,8 +119,10 @@ const addCaseArchive = async (req, res, next) => {
     //authenticate api-key from header before continuing
     await authenticator.authenticateRequest(req);
 
-    const existingCases = await caseDao.getByCaseIdentifier(
-      req.body.caseIdentifier
+    const existingCases = await archiveDao.getByArchiveEntityIdentifier(
+      req.body.caseIdentifier,
+      false,
+      caseEntityType
     );
     if (existingCases == null || !existingCases.length) {
       await upsert(req.body, true);
@@ -140,7 +151,7 @@ const addCaseArchive = async (req, res, next) => {
           )
         ) {
           errors.push(
-            `Requested offsite archive files list ${req.body.workflowRunIdsForOffsiteArchive} does not match offsite files archive list ${existingCase.workflowRunIdsForOffsiteArchive} for case ${existingCase.caseIdentifier}`
+            `Requested offsite archive files list ${req.body.workflowRunIdsForOffsiteArchive} does not match offsite files archive list ${existingCase.workflowRunIdsForOffsiteArchive} for case ${existingCase.entityIdentifier}`
           );
           caseStoppedProcessing = true;
         }
@@ -151,7 +162,7 @@ const addCaseArchive = async (req, res, next) => {
           )
         ) {
           errors.push(
-            `Requested onsite archive files list ${req.body.workflowRunIdsForVidarrArchival} does not match onsite archive files list ${existingCase.workflowRunIdsForVidarrArchival} for case ${existingCase.caseIdentifier}`
+            `Requested onsite archive files list ${req.body.workflowRunIdsForVidarrArchival} does not match onsite archive files list ${existingCase.workflowRunIdsForVidarrArchival} for case ${existingCase.entityIdentifier}`
           );
           caseStoppedProcessing = true;
         }
@@ -168,9 +179,11 @@ const addCaseArchive = async (req, res, next) => {
           caseStoppedProcessing = true;
         }
         if (caseStoppedProcessing) {
-          await caseDao.setCaseArchiveDoNotProcess(existingCase.caseIdentifier);
+          await archiveDao.setEntityArchiveDoNotProcess(
+            existingCase.entityIdentifier
+          );
           caseArchiveStopProcessing.inc({
-            caseIdentifier: existingCase.caseIdentifier,
+            caseIdentifier: existingCase.entityIdentifier,
           });
         }
         if (errors.length) {
@@ -182,23 +195,25 @@ const addCaseArchive = async (req, res, next) => {
         if (!hasArchivingStarted(existingCase)) {
           // can modify a case that hasn't been archived if there are no errors
           await upsert(req.body, false);
-          let updatedCase = await caseDao.getByCaseIdentifier(
+          let updatedCase = await archiveDao.getByArchiveEntityIdentifier(
             req.body.caseIdentifier,
-            false
+            false,
+            caseEntityType
           );
-          res.status(200).send(updatedCase);
+          res.status(200).send(replaceGenericKeyName(updatedCase));
           return true;
         } else {
           // if case has started archiving, can only modify case metadata
-          await caseDao.updateMetadata(
+          await archiveDao.updateMetadata(
             req.params.caseIdentifier,
             req.body.metadata
           );
-          let updatedCase = await caseDao.getByCaseIdentifier(
+          let updatedCase = await archiveDao.getByArchiveEntityIdentifier(
             req.body.caseIdentifier,
-            false
+            false,
+            caseEntityType
           );
-          res.status(200).send(updatedCase);
+          res.status(200).send(replaceGenericKeyName(updatedCase));
           return true;
         }
         /* NOTE: if we keep encountering HALP actions that don't require any further fixing other than
@@ -218,11 +233,15 @@ const addCaseArchive = async (req, res, next) => {
 };
 
 const upsert = (caseInfo, createNewArchive) => {
-  return caseDao.addCase(caseInfo, createNewArchive);
+  return archiveDao.addArchiveEntity(
+    replaceCaseKeyName(caseInfo),
+    createNewArchive,
+    caseEntityType
+  );
 };
 
 const upsertArchive = (caseInfo) => {
-  return caseDao.addCaseArchiveOnly(caseInfo);
+  return archiveDao.addArchiveOnly(replaceCaseKeyName(caseInfo));
 };
 
 const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
@@ -237,13 +256,14 @@ const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
     if (errors.length) {
       throw new ValidationError(errors.join('\n'));
     }
-    const updatedCase = await caseDao.updateFilesCopiedToOffsiteStagingDir(
+    const updatedCase = await archiveDao.updateFilesCopiedToOffsiteStagingDir(
       req.params.caseIdentifier,
+      caseEntityType,
       req.body.batchId,
       JSON.stringify(req.body.copyOutFile)
     );
     if (updatedCase && updatedCase.length) {
-      res.status(200).json(updatedCase);
+      res.status(200).json(replaceGenericKeyName(updatedCase));
     } else {
       res.status(404).end();
     }
@@ -264,12 +284,13 @@ const filesLoadedIntoVidarrArchival = async (req, res, next) => {
         'Must provide an unload file\'s contents in request body'
       );
     }
-    const updatedCase = await caseDao.updateFilesLoadedIntoVidarrArchival(
+    const updatedCase = await archiveDao.updateFilesLoadedIntoVidarrArchival(
       req.params.caseIdentifier,
-      JSON.stringify(req.body)
+      JSON.stringify(req.body),
+      caseEntityType
     );
     if (updatedCase && updatedCase.length) {
-      res.status(200).json(updatedCase);
+      res.status(200).json(replaceGenericKeyName(updatedCase));
     } else {
       res.status(404).end();
     }
@@ -285,12 +306,13 @@ const filesLoadedIntoVidarrArchival = async (req, res, next) => {
 
 const filesSentOffsite = async (req, res, next) => {
   try {
-    const updatedCase = await caseDao.updateFilesSentOffsite(
+    const updatedCase = await archiveDao.updateFilesSentOffsite(
       req.params.caseIdentifier,
-      req.body.commvaultBackupJobId
+      req.body.commvaultBackupJobId,
+      caseEntityType
     );
     if (updatedCase && updatedCase.length) {
-      res.status(200).json(updatedCase);
+      res.status(200).json(replaceGenericKeyName(updatedCase));
     } else {
       res.status(404).end();
     }
@@ -304,13 +326,14 @@ const filesSentOffsite = async (req, res, next) => {
   }
 };
 
-const caseFilesUnloaded = async (req, res, next) => {
+const filesUnloaded = async (req, res, next) => {
   try {
-    const updatedCase = await caseDao.updateFilesUnloaded(
-      req.params.caseIdentifier
+    const updatedCase = await archiveDao.updateFilesUnloaded(
+      req.params.caseIdentifier,
+      caseEntityType
     );
     if (updatedCase && updatedCase.length) {
-      res.status(200).json(updatedCase);
+      res.status(200).json(replaceGenericKeyName(updatedCase));
     } else {
       res.status(404).end();
     }
@@ -326,16 +349,17 @@ const caseFilesUnloaded = async (req, res, next) => {
 
 const resumeCaseArchiveProcessing = async (req, res, next) => {
   try {
-    await caseDao.resumeCaseArchiveProcessing(req.params.caseIdentifier);
+    await archiveDao.resumeEntityArchiveProcessing(req.params.caseIdentifier);
     caseArchiveStopProcessing.set(
       { caseIdentifier: req.params.caseIdentifier },
       0
     );
-    const caseArchive = await caseDao.getByCaseIdentifier(
+    const caseArchive = await archiveDao.getByArchiveEntityIdentifier(
       req.params.caseIdentifier,
-      false
+      false,
+      caseEntityType
     );
-    res.status(200).json(caseArchive);
+    res.status(200).json(replaceGenericKeyName(caseArchive));
   } catch (e) {
     handleErrors(
       e,
@@ -346,11 +370,62 @@ const resumeCaseArchiveProcessing = async (req, res, next) => {
   }
 };
 
+function replaceCaseKeyName (originalCase) {
+  const newCase = {};
+  for (const key of Object.keys(originalCase)) {
+    if (key === 'caseIdentifier') {
+      newCase.archiveEntityIdentifier = originalCase[key];
+    } else {
+      newCase[key] = originalCase[key];
+    }
+  }
+  return newCase;
+}
+
+function replaceGenericKeyName (caseResponse) {
+  const updatedCaseResponse = [];
+  for (let i = 0; i < caseResponse.length; i++) {
+    const originalCase = caseResponse[i];
+    const newCase = {};
+    for (const key of Object.keys(originalCase)) {
+      if (key === 'entityIdentifier') {
+        newCase.caseIdentifier = originalCase[key];
+      } else {
+        newCase[key] = originalCase[key];
+      }
+    }
+    updatedCaseResponse.push(newCase);
+  }
+  return updatedCaseResponse;
+}
+
+const { Transform } = require('stream');
+// This is the stream equivalent of replaceGenericKeyName
+const createCaseKeyReplacementStream = () => {
+  return new Transform({
+    objectMode: true,
+    transform (chunk, encoding, callback) {
+      const originalCase = chunk;
+      const newCase = {};
+      for (const key of Object.keys(originalCase)) {
+        if (key === 'entityIdentifier') {
+          newCase.caseIdentifier = originalCase[key];
+        } else {
+          newCase[key] = originalCase[key];
+        }
+      }
+      // push the modified object to the next stage of the stream
+      this.push(newCase);
+      callback();
+    },
+  });
+};
+
 module.exports = {
   allCaseArchives: allCaseArchives,
   addCaseArchive: addCaseArchive,
   getCaseArchive: getCaseArchive,
-  caseFilesUnloaded: caseFilesUnloaded,
+  filesUnloaded: filesUnloaded,
   filesCopiedToOffsiteStagingDir: filesCopiedToOffsiteStagingDir,
   filesLoadedIntoVidarrArchival: filesLoadedIntoVidarrArchival,
   filesSentOffsite: filesSentOffsite,

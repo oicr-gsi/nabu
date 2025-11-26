@@ -552,6 +552,346 @@
       	}
       }
     },
+    "/projects": {
+      "get": {
+        "summary": "Get all project archives",
+        "description": "A streaming endpoint to get all project archive records",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "not",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional parameter to filter by outstanding project archiving work. Permitted values are: 'copied-to-offsite-staging', 'sent-offsite', 'sent-to-vidarr-archival', 'unloaded'"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project archive records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Project-response"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/project": {
+      "post": {
+        "summary": "Create a project archive record",
+        "description": "Adds a project archive record with basic data",
+        "parameters": [
+          {
+            "name": "X-API-KEY",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Fields for creating a new project archive record",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Project-new"
+              }
+            }
+          }
+        },
+        "security": {
+          "ApiKeyAuth": []
+        },
+        "responses": {
+          "200": {
+            "description": "Project archive record exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project-response"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Project archive record created or updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project-response"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Submitted parameters do not match parameters for existing project with the same projectIdentifier",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The sign-off content does not meet requirements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The submission is missing a valid API token in header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/project/{projectIdentifier}": {
+      "get": {
+        "summary": "Get a project archive record",
+        "description": "This resource represents a project and archive record. Each project and archive record is identified by a string `projectIdentifier`",
+        "parameters": [
+          {
+            "name": "projectIdentifier",
+            "in": "path",
+            "description": "unique project identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeVidarrMetadata",
+            "in": "query",
+            "description": "Whether or not to return the full Vidarr metadata for files sent offsite and files sent to vidarr-archival (true/false)",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created project archive record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource was not found"
+          }
+        }
+      }
+    },
+    "/project/{projectIdentifier}/copied-to-offsite-staging": {
+      "put": {
+        "summary": "Project archive files moved to offsite staging directory",
+        "description": "Indicate that this project archive's files have been moved to the offfsite staging directory",
+        "parameters": [
+          {
+            "name": "projectIdentifier",
+            "in": "path",
+            "description": "unique project identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Vidarr copy-out file and archiving batch ID",
+          "content": {
+            "application/json": {
+              "schema": "#/components/schemas/ProjectArchive-copied-to-offsite-staging-dir"
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Project archive record was updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested project archive resource was not found"
+          }
+        }
+      }
+    },
+    "/project/{projectIdentifier}/sent-offsite": {
+      "put": {
+        "summary": "Project archive files were sent offsite",
+        "description": "Indicate that this project archive's files have been archived offsite",
+        "parameters": [
+          {
+            "name": "projectIdentifier",
+            "in": "path",
+            "description": "unique project identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "ID of Commvault backup job for sending the files offsite",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "commvaultBackupJobId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Project archive record was updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested project archive resource was not found"
+          }
+        }
+      }
+    },
+    "/project/{projectIdentifier}/sent-to-vidarr-archival": {
+      "put": {
+        "summary": "Project archive files loaded into vidarr-archival",
+        "description": "Indicate that this project archive's files have been loaded into vidarr-archival",
+        "parameters": [
+          {
+            "name": "projectIdentifier",
+            "in": "path",
+            "description": "unique project identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Vidarr unload file containing metadata about the files to be loaded into vidarr-archival",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Project archive record was updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested project archive resource was not found"
+          }
+        }
+      }
+    },
+    "/project/{projectIdentifier}/unloaded": {
+      "put": {
+        "summary": "Project archive files deleted from production vidarr",
+        "description": "Record that this project archive's files have been deleted from production vidarr",
+        "parameters": [
+          {
+            "name": "projectIdentifier",
+            "in": "path",
+            "description": "unique project identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project archive record was updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested project archive resource was not found"
+          }
+        }
+      }
+    },
+    "/project/{projectIdentifier}/resume-archiving": {
+      "post": {
+        "summary": "Resume archiving for case",
+	      "description": "Resume archiving for a case that has been set to stop processing",
+	      "responses": {
+          "200": {
+            "description": "Case archive record is set to allow processing",
+            "content": {
+             "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Case-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested case archive resource was not found"
+          }
+      	}
+      }
+    },
     "/token": {
       "post": {
         "summary": "Create a token",
@@ -1166,7 +1506,7 @@
             "type": "string",
             "format": "date-time"
           },
-          "caseFilesUnloaded": {
+          "filesUnloaded": {
             "description": "Date that the case was last modified in Nabu",
             "type": "string",
             "format": "date-time"
@@ -1206,12 +1546,175 @@
           "commvaultBackupJobId",
           "workflowRunIdsForVidarrArchival",
           "filesLoadedIntoVidarrArchival",
-          "caseFilesUnloaded",
+          "filesUnloaded",
           "archiveTarget",
           "archiveWith"
         ]
       },
       "CaseArchive-copied-to-offsite-staging-dir": {
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "description":"Archiving batch identifier",
+            "type": "string"
+          },
+          "copyOutFile": {
+            "description": "Vidarr copy-out file containing metadata about the files to be sent offsite",
+            "type": "object"
+          }
+        }
+      },
+      "Project-new": {
+        "type": "object",
+        "properties": {
+          "projectIdentifier": {
+            "description": "Project identifier",
+            "type": "string"
+          },
+          "requisitionId": {
+            "description": "Requisition number",
+            "type": "integer"
+          },
+          "limsIds": {
+            "description": "LIMS IDs associated with the project",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "workflowRunIdsForOffsiteArchive": {
+            "description": "Vidarr workflow run IDs whose files need to be archived offsite",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "workflowRunIdsForVidarrArchival": {
+            "description": "Vidarr workflow run IDs whose files need to be stored in vidarr-archival",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "metadata": {
+            "description": "Metadata for the project archive",
+            "type": "object"
+          },
+          "archiveTarget": {
+            "description": "Archive target information",
+            "type": "string"
+          },
+          "archiveWith": {
+            "description": "List of project IDs that this project should be archived with",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Project-response": {
+        "type": "object",
+        "properties": {
+          "created": {
+            "description": "Date that the project was created in Nabu",
+            "type": "string",
+            "format": "date-time"
+          },
+          "modified": {
+            "description": "Date that the project was last modified in Nabu",
+            "type": "string",
+            "format": "date-time"
+          },
+          "projectIdentifier": {
+            "description": "Unique project identifier",
+            "type": "string"
+          },
+          "requisitionId": {
+            "description": "Requisition number",
+            "type": "integer"
+          },
+          "limsIds": {
+            "description": "LIMS IDs associated with the project",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "workflowRunIdsForOffsiteArchive": {
+            "description": "Vidarr workflow run IDs whose files need to be archived offsite",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "filesCopiedToOffsiteArchiveStagingDir": {
+            "description": "Date that the project was copied to the offsite archive staging directory",
+            "type": "string",
+            "format": "date-time"
+          },
+          "commvaultBackupJobId": {
+            "description": "Commvault identifier for the backup job for sending the project to offsite location",
+            "type": "string"
+          },
+          "workflowRunIdsForVidarrArchival": {
+            "description": "Vidarr workflow run IDs whose files need to be stored in vidarr-archival",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "filesLoadedIntoVidarrArchival": {
+            "description": "Date that the project was last modified in Nabu",
+            "type": "string",
+            "format": "date-time"
+          },
+          "filesUnloaded": {
+            "description": "Date that the project was last modified in Nabu",
+            "type": "string",
+            "format": "date-time"
+          },
+          "metadata": {
+            "description": "Metadata associated with the project archive",
+            "type": "object"
+          },
+          "archiveTarget": {
+            "description": "Archive target information",
+            "type": "string"
+          },
+          "archiveWith": {
+            "description": "List of project IDs that this project should be archived with",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "batchId": {
+            "description": "Archive batch ID",
+            "type": "string"
+          },
+          "stopProcessing": {
+            "description": "Whether the project archive is flagged to stop all processing",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "created",
+          "modified",
+          "rojectIdentifier",
+          "requisitionId",
+          "limsIds",
+          "workflowRunIdsForOffsiteArchive",
+          "filesCopiedToOffsiteArchiveStagingDir",
+          "commvaultBackupJobId",
+          "workflowRunIdsForVidarrArchival",
+          "filesLoadedIntoVidarrArchival",
+          "filesUnloaded",
+          "archiveTarget",
+          "archiveWith"
+        ]
+      },
+      "ProjectArchive-copied-to-offsite-staging-dir": {
         "type": "object",
         "properties": {
           "batchId": {
