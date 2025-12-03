@@ -6,6 +6,10 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Fixed
+
+* added documentation for the case archive resume-archiving endpoint
+
 ## 3.13.1: [2025-11-13]
 
 ### Fixed
