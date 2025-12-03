@@ -531,6 +531,27 @@
         }
       }
     },
+    "/case/{caseIdentifier}/resume-archiving": {
+      "post": {
+        "summary": "Resume archiving for case",
+	      "description": "Resume archiving for a case that has been set to stop processing",
+	      "responses": {
+          "200": {
+            "description": "Case archive record is set to allow processing",
+            "content": {
+             "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Case-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested case archive resource was not found"
+          }
+      	}
+      }
+    },
     "/token": {
       "post": {
         "summary": "Create a token",
