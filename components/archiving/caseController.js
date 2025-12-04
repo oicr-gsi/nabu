@@ -2,10 +2,13 @@
 
 const archiveDao = require('./archiveDao');
 const JSONStream = require('JSONStream');
+const { Transform } = require('stream');
+
 const {
   handleErrors,
   ValidationError,
   ConflictingDataError,
+  arrayDiff,
 } = require('../../utils/controllerUtils');
 const logger = require('../../utils/logger').logger;
 const urls = require('../../utils/urlSlugs');
@@ -18,15 +21,6 @@ const caseArchiveStopProcessing = new prometheus.Gauge({
   help: 'The case was set to stop processing',
   labelNames: ['caseIdentifier'],
 });
-
-function arraysEquals (array1, array2) {
-  array1 = array1 || [];
-  array2 = array2 || [];
-  return (
-    array1.every((item) => array2.includes(item)) &&
-    array2.every((item) => array1.includes(item))
-  );
-}
 
 const getCaseArchive = async (req, res, next) => {
   try {
@@ -114,6 +108,87 @@ const hasArchivingStarted = (kase) => {
   return kase.filesCopiedToOffsiteArchiveStagingDir != null;
 };
 
+const hasConflictingChanges = (existingCase, newCase) => {
+  let errors = [];
+  if (existingCase.requisitionId != newCase.requisitionId) {
+    errors.push(
+      `Requisition (${newCase.requisitionId}) from request does not match requisition ${existingCase.requisitionId} for case ${newCase.caseIdentifier}.`
+    );
+  }
+  let limsIdsNotInRequest = arrayDiff(existingCase.limsIds, newCase.limsIds);
+  let extraLimsIdsInRequest = arrayDiff(newCase.limsIds, existingCase.limsIds);
+  if (limsIdsNotInRequest.length != 0) {
+    errors.push(
+      `The existing case ${newCase.caseIdentifier} contains LIMS IDs: (${limsIdsNotInRequest}) which are not present in the request.`
+    );
+  }
+  if (extraLimsIdsInRequest.length != 0) {
+    errors.push(
+      `The existing case ${newCase.caseIdentifier} does not contain LIMS IDs: (${extraLimsIdsInRequest}) which are present in the request.`
+    );
+  }
+  let workflowRunIdsForOffsiteArchiveNotInRequest = arrayDiff(
+    existingCase.workflowRunIdsForOffsiteArchive,
+    newCase.workflowRunIdsForOffsiteArchive
+  );
+  let extraWorkflowRunIdsForOffsiteArchiveInRequest = arrayDiff(
+    newCase.workflowRunIdsForOffsiteArchive,
+    existingCase.workflowRunIdsForOffsiteArchive
+  );
+  if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
+    errors.push(
+      `The existing case ${newCase.caseIdentifier} contains offsite archive files: (${workflowRunIdsForOffsiteArchiveNotInRequest}) which are not present in the request.`
+    );
+  }
+  if (extraWorkflowRunIdsForOffsiteArchiveInRequest.length != 0) {
+    errors.push(
+      `The existing case ${newCase.caseIdentifier} does not contain offsite archive files: (${extraWorkflowRunIdsForOffsiteArchiveInRequest}) which are present in the request.`
+    );
+  }
+  let workflowRunIdsForVidarrArchivalNotInRequest = arrayDiff(
+    existingCase.workflowRunIdsForVidarrArchival,
+    newCase.workflowRunIdsForVidarrArchival
+  );
+  let extraWorkflowRunIdsForVidarrArchivalInRequest = arrayDiff(
+    newCase.workflowRunIdsForVidarrArchival,
+    existingCase.workflowRunIdsForVidarrArchival
+  );
+  if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
+    errors.push(
+      `The existing case ${newCase.caseIdentifier} contains offsite archive files: (${workflowRunIdsForVidarrArchivalNotInRequest}) which are not present in the request.`
+    );
+  }
+  if (extraWorkflowRunIdsForVidarrArchivalInRequest.length != 0) {
+    errors.push(
+      `The existing case ${newCase.caseIdentifier} does not contain offsite archive files: (${extraWorkflowRunIdsForVidarrArchivalInRequest}) which are present in the request.`
+    );
+  }
+  let archiveWithNotInRequest = arrayDiff(
+    existingCase.archiveWith,
+    newCase.archiveWith
+  );
+  let extraArchiveWithInRequest = arrayDiff(
+    newCase.archiveWith,
+    existingCase.archiveWith
+  );
+  if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
+    errors.push(
+      `The existing case ${newCase.caseIdentifier} contains offsite archive files: (${archiveWithNotInRequest}) which are not present in the request.`
+    );
+  }
+  if (extraArchiveWithInRequest.length != 0) {
+    errors.push(
+      `The existing case ${newCase.caseIdentifier} does not contain offsite archive files: (${extraArchiveWithInRequest}) which are present in the request.`
+    );
+  }
+  if (existingCase.archiveTarget != newCase.archiveTarget) {
+    errors.push(
+      `Archive target '${newCase.archiveTarget}' from request does not match archive target '${existingCase.archiveTarget}' for case ${newCase.caseIdentifier}.`
+    );
+  }
+  return errors;
+};
+
 const addCaseArchive = async (req, res, next) => {
   try {
     //authenticate api-key from header before continuing
@@ -130,63 +205,14 @@ const addCaseArchive = async (req, res, next) => {
     } else {
       for (let existingCase of existingCases) {
         // check for conflicting changes
-        let errors = [];
-        let caseStoppedProcessing = false;
-        if (existingCase.requisitionId != req.body.requisitionId) {
-          errors.push(
-            `Requisition (${req.body.requisitionId}) from request does not match requisition ${existingCase.requisitionId} for case ${req.body.caseIdentifier}`
-          );
-          caseStoppedProcessing = true;
-        }
-        if (!arraysEquals(existingCase.limsIds, req.body.limsIds)) {
-          errors.push(
-            `LIMS IDs (${req.body.limsIds}) from request do not match LIMS IDs ${existingCase.limsIds} for case ${req.body.caseIdentifier}`
-          );
-          caseStoppedProcessing = true;
-        }
-        if (
-          !arraysEquals(
-            existingCase.workflowRunIdsForOffsiteArchive,
-            req.body.workflowRunIdsForOffsiteArchive
-          )
-        ) {
-          errors.push(
-            `Requested offsite archive files list ${req.body.workflowRunIdsForOffsiteArchive} does not match offsite files archive list ${existingCase.workflowRunIdsForOffsiteArchive} for case ${existingCase.entityIdentifier}`
-          );
-          caseStoppedProcessing = true;
-        }
-        if (
-          !arraysEquals(
-            existingCase.workflowRunIdsForVidarrArchival,
-            req.body.workflowRunIdsForVidarrArchival
-          )
-        ) {
-          errors.push(
-            `Requested onsite archive files list ${req.body.workflowRunIdsForVidarrArchival} does not match onsite archive files list ${existingCase.workflowRunIdsForVidarrArchival} for case ${existingCase.entityIdentifier}`
-          );
-          caseStoppedProcessing = true;
-        }
-        if (!arraysEquals(existingCase.archiveWith, req.body.archiveWith)) {
-          errors.push(
-            `Requested archive_with=${req.body.archiveWith} from request does not match archive_with=${existingCase.archiveWith} for case ${req.body.caseIdentifier}`
-          );
-          caseStoppedProcessing = true;
-        }
-        if (existingCase.archiveTarget != req.body.archiveTarget) {
-          errors.push(
-            `Archive target '${req.body.archiveTarget}' from request does not match archive target '${existingCase.archiveTarget}' for case ${req.body.caseIdentifier}`
-          );
-          caseStoppedProcessing = true;
-        }
-        if (caseStoppedProcessing) {
+        let errors = hasConflictingChanges(existingCase, req.body);
+        if (errors.length) {
           await archiveDao.setEntityArchiveDoNotProcess(
             existingCase.entityIdentifier
           );
           caseArchiveStopProcessing.inc({
             caseIdentifier: existingCase.entityIdentifier,
           });
-        }
-        if (errors.length) {
           for (const e of errors) {
             logger.error(e);
           }
@@ -238,10 +264,6 @@ const upsert = (caseInfo, createNewArchive) => {
     createNewArchive,
     caseEntityType
   );
-};
-
-const upsertArchive = (caseInfo) => {
-  return archiveDao.addArchiveOnly(replaceCaseKeyName(caseInfo));
 };
 
 const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
@@ -371,35 +393,23 @@ const resumeCaseArchiveProcessing = async (req, res, next) => {
 };
 
 function replaceCaseKeyName (originalCase) {
-  const newCase = {};
-  for (const key of Object.keys(originalCase)) {
-    if (key === 'caseIdentifier') {
-      newCase.archiveEntityIdentifier = originalCase[key];
-    } else {
-      newCase[key] = originalCase[key];
-    }
+  if (originalCase.hasOwnProperty('caseIdentifier')) {
+    originalCase.archiveEntityIdentifier = originalCase.caseIdentifier;
+    delete originalCase.caseIdentifier;
   }
-  return newCase;
+  return originalCase;
 }
 
 function replaceGenericKeyName (caseResponse) {
-  const updatedCaseResponse = [];
-  for (let i = 0; i < caseResponse.length; i++) {
-    const originalCase = caseResponse[i];
-    const newCase = {};
-    for (const key of Object.keys(originalCase)) {
-      if (key === 'entityIdentifier') {
-        newCase.caseIdentifier = originalCase[key];
-      } else {
-        newCase[key] = originalCase[key];
-      }
+  caseResponse.forEach((item) => {
+    if (item.hasOwnProperty('entityIdentifier')) {
+      item.caseIdentifier = item.entityIdentifier;
+      delete item.entityIdentifier;
     }
-    updatedCaseResponse.push(newCase);
-  }
-  return updatedCaseResponse;
+  });
+  return caseResponse;
 }
 
-const { Transform } = require('stream');
 // This is the stream equivalent of replaceGenericKeyName
 const createCaseKeyReplacementStream = () => {
   return new Transform({

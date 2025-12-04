@@ -602,7 +602,7 @@ describe('archive testing', () => {
   });
   describe('project + archive operations', () => {
     it('it should retrieve an archive entry with project data for a given project identifier', (done) => {
-      let entityIdentifier = 'P13_TEST_1000_De_F';
+      let entityIdentifier = 'PRO13';
       getProjectByProjectIdentifier(server, entityIdentifier).end(
         (err, res) => {
           expect(res.status).to.equal(200);
@@ -632,7 +632,7 @@ describe('archive testing', () => {
       expect(res.status).to.equal(200);
     });
     it('it should return data for project that has not been copied to the archiving staging directory', (done) => {
-      let entityIdentifier0 = 'P14_TEST_1313_Wx_Y';
+      let entityIdentifier0 = 'PRO14';
       getProjectsByMissing(server, urls.filesCopiedToOffsiteStagingDir).end(
         (err, res) => {
           expect(res.status).to.equal(200);
@@ -667,7 +667,7 @@ describe('archive testing', () => {
       });
     });
     it('it should return OK when the same project data is submitted', (done) => {
-      let entityIdentifier = 'P13_TEST_1000_De_F';
+      let entityIdentifier = 'PRO13';
       let reqBody = {
         projectIdentifier: entityIdentifier,
         requisitionId: 14,
@@ -724,7 +724,7 @@ describe('archive testing', () => {
     });
 
     it('it should error and be flagged to stop processing when a project is submitted with the same project identifier but different project data, and that the stop processing flag can be cleared', (done) => {
-      let projectIdentifier = 'P13_TEST_1000_De_F';
+      let projectIdentifier = 'PRO13';
       getProjectByProjectIdentifier(server, projectIdentifier).end(
         (err, res) => {
           expect(res.status).to.equal(200);
@@ -754,7 +754,7 @@ describe('archive testing', () => {
       );
     });
     it('it should update a project with info that files have been copied to the offsite staging directory', (done) => {
-      let entityIdentifier = 'P14_TEST_1313_Wx_Y';
+      let entityIdentifier = 'PRO14';
       let batchId = 'batch_123';
       let requestBody = {
         batchId: batchId,
@@ -854,7 +854,7 @@ describe('archive testing', () => {
       );
     });
     it('it should update not update a second time that file have been copied to the offsite staging directory for a project', (done) => {
-      let entityIdentifier = 'P13_TEST_1000_De_F';
+      let entityIdentifier = 'PRO13';
       let requestBody = {
         batchId: 'badBatch',
         copyOutFile: {
@@ -896,7 +896,7 @@ describe('archive testing', () => {
       );
     });
     it('it should update a project and save the commvault job ID', (done) => {
-      let entityIdentifier = 'P14_TEST_1313_Wx_Y';
+      let entityIdentifier = 'PRO14';
       let reqBody = {
         commvaultBackupJobId: 'CJ1212',
       };
@@ -922,7 +922,7 @@ describe('archive testing', () => {
       });
     });
     it('it should not update the commvault job ID when a different one is provided for the project', (done) => {
-      let entityIdentifier = 'P13_TEST_1000_De_F';
+      let entityIdentifier = 'PRO13';
       let reqBody = {
         commvaultBackupJobId: 'CJ9999',
       };
@@ -949,7 +949,7 @@ describe('archive testing', () => {
       );
     });
     it('it should update a project to indicate files have been sent to vidarr-archival', (done) => {
-      let entityIdentifier = 'P14_TEST_1313_Wx_Y';
+      let entityIdentifier = 'PRO14';
       let loadFile = {
         workflows: ['crosscheckFingerprintsCollector_bam'],
         workflowVersions: [
@@ -994,7 +994,7 @@ describe('archive testing', () => {
       );
     });
     it('it should not update the "files have been sent to vidarr-archival" time for a project', (done) => {
-      let entityIdentifier = 'P13_TEST_1000_De_F';
+      let entityIdentifier = 'PRO13';
       let loadFile = {
         workflows: ['crosscheckFingerprintsCollector_fastq'],
         workflowVersions: [
@@ -1046,7 +1046,7 @@ describe('archive testing', () => {
       });
     });
     it('it should update a project to indicate that the project files have been unloaded from production vidarr for a project', (done) => {
-      let entityIdentifier = 'P14_TEST_1313_Wx_Y';
+      let entityIdentifier = 'PRO14';
       updateProjectArchives(server, entityIdentifier, urls.filesUnloaded).end(
         (err, res) => {
           expect(res.status).to.equal(200);
@@ -1066,7 +1066,7 @@ describe('archive testing', () => {
       );
     });
     it('it should not update the "files have been deleted from production vidarr" time for a project', (done) => {
-      let entityIdentifier = 'P13_TEST_1000_De_F';
+      let entityIdentifier = 'PRO13';
       getProjectByProjectIdentifier(server, entityIdentifier).end(
         (err, res) => {
           let firstUnloadDate = res.body[0].filesUnloaded;
@@ -1097,7 +1097,7 @@ describe('archive testing', () => {
     });
     it('it should error when attempting to create a new archive record when one is completed for a given project identifier', (done) => {
       let reqBody = {
-        projectIdentifier: 'P13_TEST_1000_De_F',
+        projectIdentifier: 'PRO13',
         requisitionId: 12,
         limsIds: [
           '901_1_LDI9001',

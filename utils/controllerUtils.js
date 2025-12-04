@@ -56,10 +56,18 @@ function handleErrors (e, defaultMessage, logger, next) {
   /* eslint-enable */
 }
 
+//returns elements present in first array but not second
+function arrayDiff (array1, array2) {
+  array1 = array1 || [];
+  array2 = array2 || [];
+  return array1.filter((e) => !array2.includes(e));
+}
+
 module.exports = {
   ValidationError: ValidationError,
   ConflictingDataError: ConflictingDataError,
   AuthenticationError: AuthenticationError,
+  arrayDiff: arrayDiff,
   generateError: generateError,
   handleErrors: handleErrors,
 };

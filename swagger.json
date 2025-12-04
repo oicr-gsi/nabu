@@ -387,7 +387,9 @@
           "description": "Vidarr copy-out file and archiving batch ID",
           "content": {
             "application/json": {
-              "schema": "#/components/schemas/CaseArchive-copied-to-offsite-staging-dir"
+              "schema": {
+                "$ref": "#/components/schemas/CaseArchive-copied-to-offsite-staging-dir"
+              }
             }
           }
         },
@@ -727,7 +729,9 @@
           "description": "Vidarr copy-out file and archiving batch ID",
           "content": {
             "application/json": {
-              "schema": "#/components/schemas/ProjectArchive-copied-to-offsite-staging-dir"
+              "schema": {
+                "$ref": "#/components/schemas/ProjectArchive-copied-to-offsite-staging-dir"
+              }
             }
           }
         },

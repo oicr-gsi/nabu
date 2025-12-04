@@ -7,15 +7,15 @@ const qrec = pgp.errors.queryResultErrorCode;
 
 // archiveEntity info
 const id = 'id';
-const created = 'created';
-const modified = 'modified';
-const archiveEntityId = 'archive_entity_id';
-const archiveType = 'entity_type';
+const entityTypeColumn = 'entity_type';
 const entityIdentifierColumn = 'entity_identifier';
 const requisitionId = 'requisition_id';
 const limsIds = 'lims_ids';
 
 // archive info
+const created = 'created';
+const modified = 'modified';
+const archiveEntityId = 'archive_entity_id';
 const wfrIdsForOffsite = 'workflow_run_ids_for_offsite_archive';
 const unloadFileForOffsite = 'unload_file_for_offsite_archive';
 const filesCopiedToOffsiteStagingDir =
@@ -36,7 +36,7 @@ const entityCols = [
   entityIdentifierColumn,
   requisitionId,
   limsIds,
-  archiveType,
+  entityTypeColumn,
 ];
 const archiveCols = [
   id,
@@ -59,7 +59,7 @@ const archiveCols = [
 ];
 
 const entityColsCreate = new pgp.helpers.ColumnSet(
-  [entityIdentifierColumn, requisitionId, limsIds, archiveType],
+  [entityIdentifierColumn, requisitionId, limsIds, entityTypeColumn],
   { table: 'archive_entity' }
 );
 const archiveColsCreate = [
@@ -136,7 +136,7 @@ const addArchiveEntity = (kase, newArchive = true, entityType) => {
             'archive'
           );
           archiveQuery =
-            archiveQuery + ` WHERE ${archiveEntityId} = ${data.id};`;
+            archiveQuery + ` WHERE ${archiveEntityId} = ${data.id}`;
         }
         await tx.none(archiveQuery);
         return;
@@ -151,62 +151,25 @@ const addArchiveEntity = (kase, newArchive = true, entityType) => {
   });
 };
 
-const getByIdentifierQuery = `SELECT id FROM archive_entity WHERE ${entityIdentifierColumn} = $1;`;
+const archiveEntityArchiveDataQueryWithoutUnloadFiles = `SELECT c.${entityIdentifierColumn}, c.${requisitionId}, c.${limsIds}, c.${entityTypeColumn}, a.${created}, a.${modified}, a.${wfrIdsForOffsite}, a.${filesCopiedToOffsiteStagingDir}, a.${commvaultJobId}, a.${wfrIdsForVidarrArchival}, a.${filesLoadedIntoVidarrArchival}, a.${filesUnloaded}, a.${metadata}, a.${archiveTarget}, a.${archiveWith}, a.${batchId}, a.${stopProcessing} FROM archive_entity c JOIN archive a ON c.${id} = a.${archiveEntityId}`;
+const archiveEntityArchiveDataQueryWithUnloadFiles = `SELECT c.${entityIdentifierColumn}, c.${requisitionId}, c.${limsIds}, c.${entityTypeColumn}, a.${created}, a.${modified}, a.${wfrIdsForOffsite}, a.${unloadFileForOffsite}, a.${filesCopiedToOffsiteStagingDir}, a.${commvaultJobId}, a.${wfrIdsForVidarrArchival}, a.${unloadFileForVidarrArchival}, a.${filesLoadedIntoVidarrArchival}, a.${filesUnloaded}, a.${metadata}, a.${archiveTarget}, a.${archiveWith}, a.${batchId}, a.${stopProcessing} FROM archive_entity c JOIN archive a ON c.${id} = a.${archiveEntityId}`;
 
-const addArchiveOnly = (kase) => {
-  return new Promise((resolve, reject) => {
-    db.task('add-archive', async (tx) => {
-      const archiveEntityQuery = getByIdentifierQuery;
-      await tx.one(archiveEntityQuery).then(async (data) => {
-        const archiveData = {
-          archive_entity_id: data.id,
-          workflow_run_ids_for_offsite_archive:
-            kase.workflowRunIdsForOffsiteArchive,
-          workflow_run_ids_for_vidarr_archival:
-            kase.workflowRunIdsForVidarrArchival,
-          metadata: kase.metadata,
-          archive_target: kase.archiveTarget,
-          archive_with: kase.archiveWith,
-        };
-
-        const archiveQuery = pgp.helpers.insert(
-          archiveData,
-          archiveColsCreate,
-          'archive'
-        );
-        await tx.none(archiveQuery);
-        return;
-      });
-    })
-      .then(() => {
-        resolve();
-      })
-      .catch((err) => {
-        reject(new Error(err));
-      });
-  });
-};
-
-const archiveEntityArchiveDataQueryWithoutUnloadFiles = `SELECT c.${entityIdentifierColumn}, c.${requisitionId}, c.${limsIds}, c.${archiveType}, a.${created}, a.${modified}, a.${wfrIdsForOffsite}, a.${filesCopiedToOffsiteStagingDir}, a.${commvaultJobId}, a.${wfrIdsForVidarrArchival}, a.${filesLoadedIntoVidarrArchival}, a.${filesUnloaded}, a.${metadata}, a.${archiveTarget}, a.${archiveWith}, a.${batchId}, a.${stopProcessing} FROM archive_entity c JOIN archive a ON c.${id} = a.${archiveEntityId}`;
-const archiveEntityArchiveDataQueryWithUnloadFiles = `SELECT c.${entityIdentifierColumn}, c.${requisitionId}, c.${limsIds}, c.${archiveType}, a.${created}, a.${modified}, a.${wfrIdsForOffsite}, a.${unloadFileForOffsite}, a.${filesCopiedToOffsiteStagingDir}, a.${commvaultJobId}, a.${wfrIdsForVidarrArchival}, a.${unloadFileForVidarrArchival}, a.${filesLoadedIntoVidarrArchival}, a.${filesUnloaded}, a.${metadata}, a.${archiveTarget}, a.${archiveWith}, a.${batchId}, a.${stopProcessing} FROM archive_entity c JOIN archive a ON c.${id} = a.${archiveEntityId}`;
-
-const getArchiveQuery = (includeUnloadFiles = false, entityType) => {
+const getArchiveQuery = (includeUnloadFiles = false) => {
   let query;
   if (includeUnloadFiles) {
     query = archiveEntityArchiveDataQueryWithUnloadFiles;
   } else {
     query = archiveEntityArchiveDataQueryWithoutUnloadFiles;
   }
-  query += ` WHERE ${entityIdentifierColumn} = $1 AND ${archiveType} = '${entityType}'`;
+  query += ` WHERE ${entityIdentifierColumn} = $1`;
   return query;
 };
 
 const getByArchiveEntityIdentifier = (
   archiveEntityIdentifier,
-  includeUnloadFiles = false,
-  entityType
+  includeUnloadFiles = false
 ) => {
-  const query = getArchiveQuery(includeUnloadFiles, entityType);
+  const query = getArchiveQuery(includeUnloadFiles);
   return new Promise((resolve, reject) => {
     db.manyOrNone(query, archiveEntityIdentifier)
       .then((data) => {
@@ -227,9 +190,9 @@ const getByArchiveEntityIdentifier = (
 const getByFilesNotCopiedToOffsiteStagingDir = (entityType) => {
   const query =
     archiveEntityArchiveDataQueryWithoutUnloadFiles +
-    ` WHERE ${filesCopiedToOffsiteStagingDir} IS NULL AND ${archiveType} = '${entityType}'`;
+    ` WHERE ${filesCopiedToOffsiteStagingDir} IS NULL AND ${entityTypeColumn} = $1`;
   return new Promise((resolve, reject) => {
-    db.any(query)
+    db.any(query, entityType)
       .then((data) => {
         resolve(data);
       })
@@ -240,9 +203,9 @@ const getByFilesNotCopiedToOffsiteStagingDir = (entityType) => {
 const getByFilesNotLoadedIntoVidarrArchival = (entityType) => {
   const query =
     archiveEntityArchiveDataQueryWithoutUnloadFiles +
-    ` WHERE ${filesLoadedIntoVidarrArchival} IS NULL AND ${archiveType} = '${entityType}'`;
+    ` WHERE ${filesLoadedIntoVidarrArchival} IS NULL AND ${entityTypeColumn} = $1`;
   return new Promise((resolve, reject) => {
-    db.any(query)
+    db.any(query, entityType)
       .then((data) => {
         resolve(data);
       })
@@ -253,9 +216,9 @@ const getByFilesNotLoadedIntoVidarrArchival = (entityType) => {
 const getByFilesNotSentOffsite = (entityType) => {
   const query =
     archiveEntityArchiveDataQueryWithoutUnloadFiles +
-    ` WHERE ${filesCopiedToOffsiteStagingDir} IS NOT NULL AND ${commvaultJobId} IS NULL AND ${archiveType} = '${entityType}'`;
+    ` WHERE ${filesCopiedToOffsiteStagingDir} IS NOT NULL AND ${commvaultJobId} IS NULL AND ${entityTypeColumn} = $1`;
   return new Promise((resolve, reject) => {
-    db.any(query)
+    db.any(query, entityType)
       .then((data) => {
         resolve(data ? data : []);
       })
@@ -266,9 +229,9 @@ const getByFilesNotSentOffsite = (entityType) => {
 const getByFilesNotUnloaded = (entityType) => {
   const query =
     archiveEntityArchiveDataQueryWithoutUnloadFiles +
-    ` WHERE ${commvaultJobId} IS NOT NULL AND ${filesLoadedIntoVidarrArchival} IS NOT NULL AND ${filesUnloaded} IS NULL AND ${archiveType} = '${entityType}'`;
+    ` WHERE ${commvaultJobId} IS NOT NULL AND ${filesLoadedIntoVidarrArchival} IS NOT NULL AND ${filesUnloaded} IS NULL AND ${entityTypeColumn} = $1`;
   return new Promise((resolve, reject) => {
-    db.any(query)
+    db.any(query, entityType)
       .then((data) => {
         resolve(data);
       })
@@ -348,7 +311,7 @@ const updateFilesCopiedToOffsiteStagingDir = (
   });
 };
 
-const filesLoadedIntoVidarrArchivalQuery = `UPDATE archive SET ${filesLoadedIntoVidarrArchival} = NOW(), ${unloadFileForVidarrArchival} = $1 WHERE ${archiveEntityId} = (SELECT ${id} FROM archive_entity WHERE ${entityIdentifierColumn} = $2) AND ${filesLoadedIntoVidarrArchival} IS NULL`;
+const filesLoadedIntoVidarrArchivalQuery = `UPDATE archive SET ${filesLoadedIntoVidarrArchival} = NOW(), ${unloadFileForVidarrArchival} = $1 WHERE ${archiveEntityId} = (SELECT ${id} FROM archive_entity WHERE ${entityIdentifierColumn} = $2 AND ${entityTypeColumn} = $3) AND ${filesLoadedIntoVidarrArchival} IS NULL`;
 
 const updateFilesLoadedIntoVidarrArchival = (
   archiveEntityIdentifier,
@@ -359,6 +322,7 @@ const updateFilesLoadedIntoVidarrArchival = (
     db.none(filesLoadedIntoVidarrArchivalQuery, [
       unloadFile,
       archiveEntityIdentifier,
+      entityType,
     ])
       .then(() => {
         getEntityArchiveData(
@@ -373,7 +337,7 @@ const updateFilesLoadedIntoVidarrArchival = (
   });
 };
 
-const filesSentOffsiteQuery = `UPDATE archive SET ${commvaultJobId} = $1 WHERE ${archiveEntityId} = (SELECT ${id} FROM archive_entity WHERE ${entityIdentifierColumn} = $2) AND ${commvaultJobId} IS NULL`;
+const filesSentOffsiteQuery = `UPDATE archive SET ${commvaultJobId} = $1 WHERE ${archiveEntityId} = (SELECT ${id} FROM archive_entity WHERE ${entityIdentifierColumn} = $2 AND ${entityTypeColumn} = $3) AND ${commvaultJobId} IS NULL`;
 
 const updateFilesSentOffsite = (
   archiveEntityIdentifier,
@@ -381,7 +345,11 @@ const updateFilesSentOffsite = (
   entityType
 ) => {
   return new Promise((resolve, reject) => {
-    db.none(filesSentOffsiteQuery, [commvaultJobId, archiveEntityIdentifier])
+    db.none(filesSentOffsiteQuery, [
+      commvaultJobId,
+      archiveEntityIdentifier,
+      entityType,
+    ])
       .then(() => {
         getEntityArchiveData(
           archiveEntityIdentifier,
@@ -395,11 +363,11 @@ const updateFilesSentOffsite = (
   });
 };
 
-const filesUnloadedQuery = `UPDATE archive SET ${filesUnloaded} = NOW() WHERE ${archiveEntityId} = (SELECT ${id} FROM archive_entity WHERE ${entityIdentifierColumn} = $1) AND ${filesUnloaded} IS NULL`;
+const filesUnloadedQuery = `UPDATE archive SET ${filesUnloaded} = NOW() WHERE ${archiveEntityId} = (SELECT ${id} FROM archive_entity WHERE ${entityIdentifierColumn} = $1 AND ${entityTypeColumn} = $2) AND ${filesUnloaded} IS NULL`;
 
 const updateFilesUnloaded = (archiveEntityIdentifier, entityType) => {
   return new Promise((resolve, reject) => {
-    db.none(filesUnloadedQuery, [archiveEntityIdentifier])
+    db.none(filesUnloadedQuery, [archiveEntityIdentifier, entityType])
       .then(() => {
         getEntityArchiveData(
           archiveEntityIdentifier,
@@ -425,7 +393,7 @@ const standardCatch = (err, reject) => {
 const streamAllProjects = (fn) => {
   const query = new queryStream(
     archiveEntityArchiveDataQueryWithoutUnloadFiles +
-      ` WHERE ${archiveType} = 'PROJECT' `
+      ` WHERE ${entityTypeColumn} = 'PROJECT' `
   );
   return db.stream(query, fn);
 };
@@ -433,7 +401,7 @@ const streamAllProjects = (fn) => {
 const streamAllCases = (fn) => {
   const query = new queryStream(
     archiveEntityArchiveDataQueryWithoutUnloadFiles +
-      ` WHERE ${archiveType} = 'CASE' `
+      ` WHERE ${entityTypeColumn} = 'CASE' `
   );
   return db.stream(query, fn);
 };
@@ -447,7 +415,6 @@ const streamAllArchiveEntities = (fn) => {
 
 module.exports = {
   addArchiveEntity: addArchiveEntity,
-  addArchiveOnly: addArchiveOnly,
   getByArchiveEntityIdentifier: getByArchiveEntityIdentifier,
   updateFilesCopiedToOffsiteStagingDir: updateFilesCopiedToOffsiteStagingDir,
   updateFilesLoadedIntoVidarrArchival: updateFilesLoadedIntoVidarrArchival,

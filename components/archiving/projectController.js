@@ -2,10 +2,12 @@
 
 const archiveDao = require('./archiveDao');
 const JSONStream = require('JSONStream');
+const { Transform } = require('stream');
 const {
   handleErrors,
   ValidationError,
   ConflictingDataError,
+  arrayDiff,
 } = require('../../utils/controllerUtils');
 const logger = require('../../utils/logger').logger;
 const urls = require('../../utils/urlSlugs');
@@ -19,24 +21,15 @@ const projectArchiveStopProcessing = new prometheus.Gauge({
   labelNames: ['projectIdentifier'],
 });
 
-function arraysEquals (array1, array2) {
-  array1 = array1 || [];
-  array2 = array2 || [];
-  return (
-    array1.every((item) => array2.includes(item)) &&
-    array2.every((item) => array1.includes(item))
-  );
-}
-
 const getProjectArchive = async (req, res, next) => {
   try {
-    const cardeaProject = await archiveDao.getByArchiveEntityIdentifier(
+    const projectArchive = await archiveDao.getByArchiveEntityIdentifier(
       req.params.projectIdentifier,
       req.query.includeVidarrMetadata ? req.query.includeVidarrMetadata : false,
       projectEntityType
     );
-    if (cardeaProject && cardeaProject.length) {
-      res.status(200).json(replaceGenericKeyName(cardeaProject));
+    if (projectArchive && projectArchive.length) {
+      res.status(200).json(replaceGenericKeyName(projectArchive));
     } else {
       res.status(404).end();
     }
@@ -114,6 +107,88 @@ const hasArchivingStarted = (kase) => {
   return kase.filesCopiedToOffsiteArchiveStagingDir != null;
 };
 
+const hasConflictingChanges = (existingProject, newProject) => {
+  let errors = [];
+  let limsIdsNotInRequest = arrayDiff(
+    existingProject.limsIds,
+    newProject.limsIds
+  );
+  let extraLimsIdsInRequest = arrayDiff(
+    newProject.limsIds,
+    existingProject.limsIds
+  );
+  if (limsIdsNotInRequest.length != 0) {
+    errors.push(
+      `The existing project ${newProject.projectIdentifier} contains LIMS IDs: (${limsIdsNotInRequest}) which are not present in the request.`
+    );
+  }
+  if (extraLimsIdsInRequest.length != 0) {
+    errors.push(
+      `The existing project ${newProject.projectIdentifier} does not contain LIMS IDs: (${extraLimsIdsInRequest}) which are present in the request.`
+    );
+  }
+  let workflowRunIdsForOffsiteArchiveNotInRequest = arrayDiff(
+    existingProject.workflowRunIdsForOffsiteArchive,
+    newProject.workflowRunIdsForOffsiteArchive
+  );
+  let extraWorkflowRunIdsForOffsiteArchiveInRequest = arrayDiff(
+    newProject.workflowRunIdsForOffsiteArchive,
+    existingProject.workflowRunIdsForOffsiteArchive
+  );
+  if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
+    errors.push(
+      `The existing project ${newProject.projectIdentifier} contains offsite archive files: (${workflowRunIdsForOffsiteArchiveNotInRequest}) which are not present in the request.`
+    );
+  }
+  if (extraWorkflowRunIdsForOffsiteArchiveInRequest.length != 0) {
+    errors.push(
+      `The existing project ${newProject.projectIdentifier} does not contain offsite archive files: (${extraWorkflowRunIdsForOffsiteArchiveInRequest}) which are present in the request.`
+    );
+  }
+  let workflowRunIdsForVidarrArchivalNotInRequest = arrayDiff(
+    existingProject.workflowRunIdsForVidarrArchival,
+    newProject.workflowRunIdsForVidarrArchival
+  );
+  let extraWorkflowRunIdsForVidarrArchivalInRequest = arrayDiff(
+    newProject.workflowRunIdsForVidarrArchival,
+    existingProject.workflowRunIdsForVidarrArchival
+  );
+  if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
+    errors.push(
+      `The existing project ${newProject.projectIdentifier} contains offsite archive files: (${workflowRunIdsForVidarrArchivalNotInRequest}) which are not present in the request.`
+    );
+  }
+  if (extraWorkflowRunIdsForVidarrArchivalInRequest.length != 0) {
+    errors.push(
+      `The existing project ${newProject.projectIdentifier} does not contain offsite archive files: (${extraWorkflowRunIdsForVidarrArchivalInRequest}) which are present in the request.`
+    );
+  }
+  let archiveWithNotInRequest = arrayDiff(
+    existingProject.archiveWith,
+    newProject.archiveWith
+  );
+  let extraArchiveWithInRequest = arrayDiff(
+    newProject.archiveWith,
+    existingProject.archiveWith
+  );
+  if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
+    errors.push(
+      `The existing project ${newProject.projectIdentifier} contains offsite archive files: (${archiveWithNotInRequest}) which are not present in the request.`
+    );
+  }
+  if (extraArchiveWithInRequest.length != 0) {
+    errors.push(
+      `The existing project ${newProject.projectIdentifier} does not contain offsite archive files: (${extraArchiveWithInRequest}) which are present in the request.`
+    );
+  }
+  if (existingProject.archiveTarget != newProject.archiveTarget) {
+    errors.push(
+      `Archive target '${newProject.archiveTarget}' from request does not match archive target '${existingProject.archiveTarget}' for project ${newProject.projectIdentifier}.`
+    );
+  }
+  return errors;
+};
+
 const addProjectArchive = async (req, res, next) => {
   try {
     //authenticate api-key from header before continuing
@@ -130,63 +205,14 @@ const addProjectArchive = async (req, res, next) => {
     } else {
       for (let existingProject of existingProjects) {
         // check for conflicting changes
-        let errors = [];
-        let projectStoppedProcessing = false;
-        if (existingProject.requisitionId != req.body.requisitionId) {
-          errors.push(
-            `Requisition (${req.body.requisitionId}) from request does not match requisition ${existingProject.requisitionId} for project ${req.body.projectIdentifier}`
-          );
-          projectStoppedProcessing = true;
-        }
-        if (!arraysEquals(existingProject.limsIds, req.body.limsIds)) {
-          errors.push(
-            `LIMS IDs (${req.body.limsIds}) from request do not match LIMS IDs ${existingProject.limsIds} for project ${req.body.projectIdentifier}`
-          );
-          projectStoppedProcessing = true;
-        }
-        if (
-          !arraysEquals(
-            existingProject.workflowRunIdsForOffsiteArchive,
-            req.body.workflowRunIdsForOffsiteArchive
-          )
-        ) {
-          errors.push(
-            `Requested offsite archive files list ${req.body.workflowRunIdsForOffsiteArchive} does not match offsite files archive list ${existingProject.workflowRunIdsForOffsiteArchive} for project ${existingProject.entityIdentifier}`
-          );
-          projectStoppedProcessing = true;
-        }
-        if (
-          !arraysEquals(
-            existingProject.workflowRunIdsForVidarrArchival,
-            req.body.workflowRunIdsForVidarrArchival
-          )
-        ) {
-          errors.push(
-            `Requested onsite archive files list ${req.body.workflowRunIdsForVidarrArchival} does not match onsite archive files list ${existingProject.workflowRunIdsForVidarrArchival} for project ${existingProject.entityIdentifier}`
-          );
-          projectStoppedProcessing = true;
-        }
-        if (!arraysEquals(existingProject.archiveWith, req.body.archiveWith)) {
-          errors.push(
-            `Requested archive_with=${req.body.archiveWith} from request does not match archive_with=${existingProject.archiveWith} for project ${req.body.projectIdentifier}`
-          );
-          projectStoppedProcessing = true;
-        }
-        if (existingProject.archiveTarget != req.body.archiveTarget) {
-          errors.push(
-            `Archive target '${req.body.archiveTarget}' from request does not match archive target '${existingProject.archiveTarget}' for project ${req.body.projectIdentifier}`
-          );
-          projectStoppedProcessing = true;
-        }
-        if (projectStoppedProcessing) {
+        let errors = hasConflictingChanges(existingProject, req.body);
+        if (errors.length) {
           await archiveDao.setEntityArchiveDoNotProcess(
             existingProject.entityIdentifier
           );
           projectArchiveStopProcessing.inc({
             projectIdentifier: existingProject.entityIdentifier,
           });
-        }
-        if (errors.length) {
           for (const e of errors) {
             logger.error(e);
           }
@@ -238,10 +264,6 @@ const upsert = (projectInfo, createNewArchive) => {
     createNewArchive,
     projectEntityType
   );
-};
-
-const upsertArchive = (projectInfo) => {
-  return archiveDao.addArchiveOnly(replaceProjectKeyName(projectInfo));
 };
 
 const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
@@ -402,7 +424,6 @@ function replaceGenericKeyName (projectResponse) {
   return updatedProjectResponse;
 }
 
-const { Transform } = require('stream');
 // This is the stream equivalent of replaceGenericKeyName
 const createProjectKeyReplacementStream = () => {
   return new Transform({
