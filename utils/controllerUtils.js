@@ -60,7 +60,10 @@ function handleErrors (e, defaultMessage, logger, next) {
 function arrayDiff (array1, array2) {
   array1 = array1 || [];
   array2 = array2 || [];
-  return array1.filter((e) => !array2.includes(e));
+  return [
+    array1.filter((e) => !array2.includes(e)),
+    array2.filter((e) => !array1.includes(e)),
+  ];
 }
 
 module.exports = {

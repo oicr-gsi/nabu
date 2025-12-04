@@ -109,13 +109,9 @@ const hasArchivingStarted = (kase) => {
 
 const hasConflictingChanges = (existingProject, newProject) => {
   let errors = [];
-  let limsIdsNotInRequest = arrayDiff(
+  const [limsIdsNotInRequest, extraLimsIdsInRequest] = arrayDiff(
     existingProject.limsIds,
     newProject.limsIds
-  );
-  let extraLimsIdsInRequest = arrayDiff(
-    newProject.limsIds,
-    existingProject.limsIds
   );
   if (limsIdsNotInRequest.length != 0) {
     errors.push(
@@ -127,13 +123,12 @@ const hasConflictingChanges = (existingProject, newProject) => {
       `The existing project ${newProject.projectIdentifier} does not contain LIMS IDs: (${extraLimsIdsInRequest}) which are present in the request.`
     );
   }
-  let workflowRunIdsForOffsiteArchiveNotInRequest = arrayDiff(
+  const [
+    workflowRunIdsForOffsiteArchiveNotInRequest,
+    extraWorkflowRunIdsForOffsiteArchiveInRequest,
+  ] = arrayDiff(
     existingProject.workflowRunIdsForOffsiteArchive,
     newProject.workflowRunIdsForOffsiteArchive
-  );
-  let extraWorkflowRunIdsForOffsiteArchiveInRequest = arrayDiff(
-    newProject.workflowRunIdsForOffsiteArchive,
-    existingProject.workflowRunIdsForOffsiteArchive
   );
   if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
     errors.push(
@@ -145,13 +140,12 @@ const hasConflictingChanges = (existingProject, newProject) => {
       `The existing project ${newProject.projectIdentifier} does not contain offsite archive files: (${extraWorkflowRunIdsForOffsiteArchiveInRequest}) which are present in the request.`
     );
   }
-  let workflowRunIdsForVidarrArchivalNotInRequest = arrayDiff(
+  const [
+    workflowRunIdsForVidarrArchivalNotInRequest,
+    extraWorkflowRunIdsForVidarrArchivalInRequest,
+  ] = arrayDiff(
     existingProject.workflowRunIdsForVidarrArchival,
     newProject.workflowRunIdsForVidarrArchival
-  );
-  let extraWorkflowRunIdsForVidarrArchivalInRequest = arrayDiff(
-    newProject.workflowRunIdsForVidarrArchival,
-    existingProject.workflowRunIdsForVidarrArchival
   );
   if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
     errors.push(
@@ -163,13 +157,9 @@ const hasConflictingChanges = (existingProject, newProject) => {
       `The existing project ${newProject.projectIdentifier} does not contain offsite archive files: (${extraWorkflowRunIdsForVidarrArchivalInRequest}) which are present in the request.`
     );
   }
-  let archiveWithNotInRequest = arrayDiff(
+  const [archiveWithNotInRequest, extraArchiveWithInRequest] = arrayDiff(
     existingProject.archiveWith,
     newProject.archiveWith
-  );
-  let extraArchiveWithInRequest = arrayDiff(
-    newProject.archiveWith,
-    existingProject.archiveWith
   );
   if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
     errors.push(
