@@ -354,7 +354,7 @@ describe('archive testing', () => {
         });
       });
     });
-    it('it should update not update a second time that file have been copied to the offsite staging directory', (done) => {
+    it('it should not update a second time that file have been copied to the offsite staging directory', (done) => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       let requestBody = {
         batchId: 'badBatch',

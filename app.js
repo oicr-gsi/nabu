@@ -87,19 +87,19 @@ app.post('/case', caseController.addCaseArchive);
 app.get('/case/:caseIdentifier', caseController.getCaseArchive);
 app.put(
   `/case/:caseIdentifier/${urls.filesCopiedToOffsiteStagingDir}`,
-  caseController.filesCopiedToOffsiteStagingDir
+  caseController.setFilesCopiedToOffsiteStagingDir
 );
 app.put(
   `/case/:caseIdentifier/${urls.filesSentOffsite}`,
-  caseController.filesSentOffsite
+  caseController.setFilesSentOffsite
 );
 app.put(
   `/case/:caseIdentifier/${urls.filesLoadedIntoVidarrArchival}`,
-  caseController.filesLoadedIntoVidarrArchival
+  caseController.setFilesLoadedIntoVidarrArchival
 );
 app.put(
   `/case/:caseIdentifier/${urls.filesUnloaded}`,
-  caseController.filesUnloaded
+  caseController.setFilesUnloaded
 );
 app.post(
   `/case/:caseIdentifier/${urls.resumeArchiving}`,
@@ -112,19 +112,19 @@ app.post('/project', projectController.addProjectArchive);
 app.get('/project/:projectIdentifier', projectController.getProjectArchive);
 app.put(
   `/project/:projectIdentifier/${urls.filesCopiedToOffsiteStagingDir}`,
-  projectController.filesCopiedToOffsiteStagingDir
+  projectController.setFilesCopiedToOffsiteStagingDir
 );
 app.put(
   `/project/:projectIdentifier/${urls.filesSentOffsite}`,
-  projectController.filesSentOffsite
+  projectController.setFilesSentOffsite
 );
 app.put(
   `/project/:projectIdentifier/${urls.filesLoadedIntoVidarrArchival}`,
-  projectController.filesLoadedIntoVidarrArchival
+  projectController.setFilesLoadedIntoVidarrArchival
 );
 app.put(
   `/project/:projectIdentifier/${urls.filesUnloaded}`,
-  projectController.filesUnloaded
+  projectController.setFilesUnloaded
 );
 app.post(
   `/project/:projectIdentifier/${urls.resumeArchiving}`,

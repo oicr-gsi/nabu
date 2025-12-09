@@ -80,7 +80,7 @@ const allCaseArchives = async (req, res, next) => {
         stream.on('error', (err) => {
           // log the error and prematurely end the response
           logger.error(err);
-          res.end();
+          res.status(500).end();
         });
       });
       logger.info({
@@ -108,7 +108,7 @@ const hasArchivingStarted = (kase) => {
   return kase.filesCopiedToOffsiteArchiveStagingDir != null;
 };
 
-const hasConflictingChanges = (existingCase, newCase) => {
+const getErrorsForConflictingChanges = (existingCase, newCase) => {
   let errors = [];
   if (existingCase.requisitionId != newCase.requisitionId) {
     errors.push(
@@ -201,7 +201,7 @@ const addCaseArchive = async (req, res, next) => {
     } else {
       for (let existingCase of existingCases) {
         // check for conflicting changes
-        let errors = hasConflictingChanges(existingCase, req.body);
+        let errors = getErrorsForConflictingChanges(existingCase, req.body);
         if (errors.length) {
           await archiveDao.setEntityArchiveDoNotProcess(
             existingCase.entityIdentifier
@@ -262,7 +262,7 @@ const upsert = (caseInfo, createNewArchive) => {
   );
 };
 
-const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
+const setFilesCopiedToOffsiteStagingDir = async (req, res, next) => {
   try {
     let errors = [];
     if (!req.body.copyOutFile) {
@@ -295,7 +295,7 @@ const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
   }
 };
 
-const filesLoadedIntoVidarrArchival = async (req, res, next) => {
+const setFilesLoadedIntoVidarrArchival = async (req, res, next) => {
   try {
     if (!req.body) {
       throw new ValidationError(
@@ -322,7 +322,7 @@ const filesLoadedIntoVidarrArchival = async (req, res, next) => {
   }
 };
 
-const filesSentOffsite = async (req, res, next) => {
+const setFilesSentOffsite = async (req, res, next) => {
   try {
     const updatedCase = await archiveDao.updateFilesSentOffsite(
       req.params.caseIdentifier,
@@ -344,7 +344,7 @@ const filesSentOffsite = async (req, res, next) => {
   }
 };
 
-const filesUnloaded = async (req, res, next) => {
+const setFilesUnloaded = async (req, res, next) => {
   try {
     const updatedCase = await archiveDao.updateFilesUnloaded(
       req.params.caseIdentifier,
@@ -385,6 +385,7 @@ const resumeCaseArchiveProcessing = async (req, res, next) => {
       logger,
       next
     );
+    res.status(404).end();
   }
 };
 
@@ -431,9 +432,9 @@ module.exports = {
   allCaseArchives: allCaseArchives,
   addCaseArchive: addCaseArchive,
   getCaseArchive: getCaseArchive,
-  filesUnloaded: filesUnloaded,
-  filesCopiedToOffsiteStagingDir: filesCopiedToOffsiteStagingDir,
-  filesLoadedIntoVidarrArchival: filesLoadedIntoVidarrArchival,
-  filesSentOffsite: filesSentOffsite,
+  setFilesUnloaded: setFilesUnloaded,
+  setFilesCopiedToOffsiteStagingDir: setFilesCopiedToOffsiteStagingDir,
+  setFilesLoadedIntoVidarrArchival: setFilesLoadedIntoVidarrArchival,
+  setFilesSentOffsite: setFilesSentOffsite,
   resumeCaseArchiveProcessing: resumeCaseArchiveProcessing,
 };

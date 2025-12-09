@@ -107,7 +107,7 @@ const hasArchivingStarted = (kase) => {
   return kase.filesCopiedToOffsiteArchiveStagingDir != null;
 };
 
-const hasConflictingChanges = (existingProject, newProject) => {
+const getErrorsForConflictingChanges = (existingProject, newProject) => {
   let errors = [];
   const [limsIdsNotInRequest, extraLimsIdsInRequest] = arrayDiff(
     existingProject.limsIds,
@@ -195,7 +195,7 @@ const addProjectArchive = async (req, res, next) => {
     } else {
       for (let existingProject of existingProjects) {
         // check for conflicting changes
-        let errors = hasConflictingChanges(existingProject, req.body);
+        let errors = getErrorsForConflictingChanges(existingProject, req.body);
         if (errors.length) {
           await archiveDao.setEntityArchiveDoNotProcess(
             existingProject.entityIdentifier
@@ -256,7 +256,7 @@ const upsert = (projectInfo, createNewArchive) => {
   );
 };
 
-const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
+const setFilesCopiedToOffsiteStagingDir = async (req, res, next) => {
   try {
     let errors = [];
     if (!req.body.copyOutFile) {
@@ -290,7 +290,7 @@ const filesCopiedToOffsiteStagingDir = async (req, res, next) => {
   }
 };
 
-const filesLoadedIntoVidarrArchival = async (req, res, next) => {
+const setFilesLoadedIntoVidarrArchival = async (req, res, next) => {
   try {
     if (!req.body) {
       throw new ValidationError(
@@ -317,7 +317,7 @@ const filesLoadedIntoVidarrArchival = async (req, res, next) => {
   }
 };
 
-const filesSentOffsite = async (req, res, next) => {
+const setFilesSentOffsite = async (req, res, next) => {
   try {
     const updatedProject = await archiveDao.updateFilesSentOffsite(
       req.params.projectIdentifier,
@@ -339,7 +339,7 @@ const filesSentOffsite = async (req, res, next) => {
   }
 };
 
-const filesUnloaded = async (req, res, next) => {
+const setFilesUnloaded = async (req, res, next) => {
   try {
     const updatedProject = await archiveDao.updateFilesUnloaded(
       req.params.projectIdentifier,
@@ -382,6 +382,7 @@ const resumeProjectArchiveProcessing = async (req, res, next) => {
       logger,
       next
     );
+    res.status(404).end();
   }
 };
 
@@ -439,9 +440,9 @@ module.exports = {
   allProjectArchives: allProjectArchives,
   addProjectArchive: addProjectArchive,
   getProjectArchive: getProjectArchive,
-  filesUnloaded: filesUnloaded,
-  filesCopiedToOffsiteStagingDir: filesCopiedToOffsiteStagingDir,
-  filesLoadedIntoVidarrArchival: filesLoadedIntoVidarrArchival,
-  filesSentOffsite: filesSentOffsite,
+  setFilesUnloaded: setFilesUnloaded,
+  setFilesCopiedToOffsiteStagingDir: setFilesCopiedToOffsiteStagingDir,
+  setFilesLoadedIntoVidarrArchival: setFilesLoadedIntoVidarrArchival,
+  setFilesSentOffsite: setFilesSentOffsite,
   resumeProjectArchiveProcessing: resumeProjectArchiveProcessing,
 };
