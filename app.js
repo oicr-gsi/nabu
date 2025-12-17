@@ -11,7 +11,8 @@ const cors = require('cors');
 const express = require('express');
 const favicon = require('serve-favicon');
 const fileQc = require('./components/fileqcs/fileQcsController'); // controller for FileQC endpoints
-const caseController = require('./components/case/caseController'); // controller for case & archive endpoints
+const caseController = require('./components/archiving/caseController'); // controller for case archive endpoints
+const projectController = require('./components/archiving/projectController'); // controller for project archive endpoints
 const urls = require('./utils/urlSlugs');
 const helmet = require('helmet');
 const log = require('./utils/logger');
@@ -81,28 +82,55 @@ app.get('/fileqcs-only', fileQc.streamFileQcs);
 
 app.post('/delete-fileqcs', fileQc.deleteFileQcs);
 
+//routes to case archiving
 app.post('/case', caseController.addCaseArchive);
 app.get('/case/:caseIdentifier', caseController.getCaseArchive);
 app.put(
   `/case/:caseIdentifier/${urls.filesCopiedToOffsiteStagingDir}`,
-  caseController.filesCopiedToOffsiteStagingDir
+  caseController.setFilesCopiedToOffsiteStagingDir
 );
 app.put(
   `/case/:caseIdentifier/${urls.filesSentOffsite}`,
-  caseController.filesSentOffsite
+  caseController.setFilesSentOffsite
 );
 app.put(
   `/case/:caseIdentifier/${urls.filesLoadedIntoVidarrArchival}`,
-  caseController.filesLoadedIntoVidarrArchival
+  caseController.setFilesLoadedIntoVidarrArchival
 );
 app.put(
-  `/case/:caseIdentifier/${urls.caseFilesUnloaded}`,
-  caseController.caseFilesUnloaded
+  `/case/:caseIdentifier/${urls.filesUnloaded}`,
+  caseController.setFilesUnloaded
 );
-app.post(`/case/:caseIdentifier/${urls.resumeArchiving}`,
+app.post(
+  `/case/:caseIdentifier/${urls.resumeArchiving}`,
   caseController.resumeCaseArchiveProcessing
 );
 app.get('/cases', caseController.allCaseArchives);
+
+//routes to project archiving
+app.post('/project', projectController.addProjectArchive);
+app.get('/project/:projectIdentifier', projectController.getProjectArchive);
+app.put(
+  `/project/:projectIdentifier/${urls.filesCopiedToOffsiteStagingDir}`,
+  projectController.setFilesCopiedToOffsiteStagingDir
+);
+app.put(
+  `/project/:projectIdentifier/${urls.filesSentOffsite}`,
+  projectController.setFilesSentOffsite
+);
+app.put(
+  `/project/:projectIdentifier/${urls.filesLoadedIntoVidarrArchival}`,
+  projectController.setFilesLoadedIntoVidarrArchival
+);
+app.put(
+  `/project/:projectIdentifier/${urls.filesUnloaded}`,
+  projectController.setFilesUnloaded
+);
+app.post(
+  `/project/:projectIdentifier/${urls.resumeArchiving}`,
+  projectController.resumeProjectArchiveProcessing
+);
+app.get('/projects', projectController.allProjectArchives);
 
 app.get('/metrics', async (req, res) => {
   try {
