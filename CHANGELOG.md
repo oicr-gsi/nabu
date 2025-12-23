@@ -6,8 +6,6 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
-
-
 ## 3.14.1: [2026-01-30]
 
 ### Fixed
@@ -16,13 +14,18 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## 3.14.0: [2026-01-26]
 
+
 ### Fixed
 
 * added documentation for the case archive resume-archiving endpoint
 
+
 ### Changed
 
 * added "project" archive support in addition to case archives
+
+### Added
+* changelog for signoffs (no front end changes)
 
 ## 3.13.1: [2025-11-13]
 
