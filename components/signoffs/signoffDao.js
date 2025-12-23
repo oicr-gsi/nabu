@@ -47,34 +47,28 @@ const addSignoff = (caseId, signed, oldSignoffId = null) => {
       'signoff'
     );
 
-    const signoffDelete = 'DELETE FROM signoff WHERE id=' + oldSignoffId + ';';
+    const signoffQuery = signoffInsert + ' RETURNING *;';
 
-    const signoffQuery = signoffInsert + ' RETURNING *';
-
-    // delete matching sign-off if already exists
     // create new sign-off
-    db.tx('delete-and-add', (tx) => {
-      return tx
-        .oneOrNone(signoffDelete)
-        .then((gone) => {
-          tx.one(signoffQuery)
-            .then((data) => {
-              return resolve(data);
-            })
-            .catch((err) => {
-              reject(new Error(err));
-            });
-        })
-        .catch((err) => {
-          reject(new Error(err));
-        });
-    });
+    db.one(signoffQuery)
+      .then((data) => {
+        return resolve(data);
+      })
+      .catch((err) => {
+        reject(new Error(err));
+      });
   });
 };
 
 const getCaseSignoffQueryById = (id) => {
-  let query = 'SELECT * FROM "signoff"';
-  query = query + ' WHERE case_identifier=\'' + id + '\';';
+  let query =
+    'SELECT DISTINCT ON (case_identifier, signoff_step_name, deliverable_type, deliverable) * FROM "signoff"';
+  query =
+    query +
+    ' WHERE case_identifier=\'' +
+    id +
+    '\'' +
+    ' ORDER BY case_identifier, signoff_step_name, deliverable_type, deliverable, created DESC;';
   return query;
 };
 
@@ -97,7 +91,7 @@ const getCaseSignoffQueryByConstraint = (
     deliverableType +
     '\' AND ' +
     (deliverable ? `deliverable='${deliverable}'` : 'deliverable IS NULL');
-  (';');
+  query = query + ' ORDER BY created DESC LIMIT 1;';
   return query;
 };
 
@@ -121,7 +115,9 @@ const getByCaseIdentifier = (caseIdentifier) => {
 };
 
 const getSignoffs = () => {
-  const query = 'SELECT * FROM "signoff";';
+  const query =
+    'SELECT DISTINCT ON (case_identifier, signoff_step_name, deliverable_type, deliverable) * FROM "signoff"' +
+    ' ORDER BY case_identifier, signoff_step_name, deliverable_type, deliverable, created DESC;';
   return new Promise((resolve, reject) => {
     db.any(query)
       .then((data) => {
