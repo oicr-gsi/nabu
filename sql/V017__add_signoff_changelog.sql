@@ -140,3 +140,33 @@ CREATE TRIGGER signoff_changelog_trigger
   ON signoff
   FOR EACH ROW
     EXECUTE FUNCTION signoff_changelog_function();
+
+CREATE OR REPLACE FUNCTION signoff_deletelog_function()
+  RETURNS trigger 
+  language plpgsql
+AS $$
+BEGIN
+    INSERT INTO signoff_changelog (
+        case_id,
+        signoff_step_name,
+        deliverable_type,
+        columns_changed,
+        message,
+        change_time
+    )
+    VALUES (
+        OLD.case_identifier,
+        OLD.signoff_step_name,
+        OLD.deliverable_type,
+        NULL,
+        'deleted',
+        now()::timestamptz(0)
+    );
+    RETURN OLD;
+END;
+$$;
+
+CREATE TRIGGER signoff_deletelog_trigger
+AFTER DELETE ON signoff
+FOR EACH ROW
+EXECUTE FUNCTION signoff_deletelog_function();
