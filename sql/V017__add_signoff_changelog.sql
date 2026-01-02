@@ -2,7 +2,9 @@ ALTER TABLE signoff ADD modified TIMESTAMP WITH TIME ZONE DEFAULT (NOW())::TIMES
 
 CREATE TABLE signoff_changelog (
   id SERIAL PRIMARY KEY,
-  signoff_id INTEGER,
+  case_id VARCHAR,
+  signoff_step_name VARCHAR,
+  deliverable_type VARCHAR,
   columns_changed VARCHAR,
   message VARCHAR,
   change_time TIMESTAMP WITH TIME ZONE
@@ -113,8 +115,10 @@ AS $$
       make_change_message_txt('comment', OLD.comment, NEW.comment)
     );
     IF message IS NOT NULL AND message <> '' THEN
-      INSERT INTO signoff_changelog (signoff_id, columns_changed, message, change_time) VALUES (
-      NEW.id,
+      INSERT INTO signoff_changelog (case_id, signoff_step_name, deliverable_type, columns_changed, message, change_time) VALUES (
+      OLD.case_identifier,
+      OLD.signoff_step_name,
+      OLD.deliverable_type,
         COALESCE(CONCAT_WS(',',
           make_change_column('case identifier', OLD.case_identifier, NEW.case_identifier),
           make_change_column_bool('QC passed', OLD.qc_passed, NEW.qc_passed),
