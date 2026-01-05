@@ -2,8 +2,8 @@
   "openapi": "3.0.0",
   "info": {
     "version": "1.0.0",
-    "title": "FileQC API",
-    "description": "API for the FileQC project"
+    "title": "API for file QCs, signoffs, and case & project archiving",
+    "description": "API for file QCs, signoffs, and case & project archiving"
   },
   "servers": [
     {
