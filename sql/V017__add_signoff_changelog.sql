@@ -3,9 +3,13 @@ ALTER TABLE signoff ADD modified TIMESTAMP WITH TIME ZONE DEFAULT (NOW())::TIMES
 CREATE TABLE signoff_changelog (
   id SERIAL PRIMARY KEY,
   case_id VARCHAR,
-  signoff_step_name VARCHAR,
-  deliverable_type VARCHAR,
-  columns_changed VARCHAR,
+  deliverable_type varchar,
+  signoff_created TIMESTAMP,
+  signoff_step_name varchar,
+  username varchar,
+  qc_passed boolean,
+  columns_changed varchar,
+  signoff_comment text,
   message VARCHAR,
   change_time TIMESTAMP WITH TIME ZONE
 );
@@ -115,10 +119,14 @@ AS $$
       make_change_message_txt('comment', OLD.comment, NEW.comment)
     );
     IF message IS NOT NULL AND message <> '' THEN
-      INSERT INTO signoff_changelog (case_id, signoff_step_name, deliverable_type, columns_changed, message, change_time) VALUES (
+      INSERT INTO signoff_changelog (case_id, signoff_step_name, deliverable_type, username, qc_passed, signoff_created, signoff_comment, columns_changed, message, change_time) VALUES (
       OLD.case_identifier,
       OLD.signoff_step_name,
       OLD.deliverable_type,
+      OLD.username,
+      OLD.qc_passed,
+      OLD.created,
+      OLD.comment,
         COALESCE(CONCAT_WS(',',
           make_change_column('case identifier', OLD.case_identifier, NEW.case_identifier),
           make_change_column_bool('QC passed', OLD.qc_passed, NEW.qc_passed),
@@ -150,6 +158,10 @@ BEGIN
         case_id,
         signoff_step_name,
         deliverable_type,
+        username,
+        qc_passed,
+        signoff_created,
+        signoff_comment,
         columns_changed,
         message,
         change_time
@@ -158,6 +170,10 @@ BEGIN
         OLD.case_identifier,
         OLD.signoff_step_name,
         OLD.deliverable_type,
+        OLD.username,
+        OLD.qc_passed,
+        OLD.created,
+        OLD.comment,
         NULL,
         'deleted',
         now()::timestamptz(0)
