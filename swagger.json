@@ -1471,6 +1471,10 @@
             "description": "Unique case identifier",
             "type": "string"
           },
+          "entityType": {
+            "description": "Should always be CASE",
+            "type": "string"
+          },
           "requisitionId": {
             "description": "Requisition number",
             "type": "integer"
@@ -1573,6 +1577,10 @@
         "properties": {
           "projectIdentifier": {
             "description": "Project identifier",
+            "type": "string"
+          },
+          "entityType": {
+            "description": "Should always be PROJECT",
             "type": "string"
           },
           "requisitionId": {
