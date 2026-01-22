@@ -1579,14 +1579,6 @@
             "description": "Project identifier",
             "type": "string"
           },
-          "entityType": {
-            "description": "Should always be PROJECT",
-            "type": "string"
-          },
-          "requisitionId": {
-            "description": "Requisition number",
-            "type": "integer"
-          },
           "limsIds": {
             "description": "LIMS IDs associated with the project",
             "type": "array",
@@ -1640,6 +1632,10 @@
           },
           "projectIdentifier": {
             "description": "Unique project identifier",
+            "type": "string"
+          },
+          "entityType": {
+            "description": "Should always be PROJECT",
             "type": "string"
           },
           "requisitionId": {
