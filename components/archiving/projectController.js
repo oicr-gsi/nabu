@@ -184,8 +184,9 @@ const addProjectArchive = async (req, res, next) => {
     //authenticate api-key from header before continuing
     await authenticator.authenticateRequest(req);
 
+    let projectIdentifier = req.body.projectIdentifier
     const existingProjects = await archiveDao.getByArchiveEntityIdentifier(
-      req.body.projectIdentifier,
+      projectIdentifier,
       false,
       projectEntityType
     );
@@ -210,9 +211,9 @@ const addProjectArchive = async (req, res, next) => {
         }
         if (!hasArchivingStarted(existingProject)) {
           // can modify a project that hasn't been archived if there are no errors
-          await upsert(req.body, false);
+          await upsert(req.body, false);  // this mutates req.body
           let updatedProject = await archiveDao.getByArchiveEntityIdentifier(
-            req.body.projectIdentifier,
+            projectIdentifier,
             false,
             projectEntityType
           );
@@ -221,11 +222,11 @@ const addProjectArchive = async (req, res, next) => {
         } else {
           // if project has started archiving, can only modify project metadata
           await archiveDao.updateMetadata(
-            req.params.projectIdentifier,
+            projectIdentifier,
             req.body.metadata
           );
           let updatedProject = await archiveDao.getByArchiveEntityIdentifier(
-            req.body.projectIdentifier,
+            projectIdentifier,
             false,
             projectEntityType
           );

@@ -6,7 +6,9 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Fixed
 
+* resubmitting an archive action no longer causes a server error
 
 ## 4.14.0: [2026-01-26]
 
