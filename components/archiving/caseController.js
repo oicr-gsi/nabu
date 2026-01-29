@@ -190,8 +190,9 @@ const addCaseArchive = async (req, res, next) => {
     //authenticate api-key from header before continuing
     await authenticator.authenticateRequest(req);
 
+    let caseIdentifier = req.body.caseIdentifier
     const existingCases = await archiveDao.getByArchiveEntityIdentifier(
-      req.body.caseIdentifier,
+      caseIdentifier,
       false,
       caseEntityType
     );
@@ -216,9 +217,9 @@ const addCaseArchive = async (req, res, next) => {
         }
         if (!hasArchivingStarted(existingCase)) {
           // can modify a case that hasn't been archived if there are no errors
-          await upsert(req.body, false);
+          await upsert(req.body, false);  // this mutates req.body
           let updatedCase = await archiveDao.getByArchiveEntityIdentifier(
-            req.body.caseIdentifier,
+            caseIdentifier,
             false,
             caseEntityType
           );
@@ -227,11 +228,11 @@ const addCaseArchive = async (req, res, next) => {
         } else {
           // if case has started archiving, can only modify case metadata
           await archiveDao.updateMetadata(
-            req.params.caseIdentifier,
+            caseIdentifier,
             req.body.metadata
           );
           let updatedCase = await archiveDao.getByArchiveEntityIdentifier(
-            req.body.caseIdentifier,
+            caseIdentifier,
             false,
             caseEntityType
           );
