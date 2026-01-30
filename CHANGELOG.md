@@ -6,11 +6,15 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+
+
+## 3.14.1: [2026-01-30]
+
 ### Fixed
 
 * resubmitting an archive action no longer causes a server error
 
-## 4.14.0: [2026-01-26]
+## 3.14.0: [2026-01-26]
 
 ### Fixed
 
