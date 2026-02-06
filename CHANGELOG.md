@@ -6,6 +6,14 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Changed
+
+* no longer delete signoffs (keep all and return most recent)
+
+### Added
+
+* a changelog for signoff modifications
+
 ## 3.14.1: [2026-01-30]
 
 ### Fixed
