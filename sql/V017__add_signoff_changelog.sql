@@ -2,7 +2,7 @@ ALTER TABLE signoff ADD modified TIMESTAMP WITH TIME ZONE DEFAULT (NOW())::TIMES
 ALTER TABLE signoff ALTER COLUMN created TYPE TIMESTAMP(3) WITH TIME ZONE;
 ALTER TABLE signoff ALTER COLUMN created SET DEFAULT NOW();
 ALTER TABLE archive DROP CONSTRAINT IF EXISTS uniq_caseid_signoffstepname_deliverabletype;
-CREATE UNIQUE INDEX uniq_created_caseid_signoffstepname_deliverabletype ON signoff (created, case_identifier, signoff_step_name, deliverable_type);
+CREATE UNIQUE INDEX uniq_created_caseid_signoffstepname_deliverabletype_deliverable ON signoff (created, case_identifier, signoff_step_name, deliverable_type, deliverable);
 
 CREATE TABLE signoff_changelog (
   id SERIAL PRIMARY KEY,

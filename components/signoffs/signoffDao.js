@@ -62,13 +62,13 @@ const addSignoff = (caseId, signed, oldSignoffId = null) => {
 
 const getCaseSignoffQueryById = (id) => {
   let query =
-    'SELECT DISTINCT ON (case_identifier, signoff_step_name, deliverable_type) * FROM "signoff"';
+    'SELECT DISTINCT ON (case_identifier, signoff_step_name, deliverable_type, deliverable) * FROM "signoff"';
   query =
     query +
     ' WHERE case_identifier=\'' +
     id +
     '\'' +
-    ' ORDER BY case_identifier, signoff_step_name, deliverable_type, created DESC;';
+    ' ORDER BY case_identifier, signoff_step_name, deliverable_type, deliverable, created DESC;';
   return query;
 };
 
@@ -116,8 +116,8 @@ const getByCaseIdentifier = (caseIdentifier) => {
 
 const getSignoffs = () => {
   const query =
-    'SELECT DISTINCT ON (case_identifier, signoff_step_name, deliverable_type) * FROM "signoff"' +
-    ' ORDER BY case_identifier, signoff_step_name, deliverable_type, created DESC;';
+    'SELECT DISTINCT ON (case_identifier, signoff_step_name, deliverable_type, deliverable) * FROM "signoff"' +
+    ' ORDER BY case_identifier, signoff_step_name, deliverable_type, deliverable, created DESC;';
   return new Promise((resolve, reject) => {
     db.any(query)
       .then((data) => {
