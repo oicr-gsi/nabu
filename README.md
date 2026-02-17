@@ -9,6 +9,7 @@
   * NPM
   * PostgreSQL 17 or higher
   * SQLite3 (system software)
+  * 
   * Docker (for database migrations)
 
 Checking for node:
@@ -27,7 +28,6 @@ The npm SQLite3 module should be built using better-sqlite3. If you've previousl
     npm uninstall sqlite3
     npm uninstall node-sqlite3
     npm install better-sqlite3
-    npm install sqlite3
     npm rebuild
     
 
