@@ -9,6 +9,7 @@
   * NPM
   * PostgreSQL 17 or higher
   * SQLite3 (system software)
+  * 
   * Docker (for database migrations)
 
 Checking for node:
@@ -22,13 +23,13 @@ Checking for node:
     npm install
 
 
-The npm SQLite3 module may need to be built from source in order to comply with the version of Node on your system, as well as the system's architecture. Then, if running `node app.js` or `nodejs app.js` shows errors with SQLite, run the following:
+The npm SQLite3 module should be built using better-sqlite3. If you've previously installed sqlite3 using node-sqlite3 or if running `node app.js` or `nodejs app.js` shows errors with SQLite, run the following:
 
     npm uninstall sqlite3
-    npm install sqlite3 --local --build-from-source
+    npm uninstall node-sqlite3
+    npm install better-sqlite3
     npm rebuild
     
-
 
 
 ## Setting environment variables
