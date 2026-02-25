@@ -14,6 +14,7 @@ chai.use(chaiExclude);
 const signoffProperties = [
   'id',
   'created',
+  'modified',
   'caseIdentifier',
   'qcPassed',
   'username',
