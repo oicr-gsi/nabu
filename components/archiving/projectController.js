@@ -8,6 +8,8 @@ const {
   ValidationError,
   ConflictingDataError,
   arrayDiff,
+  missingMsg,
+  bonusMsg,
 } = require('../../utils/controllerUtils');
 const logger = require('../../utils/logger').logger;
 const urls = require('../../utils/urlSlugs');
@@ -114,14 +116,10 @@ const getErrorsForConflictingChanges = (existingProject, newProject) => {
     newProject.limsIds
   );
   if (limsIdsNotInRequest.length != 0) {
-    errors.push(
-      `The existing project ${newProject.projectIdentifier} contains LIMS IDs: (${limsIdsNotInRequest}) which are not present in the request.`
-    );
+    errors.push(missingMsg('project', newProject.projectIdentifier,  'LIMS IDs', limsIdsNotInRequest));
   }
   if (extraLimsIdsInRequest.length != 0) {
-    errors.push(
-      `The existing project ${newProject.projectIdentifier} does not contain LIMS IDs: (${extraLimsIdsInRequest}) which are present in the request.`
-    );
+    errors.push(bonusMsg('project', newProject.projectIdentifier, 'LIMS IDs', extraLimsIdsInRequest));
   }
   const [
     workflowRunIdsForOffsiteArchiveNotInRequest,
@@ -131,14 +129,10 @@ const getErrorsForConflictingChanges = (existingProject, newProject) => {
     newProject.workflowRunIdsForOffsiteArchive
   );
   if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
-    errors.push(
-      `The existing project ${newProject.projectIdentifier} contains offsite archive files: (${workflowRunIdsForOffsiteArchiveNotInRequest}) which are not present in the request.`
-    );
+    errors.push(missingMsg('project', newProject.projectIdentifier, 'offsite archive runs', workflowRunIdsForOffsiteArchiveNotInRequest));
   }
   if (extraWorkflowRunIdsForOffsiteArchiveInRequest.length != 0) {
-    errors.push(
-      `The existing project ${newProject.projectIdentifier} does not contain offsite archive files: (${extraWorkflowRunIdsForOffsiteArchiveInRequest}) which are present in the request.`
-    );
+    errors.push(bonusMsg('project', newProject.projectIdentifier, 'offsite archive runs', extraWorkflowRunIdsForOffsiteArchiveInRequest));
   }
   const [
     workflowRunIdsForVidarrArchivalNotInRequest,
@@ -147,29 +141,21 @@ const getErrorsForConflictingChanges = (existingProject, newProject) => {
     existingProject.workflowRunIdsForVidarrArchival,
     newProject.workflowRunIdsForVidarrArchival
   );
-  if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
-    errors.push(
-      `The existing project ${newProject.projectIdentifier} contains offsite archive files: (${workflowRunIdsForVidarrArchivalNotInRequest}) which are not present in the request.`
-    );
+  if (workflowRunIdsForVidarrArchivalNotInRequest.length != 0) {
+    errors.push(missingMsg('project', newProject.projectIdentifier, 'onsite (vidarr-archival) runs', workflowRunIdsForVidarrArchivalNotInRequest));
   }
   if (extraWorkflowRunIdsForVidarrArchivalInRequest.length != 0) {
-    errors.push(
-      `The existing project ${newProject.projectIdentifier} does not contain offsite archive files: (${extraWorkflowRunIdsForVidarrArchivalInRequest}) which are present in the request.`
-    );
+    errors.push(bonusMsg('project', newProject.projectIdentifier, 'onsite (vidarr-archival) runs', extraWorkflowRunIdsForVidarrArchivalInRequest));
   }
   const [archiveWithNotInRequest, extraArchiveWithInRequest] = arrayDiff(
     existingProject.archiveWith,
     newProject.archiveWith
   );
-  if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
-    errors.push(
-      `The existing project ${newProject.projectIdentifier} contains offsite archive files: (${archiveWithNotInRequest}) which are not present in the request.`
-    );
+  if (archiveWithNotInRequest.length != 0) {
+    errors.push(missingMsg('project', newProject.projectIdentifier, 'archive-with projects', archiveWithNotInRequest));
   }
   if (extraArchiveWithInRequest.length != 0) {
-    errors.push(
-      `The existing project ${newProject.projectIdentifier} does not contain offsite archive files: (${extraArchiveWithInRequest}) which are present in the request.`
-    );
+    errors.push(bonusMsg('project', newProject.projectIdentifier, 'archive-with projects', extraArchiveWithInRequest));
   }
   if (existingProject.archiveTarget != newProject.archiveTarget) {
     errors.push(

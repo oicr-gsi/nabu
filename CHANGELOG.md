@@ -11,6 +11,10 @@ and this project attempts to adhere to Semantic Versioning.
 * when an archive entity is deleted, so is the archive record and the changelog
 * no longer delete signoffs (keep all and return most recent)
 
+### Fixed
+
+* improve error messages for cases when stopProcessing is set to true
+
 ## 3.14.1: [2026-01-30]
 
 ### Fixed
