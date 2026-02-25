@@ -66,6 +66,13 @@ function arrayDiff (array1, array2) {
   ];
 }
 
+const missingMsg = (entityType, entityIdentifier, whatIsMissing, missingItems) => {
+  return `The request for ${entityType} ${entityIdentifier} is missing ${whatIsMissing} which are present in the existing ${entityType}: (${missingItems}).`;
+}
+const bonusMsg = (entityType, entityIdentifier, whatIsBonus, bonusItems) => {
+  return `The request for ${entityType} ${entityIdentifier} contains extra ${whatIsBonus}: (${bonusItems}) compared to those which are present in the existing ${entityType}.`
+}
+
 module.exports = {
   ValidationError: ValidationError,
   ConflictingDataError: ConflictingDataError,
@@ -73,4 +80,6 @@ module.exports = {
   arrayDiff: arrayDiff,
   generateError: generateError,
   handleErrors: handleErrors,
+  missingMsg: missingMsg,
+  bonusMsg: bonusMsg,
 };

@@ -9,6 +9,8 @@ const {
   ValidationError,
   ConflictingDataError,
   arrayDiff,
+  missingMsg,
+  bonusMsg,
 } = require('../../utils/controllerUtils');
 const logger = require('../../utils/logger').logger;
 const urls = require('../../utils/urlSlugs');
@@ -120,14 +122,10 @@ const getErrorsForConflictingChanges = (existingCase, newCase) => {
     newCase.limsIds
   );
   if (limsIdsNotInRequest.length != 0) {
-    errors.push(
-      `The existing case ${newCase.caseIdentifier} contains LIMS IDs: (${limsIdsNotInRequest}) which are not present in the request.`
-    );
+    errors.push(missingMsg('case', newCase.caseIdentifier, 'LIMS IDs', limsIdsNotInRequest));
   }
   if (extraLimsIdsInRequest.length != 0) {
-    errors.push(
-      `The existing case ${newCase.caseIdentifier} does not contain LIMS IDs: (${extraLimsIdsInRequest}) which are present in the request.`
-    );
+    errors.push(bonusMsg('case', newCase.caseIdentifier, 'LIMS IDs', extraLimsIdsInRequest));
   }
   const [
     workflowRunIdsForOffsiteArchiveNotInRequest,
@@ -137,14 +135,10 @@ const getErrorsForConflictingChanges = (existingCase, newCase) => {
     newCase.workflowRunIdsForOffsiteArchive
   );
   if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
-    errors.push(
-      `The existing case ${newCase.caseIdentifier} contains offsite archive files: (${workflowRunIdsForOffsiteArchiveNotInRequest}) which are not present in the request.`
-    );
+    errors.push(missingMsg('case',newCase.caseIdentifier, 'offsite archive runs', workflowRunIdsForOffsiteArchiveNotInRequest));
   }
   if (extraWorkflowRunIdsForOffsiteArchiveInRequest.length != 0) {
-    errors.push(
-      `The existing case ${newCase.caseIdentifier} does not contain offsite archive files: (${extraWorkflowRunIdsForOffsiteArchiveInRequest}) which are present in the request.`
-    );
+    errors.push(bonusMsg('case', newCase.caseIdentifier, 'offsite archive runs', extraWorkflowRunIdsForOffsiteArchiveInRequest));
   }
   const [
     workflowRunIdsForVidarrArchivalNotInRequest,
@@ -153,29 +147,21 @@ const getErrorsForConflictingChanges = (existingCase, newCase) => {
     existingCase.workflowRunIdsForVidarrArchival,
     newCase.workflowRunIdsForVidarrArchival
   );
-  if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
-    errors.push(
-      `The existing case ${newCase.caseIdentifier} contains offsite archive files: (${workflowRunIdsForVidarrArchivalNotInRequest}) which are not present in the request.`
-    );
+  if (workflowRunIdsForVidarrArchivalNotInRequest.length != 0) {
+    errors.push(missingMsg('case', newCase.caseIdentifier, 'onsite (vidarr-archival) runs', workflowRunIdsForVidarrArchivalNotInRequest));
   }
   if (extraWorkflowRunIdsForVidarrArchivalInRequest.length != 0) {
-    errors.push(
-      `The existing case ${newCase.caseIdentifier} does not contain offsite archive files: (${extraWorkflowRunIdsForVidarrArchivalInRequest}) which are present in the request.`
-    );
+    errors.push(bonusMsg('case', newCase.caseIdentifier, 'onsite (vidarr-archival) runs', extraWorkflowRunIdsForVidarrArchivalInRequest));
   }
   const [archiveWithNotInRequest, extraArchiveWithInRequest] = arrayDiff(
     existingCase.archiveWith,
     newCase.archiveWith
   );
   if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
-    errors.push(
-      `The existing case ${newCase.caseIdentifier} contains offsite archive files: (${archiveWithNotInRequest}) which are not present in the request.`
-    );
+    errors.push(missingMsg('case', newCase.caseIdentifier, 'archive-with cases', archiveWithNotInRequest));
   }
   if (extraArchiveWithInRequest.length != 0) {
-    errors.push(
-      `The existing case ${newCase.caseIdentifier} does not contain offsite archive files: (${extraArchiveWithInRequest}) which are present in the request.`
-    );
+    errors.push(bonusMsg('case', newCase.caseIdentifier, 'archive-with cases', extraArchiveWithInRequest));
   }
   if (existingCase.archiveTarget != newCase.archiveTarget) {
     errors.push(
