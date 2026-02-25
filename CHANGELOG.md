@@ -8,6 +8,7 @@ and this project attempts to adhere to Semantic Versioning.
 
 ### Changed
 
+* when an archive entity is deleted, so is the archive record and the changelog
 * no longer delete signoffs (keep all and return most recent)
 
 ## 3.14.1: [2026-01-30]
