@@ -536,8 +536,19 @@
     "/case/{caseIdentifier}/resume-archiving": {
       "post": {
         "summary": "Resume archiving for case",
-	      "description": "Resume archiving for a case that has been set to stop processing",
-	      "responses": {
+        "description": "Resume archiving for a case that has been set to stop processing",
+        "parameters": [
+          {
+            "name": "caseIdentifier",
+            "in": "path",
+            "description": "unique case identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
           "200": {
             "description": "Case archive record is set to allow processing",
             "content": {
@@ -878,8 +889,19 @@
     "/project/{projectIdentifier}/resume-archiving": {
       "post": {
         "summary": "Resume archiving for case",
-	      "description": "Resume archiving for a case that has been set to stop processing",
-	      "responses": {
+        "description": "Resume archiving for a case that has been set to stop processing",
+        "parameters": [
+          {
+            "name": "projectIdentifier",
+            "in": "path",
+            "description": "unique project identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
           "200": {
             "description": "Case archive record is set to allow processing",
             "content": {

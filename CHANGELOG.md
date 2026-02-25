@@ -14,6 +14,7 @@ and this project attempts to adhere to Semantic Versioning.
 ### Fixed
 
 * improve error messages for cases when stopProcessing is set to true
+* fix OpenAPI documentation for resume-archiving endpoints
 
 ## 3.14.1: [2026-01-30]
 
