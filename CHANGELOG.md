@@ -6,6 +6,8 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+## 3.15.0: [2026-02-26]
+
 ### Changed
 
 * when an archive entity is deleted, so is the archive record and the changelog
