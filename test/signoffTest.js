@@ -127,6 +127,8 @@ describe('case sign-off tracking', () => {
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
         expect(res.body).to.have.keys(signoffProperties);
+        expect(res.body.caseIdentifier).to.equal(caseIdentifier);
+        Object.keys(reqBody).forEach(k  =>  expect(res.body[k]).to.equal(reqBody[k]));
         done();
       });
     });
@@ -142,6 +144,21 @@ describe('case sign-off tracking', () => {
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
         expect(res.body).to.have.keys(signoffProperties);
+        done();
+      });
+    });
+    it('it should create a new sign-off entry for a new case identifier with tricky characters', (done) => {
+      let reqBody = {
+        qcPassed: true,
+        username: 'testuser2',
+        signoffStepName: 'ANALYSIS_REVIEW',
+        deliverableType: 'DATA_RELEASE'
+      };
+      let caseIdentifier = "R11_TEST_1000_Xy_Z Robert'; DROP TABLE Students;--";
+      addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
+        expect(res.status).to.equal(201);
+        expect(res.body).to.have.keys(signoffProperties);
+        expect(res.body)
         done();
       });
     });

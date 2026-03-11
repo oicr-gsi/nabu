@@ -6,6 +6,10 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Fixed
+
+* creating signoffs for cases with special characters in the case identifier no longer cause a server error
+
 ## 3.15.0: [2026-02-26]
 
 ### Changed
