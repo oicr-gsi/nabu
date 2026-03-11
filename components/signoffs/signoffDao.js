@@ -60,46 +60,28 @@ const addSignoff = (caseId, signed, oldSignoffId = null) => {
   });
 };
 
-const getCaseSignoffQueryById = (id) => {
-  let query =
-    'SELECT DISTINCT ON (case_identifier, signoff_step_name, deliverable_type, deliverable) * FROM "signoff"';
-  query =
-    query +
-    ' WHERE case_identifier=\'' +
-    id +
-    '\'' +
-    ' ORDER BY case_identifier, signoff_step_name, deliverable_type, deliverable, created DESC;';
-  return query;
-};
+const getCaseSignoffQueryById = 
+    'SELECT DISTINCT ON (case_identifier, signoff_step_name, deliverable_type, deliverable) * FROM "signoff"'
+   + ' WHERE case_identifier = $1 ORDER BY case_identifier, signoff_step_name, deliverable_type, deliverable, created DESC;';
 
 const getCaseSignoffQueryByConstraint = (
-  id,
-  signoffStepName,
-  deliverableType,
   deliverable
 ) => {
   let query = 'SELECT * FROM "signoff"';
   query =
     query +
-    ' WHERE case_identifier=\'' +
-    id +
-    '\' AND' +
-    ' signoff_step_name=\'' +
-    signoffStepName +
-    '\' AND' +
-    ' deliverable_type=\'' +
-    deliverableType +
-    '\' AND ' +
-    (deliverable ? `deliverable='${deliverable}'` : 'deliverable IS NULL');
+    ` WHERE case_identifier = $1 AND` +
+    ` signoff_step_name = $2 AND` +
+    ` deliverable_type = $3 AND ` +
+    (deliverable ? `deliverable = $4` : 'deliverable IS NULL');
   query = query + ' ORDER BY created DESC LIMIT 1;';
   return query;
 };
 
 const getByCaseIdentifier = (caseIdentifier) => {
-  const query = getCaseSignoffQueryById(caseIdentifier);
 
   return new Promise((resolve, reject) => {
-    db.any(query)
+    db.any(getCaseSignoffQueryById, [caseIdentifier])
       .then((data) => {
         resolve(data);
       })
@@ -141,14 +123,11 @@ const getByCaseConstraint = (
   deliverable
 ) => {
   const query = getCaseSignoffQueryByConstraint(
-    caseIdentifier,
-    signoffStepName,
-    deliverableType,
     deliverable
   );
 
   return new Promise((resolve, reject) => {
-    db.any(query)
+    db.any(query, [caseIdentifier, signoffStepName, deliverableType, deliverable])
       .then((data) => {
         resolve(data);
       })
