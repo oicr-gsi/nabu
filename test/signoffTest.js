@@ -112,7 +112,8 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R22_TEST_0022_Bb_new';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
-        expect(res.body).to.have.keys(signoffProperties);
+        expect(res.body.caseIdentifier).to.equal(caseIdentifier);
+        Object.keys(reqBody).forEach(k  =>  expect(res.body[k]).to.equal(reqBody[k]));
         done();
       });
     });
@@ -126,7 +127,6 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R22_TEST_0022_Bb_B';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
-        expect(res.body).to.have.keys(signoffProperties);
         expect(res.body.caseIdentifier).to.equal(caseIdentifier);
         Object.keys(reqBody).forEach(k  =>  expect(res.body[k]).to.equal(reqBody[k]));
         done();
@@ -143,7 +143,8 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R22_TEST_0022_Bb_newbie';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
-        expect(res.body).to.have.keys(signoffProperties);
+        expect(res.body.caseIdentifier).to.equal(caseIdentifier);
+        Object.keys(reqBody).forEach(k  =>  expect(res.body[k]).to.equal(reqBody[k]));
         done();
       });
     });
@@ -157,8 +158,8 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = "R11_TEST_1000_Xy_Z Robert'; DROP TABLE Students;--";
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
-        expect(res.body).to.have.keys(signoffProperties);
-        expect(res.body)
+        expect(res.body.caseIdentifier).to.equal(caseIdentifier);
+        Object.keys(reqBody).forEach(k  =>  expect(res.body[k]).to.equal(reqBody[k]));
         done();
       });
     });
@@ -173,7 +174,13 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
-        expect(res.body).to.have.keys(signoffProperties);
+        expect(res.body.caseIdentifier).to.equal(caseIdentifier);
+        expect(res.body.comment).to.be.null;
+        Object.keys(reqBody).forEach(k  =>  {
+          if (k != 'comment') {
+            expect(res.body[k]).to.equal(reqBody[k])
+          }
+        });
         done();
       });
     });
@@ -188,7 +195,13 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
-        expect(res.body).to.have.keys(signoffProperties);
+        expect(res.body.caseIdentifier).to.equal(caseIdentifier);
+        expect(res.body.comment).to.be.null;
+        Object.keys(reqBody).forEach(k  =>  {
+          if (k != 'comment') {
+            expect(res.body[k]).to.equal(reqBody[k])
+          }
+        });
         done();
       });
     });
@@ -203,7 +216,13 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
-        expect(res.body).to.have.keys(signoffProperties);
+        expect(res.body.caseIdentifier).to.equal(caseIdentifier);
+        expect(res.body.comment).to.be.null;
+        Object.keys(reqBody).forEach(k  =>  {
+          if (k != 'comment') {
+            expect(res.body[k]).to.equal(reqBody[k])
+          }
+        });
         done();
       });
     });
@@ -218,7 +237,13 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
-        expect(res.body).to.have.keys(signoffProperties);
+        expect(res.body.caseIdentifier).to.equal(caseIdentifier);
+        expect(res.body.comment).to.be.null;
+        Object.keys(reqBody).forEach(k  =>  {
+          if (k != 'comment') {
+            expect(res.body[k]).to.equal(reqBody[k])
+          }
+        });
         done();
       });
     });
@@ -233,7 +258,13 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
-        expect(res.body).to.have.keys(signoffProperties);
+        expect(res.body.caseIdentifier).to.equal(caseIdentifier);
+        expect(res.body.comment).to.be.null;
+        Object.keys(reqBody).forEach(k  =>  {
+          if (k != 'comment') {
+            expect(res.body[k]).to.equal(reqBody[k])
+          }
+        });
         done();
       });
     });
@@ -248,7 +279,13 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
-        expect(res.body).to.have.keys(signoffProperties);
+        expect(res.body.caseIdentifier).to.equal(caseIdentifier);
+        expect(res.body.comment).to.be.null;
+        Object.keys(reqBody).forEach(k  =>  {
+          if (k != 'comment') {
+            expect(res.body[k]).to.equal(reqBody[k])
+          }
+        });
         done();
       });
     });
@@ -307,7 +344,13 @@ describe('case sign-off tracking', () => {
       let caseIdentifier = 'R11_TEST_1000_Xy_Z';
       addSignoff(server, caseIdentifier, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
-        expect(res.body).to.have.keys(signoffProperties);
+        expect(res.body.caseIdentifier).to.equal(caseIdentifier);
+        expect(res.body.comment).to.be.null;
+        Object.keys(reqBody).forEach(k  =>  {
+          if (k != 'comment') {
+            expect(res.body[k]).to.equal(reqBody[k])
+          }
+        });
         done();
       });
     });
@@ -338,8 +381,16 @@ describe('case sign-off tracking', () => {
       addBatchSignoffs(server, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
         expect(res.body.length).to.equal(2);
-        expect(res.body[0]).to.have.keys(signoffProperties);
-        expect(res.body[1]).to.have.keys(signoffProperties);
+        expect(res.body[0].caseIdentifier).to.equal(reqBody.caseIdentifiers[0]);
+        expect(res.body[1].caseIdentifier).to.equal(reqBody.caseIdentifiers[1]);
+        expect(res.body[0].comment).to.be.null;
+        expect(res.body[1].comment).to.be.null;
+        Object.keys(reqBody).forEach(k  =>  {
+          if (!k == 'caseIdentifiers' && !k == 'comment') {
+            expect(res.body[0][k]).to.equal(reqBody[k]);
+            expect(res.body[1][k]).to.equal(reqBody[k]);
+          }
+        });
         done();
       });
     });
@@ -355,7 +406,13 @@ describe('case sign-off tracking', () => {
       addBatchSignoffs(server, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
         expect(res.body.length).to.equal(1);
-        expect(res.body[0]).to.have.keys(signoffProperties);
+        expect(res.body[0].caseIdentifier).to.equal(reqBody.caseIdentifiers[0]);
+        expect(res.body[0].comment).to.be.null;
+        Object.keys(reqBody).forEach(k  =>  {
+          if (!k == 'caseIdentifiers' && !k == 'comment') {
+            expect(res.body[0][k]).to.equal(reqBody[k]);
+          }
+        });
         done();
       });
     });
@@ -385,8 +442,16 @@ describe('case sign-off tracking', () => {
       addBatchSignoffs(server, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
         expect(res.body.length).to.equal(2);
-        expect(res.body[0]).to.have.keys(signoffProperties);
-        expect(res.body[1]).to.have.keys(signoffProperties);
+        expect(res.body[0].caseIdentifier).to.equal(reqBody.caseIdentifiers[0]);
+        expect(res.body[1].caseIdentifier).to.equal(reqBody.caseIdentifiers[1]);
+        expect(res.body[0].comment).to.be.null;
+        expect(res.body[1].comment).to.be.null;
+        Object.keys(reqBody).forEach(k  =>  {
+          if (!k == 'caseIdentifiers' && !k == 'comment') {
+            expect(res.body[0][k]).to.equal(reqBody[k]);
+            expect(res.body[1][k]).to.equal(reqBody[k]);
+          }
+        });
         done();
       });
     });
@@ -402,8 +467,16 @@ describe('case sign-off tracking', () => {
       addBatchSignoffs(server, reqBody).end((err, res) => {
         expect(res.status).to.equal(201);
         expect(res.body.length).to.equal(2);
-        expect(res.body[0]).to.have.keys(signoffProperties);
-        expect(res.body[1]).to.have.keys(signoffProperties);
+        expect(res.body[0].caseIdentifier).to.equal(reqBody.caseIdentifiers[0]);
+        expect(res.body[1].caseIdentifier).to.equal(reqBody.caseIdentifiers[1]);
+        expect(res.body[0].comment).to.be.null;
+        expect(res.body[1].comment).to.be.null;
+        Object.keys(reqBody).forEach(k  =>  {
+          if (!k == 'caseIdentifiers' && !k == 'comment') {
+            expect(res.body[0][k]).to.equal(reqBody[k]);
+            expect(res.body[1][k]).to.equal(reqBody[k]);
+          }
+        });
         done();
       });
     });
