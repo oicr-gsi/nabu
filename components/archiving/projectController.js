@@ -10,6 +10,7 @@ const {
   arrayDiff,
   missingMsg,
   bonusMsg,
+  streamResponse,
 } = require('../../utils/controllerUtils');
 const logger = require('../../utils/logger').logger;
 const urls = require('../../utils/urlSlugs');
@@ -52,8 +53,10 @@ const getProjectArchive = async (req, res, next) => {
 const allProjectArchives = async (req, res, next) => {
   try {
     const query = req.query.not;
-    let projects;
+    let verb;
     if (query) {
+      verb = "getting";
+      let projects;
       if (query == urls.filesCopiedToOffsiteStagingDir) {
         projects = await archiveDao.getByFilesNotCopiedToOffsiteStagingDir(
           projectEntityType
@@ -71,28 +74,18 @@ const allProjectArchives = async (req, res, next) => {
         projects = await archiveDao.getByFilesNotUnloaded(projectEntityType);
         res.status(200).send(replaceGenericKeyName(projects));
       }
+      next();
     } else {
-      projects = await archiveDao.streamAllProjects((stream) => {
-        res.status(200);
-        stream
-          .pipe(createProjectKeyReplacementStream())
-          .pipe(JSONStream.stringify())
-          .pipe(res);
-        stream.on('error', (err) => {
-          // log the error and prematurely end the response
-          logger.error(err);
-          res.end();
-        });
-      });
-      logger.info({
-        streamRowsProcessedProjects: projects.processed,
-        streamingDurationProjects: projects.duration,
-        method: '',
-      });
+      verb = "streaming";
+      const transformFn = (stream) => {
+        return function () { stream.pipe(createProjectKeyReplacementStream()).pipe(JSONStream.stringify()).pipe(res); }
+      }
+      streamResponse(req, res, archiveDao.streamAllProjects, transformFn, 'allProjectArchives', logger);
+      // no call to next() here, as the response has already started/completed streaming, and no other middleware
+      // can operate on a completed response
     }
-    next();
-  } catch (e) {
-    handleErrors(e, 'Error getting projects', logger, next);
+  } catch (err) {
+    handleErrors(err, `Error ${verb} project archives`, logger, next);
   }
 };
 

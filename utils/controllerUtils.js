@@ -73,6 +73,31 @@ const bonusMsg = (entityType, entityIdentifier, whatIsBonus, bonusItems) => {
   return `The request for ${entityType} ${entityIdentifier} contains extra ${whatIsBonus}: (${bonusItems}) compared to those which are present in the existing ${entityType}.`
 }
 
+function streamResponse (req, res, daoFn, transformAndSend, methodName, logger) {
+    const streamed = daoFn((stream) => {
+      res.status(200);
+      req.on('close', () => {
+        // destroy the stream if the request ended early, before the streamed data finished transmission.
+        // destroy by passing an error to trigger pg-promise cleanup (including releasing the database connection)
+        if (!res.writableEnded) {
+          stream.destroy(new Error('Client disconnected; destroying stream'));
+        }
+      });
+      let rt = transformAndSend(stream);
+      rt();
+      stream.on('error', (err) => {
+        // log the error and prematurely end the response
+        logger.error(err);
+        res.status(500).end();
+      });
+    });
+    logger.info({
+      streamRowsProcessed: streamed.processed,
+      streamingDuration: streamed.duration,
+      method: methodName,
+    });
+}
+
 module.exports = {
   ValidationError: ValidationError,
   ConflictingDataError: ConflictingDataError,
@@ -82,4 +107,5 @@ module.exports = {
   handleErrors: handleErrors,
   missingMsg: missingMsg,
   bonusMsg: bonusMsg,
+  streamResponse: streamResponse,
 };

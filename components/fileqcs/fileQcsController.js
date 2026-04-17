@@ -9,6 +9,7 @@ const {
   generateError,
   handleErrors,
   ValidationError,
+  streamResponse,
 } = require('../../utils/controllerUtils');
 
 /* some projects are represented with two different names. This contains only the duplicates,
@@ -30,17 +31,13 @@ const getAvailableConstants = async (req, res, next) => {
 
 /** returns a Stream of FileQC results */
 const streamFileQcs = async (req, res, next) => {
+  const transformFn = (stream) => {
+    return function () { stream.pipe(JSONStream.stringify()).pipe(res); }
+  }
   try {
-    const streamed = await fileQcDao.streamAllFileQcs((stream) => {
-      res.status(200);
-      stream.pipe(JSONStream.stringify()).pipe(res);
-    });
-    logger.info({
-      streamRowsProcessed: streamed.processed,
-      streamingDuration: streamed.duration,
-      method: 'streamFileQcs',
-    });
-    next();
+    streamResponse(req, res, fileQcDao.streamAllFileQcs, transformFn, 'allFileQcs', logger);
+    // no call to next() here, as the response has already started/completed streaming, and no other middleware
+    // can operate on a completed response
   } catch (e) {
     handleErrors(e, 'Error streaming FileQCs', logger, next);
   }
