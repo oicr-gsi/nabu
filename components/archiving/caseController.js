@@ -11,6 +11,7 @@ const {
   arrayDiff,
   missingMsg,
   bonusMsg,
+  streamResponse,
 } = require('../../utils/controllerUtils');
 const logger = require('../../utils/logger').logger;
 const urls = require('../../utils/urlSlugs');
@@ -53,8 +54,10 @@ const getCaseArchive = async (req, res, next) => {
 const allCaseArchives = async (req, res, next) => {
   try {
     const query = req.query.not;
-    let cases;
+    let verb;
     if (query) {
+      verb = "getting";
+      let cases;
       if (query == urls.filesCopiedToOffsiteStagingDir) {
         cases = await archiveDao.getByFilesNotCopiedToOffsiteStagingDir(
           caseEntityType
@@ -72,28 +75,18 @@ const allCaseArchives = async (req, res, next) => {
         cases = await archiveDao.getByFilesNotUnloaded(caseEntityType);
         res.status(200).send(replaceGenericKeyName(cases));
       }
+      next();
     } else {
-      cases = await archiveDao.streamAllCases((stream) => {
-        res.status(200);
-        stream
-          .pipe(createCaseKeyReplacementStream())
-          .pipe(JSONStream.stringify())
-          .pipe(res);
-        stream.on('error', (err) => {
-          // log the error and prematurely end the response
-          logger.error(err);
-          res.status(500).end();
-        });
-      });
-      logger.info({
-        streamRowsProcessedCases: cases.processed,
-        streamingDurationCases: cases.duration,
-        method: '',
-      });
+      verb = "streaming";
+      const transformFn = (stream) => {
+        return function () { stream.pipe(createCaseKeyReplacementStream()).pipe(JSONStream.stringify()).pipe(res); }
+      }
+      streamResponse(req, res, archiveDao.streamAllCases, transformFn, 'allCaseArchives', logger);
+      // no call to next() here, as the response has already started/completed streaming, and no other middleware
+      // can operate on a completed response
     }
-    next();
   } catch (e) {
-    handleErrors(e, 'Error getting cases', logger, next);
+    handleErrors(e, `Error ${verb} case archives`, logger, next);
   }
 };
 
