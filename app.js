@@ -67,6 +67,12 @@ app.get('/', (req, res) => {
   res.redirect('/api-docs');
 });
 
+// everything else is API functions, so set the Content-Type header here 
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json');
+  next();
+})
+
 app.get('/available', fileQc.getAvailableConstants);
 
 //routes to case sign-off records
