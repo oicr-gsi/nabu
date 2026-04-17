@@ -208,7 +208,7 @@ describe('archive testing', () => {
       getCasesByMissing(server, urls.filesCopiedToOffsiteStagingDir).end(
         (err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.length).to.equal(1);
+          expect(res.body.length).to.equal(20);
           expect(res.body[0].caseIdentifier).to.equal(caseIdentifier0);
           done();
         }
@@ -708,7 +708,7 @@ describe('archive testing', () => {
       getProjectsByMissing(server, urls.filesCopiedToOffsiteStagingDir).end(
         (err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.length).to.equal(1);
+          expect(res.body.length).to.equal(25);
           expect(res.body[0].projectIdentifier).to.equal(entityIdentifier0);
           done();
         }
