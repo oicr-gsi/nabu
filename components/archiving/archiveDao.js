@@ -393,7 +393,7 @@ const standardCatch = (err, reject) => {
 const streamAllProjects = (fn) => {
   const query = new queryStream(
     archiveEntityArchiveDataQueryWithoutUnloadFiles +
-      ` WHERE ${entityTypeColumn} = 'PROJECT' `
+      ` WHERE ${entityTypeColumn} = 'PROJECT' `, [], {batchSize: 2}
   );
   return db.stream(query, fn);
 };
