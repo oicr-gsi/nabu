@@ -6,6 +6,8 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+## 3.16.2 [2026-04-21]
+
 ### Fixed
 
 * issue where Nabu would get locked up by many requests to for all archives if the requests were terminated early
