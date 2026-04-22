@@ -83,13 +83,24 @@ function streamResponse (req, res, daoFn, transformAndSend, methodName, logger) 
           stream.destroy(new Error('Client disconnected; destroying stream'));
         }
       });
-      let rt = transformAndSend(stream);
-      rt();
+      transformAndSend(stream)();
       stream.on('error', (err) => {
-        // log the error and prematurely end the response
+        if (err.message === 'Client disconnected; destroying stream') {
+          return; // client has disconnected, so no sense in trying to return an HTTP status code
+        }
         logger.error(err);
-        res.status(500).end();
+        if (!res.writableEnded) {
+          res.status(500).end();
+        }
       });
+    });
+    streamed.catch((err) => {
+      if (err.message === 'Client disconnected; destroying stream') {
+        logger.info('Stream destroyed due to client disconnect');
+        return;
+      }
+      // For real errors, log them instead of re-throwing into the void
+      logger.error({ error: 'Stream promise rejected', details: err, method: methodName });
     });
     logger.info({
       streamRowsProcessed: streamed.processed,
