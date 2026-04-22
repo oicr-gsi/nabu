@@ -6,6 +6,10 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Fixed
+
+* proper error handling for when client terminates request early
+
 ## 3.16.2 [2026-04-21]
 
 ### Fixed
