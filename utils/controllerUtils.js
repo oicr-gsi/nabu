@@ -100,7 +100,7 @@ function streamResponse (req, res, daoFn, transformAndSend, methodName, logger) 
         return;
       }
       // For real errors, log them instead of re-throwing into the void
-      logger.error({ error: 'Stream promise rejected', details: err, method: methodName });
+      logger.error(err);
     });
     logger.info({
       streamRowsProcessed: streamed.processed,
