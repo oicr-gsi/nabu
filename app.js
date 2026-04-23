@@ -40,11 +40,7 @@ const errorHandler = (err, req, res, next) => {
     });
   } else {
     // unexpected error, so log it
-    logger.error({
-      error: 'Unexpected error',
-      details: err,
-      endpoint: req.originalUrl,
-    });
+    logger.error(err);
     res.status(500);
     res.json({ errors: ['An unexpected error has occurred.'] });
   }
@@ -142,12 +138,8 @@ app.get('/metrics', async (req, res) => {
   try {
     const mostRecentImportTime = await fileQc.getMostRecentFprImportTime();
     prom.mostRecentFprImport.set(mostRecentImportTime);
-  } catch (e) {
-    logger.error({
-      error: 'Error getting most recent File Provenance Report import time',
-      details: e,
-      method: '/metrics endpoint',
-    });
+  } catch (err) {
+    logger.error(err);
   }
   res.set('Content-Type', prom.prometheus.register.contentType);
   res.end(await prom.prometheus.register.metrics());

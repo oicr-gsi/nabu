@@ -6,6 +6,10 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Fixed
+
+* better practice for error logging to capture the stack trace correctly
+
 ## 3.16.3 [2026-04-22]
 
 ### Fixed
