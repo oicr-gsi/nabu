@@ -565,6 +565,38 @@
       	}
       }
     },
+    "/case/{caseIdentifier}/stop-archiving": {
+      "post": {
+        "summary": "Stop archiving for case",
+        "description": "Stop archiving for specified case (stopProcessing flag set to true). Does not undo anything already processed",
+        "parameters": [
+          {
+            "name": "caseIdentifier",
+            "in": "path",
+            "description": "unique case identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Case archive record is set to stopProcessing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Case-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested case archive resource was not found"
+          }
+        }
+      }
+    },
     "/projects": {
       "get": {
         "summary": "Get all project archives",
@@ -888,8 +920,8 @@
     },
     "/project/{projectIdentifier}/resume-archiving": {
       "post": {
-        "summary": "Resume archiving for case",
-        "description": "Resume archiving for a case that has been set to stop processing",
+        "summary": "Resume archiving for project",
+        "description": "Resume archiving for a project that has been set to stop processing",
         "parameters": [
           {
             "name": "projectIdentifier",
@@ -903,7 +935,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Case archive record is set to allow processing",
+            "description": "Project archive record is set to allow processing",
             "content": {
              "application/json": {
                 "schema": {
@@ -913,9 +945,41 @@
             }
           },
           "404": {
-            "description": "The requested case archive resource was not found"
+            "description": "The requested project archive resource was not found"
           }
       	}
+      }
+    },
+    "/project/{projectIdentifier}/stop-archiving": {
+      "post": {
+        "summary": "Stop archiving for project",
+        "description": "Stop archiving for specified project (stopProcessing flag set to true). Does not undo anything already processed",
+        "parameters": [
+          {
+            "name": "projectIdentifier",
+            "in": "path",
+            "description": "unique project identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project archive record is set to stop processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Case-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested project archive resource was not found"
+          }
+        }
       }
     },
     "/token": {

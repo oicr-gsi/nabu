@@ -7,4 +7,5 @@ module.exports = {
   filesSentOffsite: 'sent-offsite',
   signoff: 'sign-off',
   resumeArchiving: 'resume-archiving',
+  stopArchiving: 'stop-archiving',
 };

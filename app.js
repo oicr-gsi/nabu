@@ -105,6 +105,10 @@ app.post(
   `/case/:caseIdentifier/${urls.resumeArchiving}`,
   caseController.resumeCaseArchiveProcessing
 );
+app.post(
+  `/case/:caseIdentifier/${urls.stopArchiving}`,
+  caseController.stopCaseArchiveProcessing
+);
 app.get('/cases', caseController.allCaseArchives);
 
 //routes to project archiving
@@ -129,6 +133,10 @@ app.put(
 app.post(
   `/project/:projectIdentifier/${urls.resumeArchiving}`,
   projectController.resumeProjectArchiveProcessing
+);
+app.post(
+  `/project/:projectIdentifier/${urls.stopArchiving}`,
+  projectController.stopProjectArchiveProcessing
 );
 app.get('/projects', projectController.allProjectArchives);
 

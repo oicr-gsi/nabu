@@ -6,6 +6,10 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Changed
+
+* add a stop processing endpoint that stops archiving for a specified case or project
+
 ## 3.16.0 [2026-03-13]
 
 ### Fixed

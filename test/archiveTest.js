@@ -63,6 +63,15 @@ const resumeArchiving = (server, caseIdentifier) => {
     .send();
 };
 
+const stopCaseArchiving = (server, caseIdentifier) => {
+  let url = `/case/${caseIdentifier}/${urls.stopArchiving}`;
+  return chai
+    .request(server)
+    .post(url)
+    .set('content-type', 'application/json')
+    .send();
+};
+
 const addProjectArchives = (server, requestBody = {}) => {
   return chai
     .request(server)
@@ -104,6 +113,15 @@ const getProjectByProjectIdentifier = (server, entityIdentifier = {}) => {
 
 const resumeProjectArchiving = (server, entityIdentifier) => {
   let url = `/project/${entityIdentifier}/${urls.resumeArchiving}`;
+  return chai
+    .request(server)
+    .post(url)
+    .set('content-type', 'application/json')
+    .send();
+};
+
+const stopProjectArchiving = (server, entityIdentifier) => {
+  let url = `/project/${entityIdentifier}/${urls.stopArchiving}`;
   return chai
     .request(server)
     .post(url)
@@ -249,6 +267,26 @@ describe('archive testing', () => {
 
         addCaseArchives(server, newReq).end((err, res) => {
           expect(res.status).to.equal(409);
+
+          getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
+            expect(res.body[0].stopProcessing).to.be.true;
+
+            resumeArchiving(server, caseIdentifier).end((err, res) => {
+              expect(res.status).to.equal(200);
+              expect(res.body[0].stopProcessing).to.be.false;
+            });
+          });
+          done();
+        });
+      });
+    });
+    it('it should be flagged to stop processing and that the stop processing flag can be cleared', (done) => {
+      let caseIdentifier = 'R11_TEST_1000_Xy_Z';
+      getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
+        expect(res.status).to.equal(200);
+
+        stopCaseArchiving(server, caseIdentifier).end((err, res) => {
+          expect(res.status).to.equal(200);
 
           getCaseByCaseIdentifier(server, caseIdentifier).end((err, res) => {
             expect(res.body[0].stopProcessing).to.be.true;
@@ -735,6 +773,32 @@ describe('archive testing', () => {
 
           addProjectArchives(server, newReq).end((err, res) => {
             expect(res.status).to.equal(409);
+
+            getProjectByProjectIdentifier(server, projectIdentifier).end(
+              (err, res) => {
+                expect(res.body[0].stopProcessing).to.be.true;
+
+                resumeProjectArchiving(server, projectIdentifier).end(
+                  (err, res) => {
+                    expect(res.status).to.equal(200);
+                    expect(res.body[0].stopProcessing).to.be.false;
+                  }
+                );
+              }
+            );
+            done();
+          });
+        }
+      );
+    });
+    it('it should be flagged to stop processing and that the stop processing flag can be cleared for projects', (done) => {
+      let projectIdentifier = 'PRO14';
+      getProjectByProjectIdentifier(server, projectIdentifier).end(
+        (err, res) => {
+          expect(res.status).to.equal(200);
+
+          stopProjectArchiving(server, projectIdentifier).end((err, res) => {
+            expect(res.status).to.equal(200);
 
             getProjectByProjectIdentifier(server, projectIdentifier).end(
               (err, res) => {
