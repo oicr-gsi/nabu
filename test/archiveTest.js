@@ -5,6 +5,7 @@ const chai = require('chai');
 const expect = chai.expect;
 const chaiExclude = require('chai-exclude');
 const chaiHttp = require('chai-http');
+const http = require('http');
 const server = require('../app');
 const cmd = require('node-cmd');
 const urls = require('../utils/urlSlugs');
@@ -133,6 +134,57 @@ const isValidDate = (date) => {
   return !!Date.parse(date);
 };
 
+const APP_ADDR = '127.0.0.1';
+const APP_PORT = process.env.PORT;
+const DB_CONNECTION_POOL_SIZE = 10;  // the pg-promise default pool size
+const PROBE_TIMEOUT_MS = 3000;  // how long to wait for the probe request
+
+/**
+ * Open a connection to the server at a given endpoint, wait until the response stream has started
+ *  (first byte is received), then destroy the socket (simulates the client closing a request mid-response)
+ */
+function connectAndAbort(server, route) {
+  return new Promise((resolve, reject) => {
+    const req = http.request({
+      host: APP_ADDR, port: APP_PORT, path: route, method: 'GET'
+    },
+    (res) => {
+      // wait for the first chunk of data, so the server has opened a db cursor
+      res.once('data', () => {
+        req.destroy(); // drop the connection immediately
+        resolve();
+      });
+      res.once('error', () => resolve()); // socket is destroyed, as expected
+    });
+    req.on('error', () => resolve()); // ignore any additional errors
+    req.end();
+  });
+}
+
+/**
+ * Send a GET request to a given endpoint and resolve with the HTTP status code.
+ * Reject if no response arrives within PROBE_TIMEOUT_MS (means connection pool is exhausted)
+ */
+function probeRequest(server, route) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("Probe request timed out - connection pool exhausted")), PROBE_TIMEOUT_MS);
+    const req = http.request({
+      host: APP_ADDR, port: APP_PORT, path: route, method: 'GET'
+    },
+    (res) => {
+      clearTimeout(timer);
+      res.resume(); // drain the body
+
+      resolve(res.statusCode)
+    });
+    req.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    req.end();
+  });
+}
+
 const r11ArchiveWith = ['R99_ANOTHER_100_Xy_Z'];
 const r11ArchiveTarget = 'GLACIER_2Y';
 
@@ -174,7 +226,7 @@ describe('archive testing', () => {
       getCasesByMissing(server, urls.filesCopiedToOffsiteStagingDir).end(
         (err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.length).to.equal(1);
+          expect(res.body.length).to.equal(20);
           expect(res.body[0].caseIdentifier).to.equal(caseIdentifier0);
           done();
         }
@@ -669,12 +721,32 @@ describe('archive testing', () => {
 
       expect(res.status).to.equal(200);
     });
+    it('it should gracefully handle the client terminating streaming requests', async () => {
+      const abortCount = DB_CONNECTION_POOL_SIZE + 1;
+      await Promise.all(Array.from({length: abortCount}, () => connectAndAbort(server, '/projects')));
+
+      // small wait time for any cleanup to complete
+      await new Promise((r) => setTimeout(r, 200));
+
+      // A normal probe request should complete within PROBE_TIMEOUT_MS.
+      // If it takes longer, it means the db connection pool has been exhausted, and the promise rejects and test fails
+      let statusCode;
+      try {
+        statusCode = await probeRequest(APP_PORT, '/project/PRO13');
+      } catch (err) {
+        // re-throw with descriptive error message
+        throw new Error(
+          `${err.message}. Connection pool is exhausted.`
+        );
+      }
+      expect(statusCode).to.equal(200);
+    });
     it('it should return data for project that has not been copied to the archiving staging directory', (done) => {
       let entityIdentifier0 = 'PRO14';
       getProjectsByMissing(server, urls.filesCopiedToOffsiteStagingDir).end(
         (err, res) => {
           expect(res.status).to.equal(200);
-          expect(res.body.length).to.equal(1);
+          expect(res.body.length).to.equal(25);
           expect(res.body[0].projectIdentifier).to.equal(entityIdentifier0);
           done();
         }

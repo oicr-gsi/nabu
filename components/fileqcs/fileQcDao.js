@@ -165,7 +165,7 @@ const deleteFileQcs = (fileIds, username) => {
               return resolve({ success: yay, errors: nay });
             })
             .catch((err) => {
-              logger.error({ error: err, method: 'deleteFileQcs' });
+              logger.error(err);
               reject(new Error(err));
             });
         } else {
@@ -173,7 +173,7 @@ const deleteFileQcs = (fileIds, username) => {
         }
       })
       .catch((err) => {
-        logger.error({ error: err, method: `deleteFqcs:${username}` });
+        logger.error(err);
         reject(new Error(err));
       });
   });

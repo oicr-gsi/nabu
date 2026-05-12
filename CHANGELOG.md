@@ -9,6 +9,21 @@ and this project attempts to adhere to Semantic Versioning.
 ### Changed
 
 * add a stop processing endpoint that stops archiving for a specified case or project
+### Fixed
+
+* better practice for error logging to capture the stack trace correctly
+
+## 3.16.3 [2026-04-22]
+
+### Fixed
+
+* proper error handling for when client terminates request early
+
+## 3.16.2 [2026-04-21]
+
+### Fixed
+
+* issue where Nabu would get locked up by many requests to for all archives if the requests were terminated early
 
 ## 3.16.0 [2026-03-13]
 
