@@ -109,10 +109,24 @@ const getErrorsForConflictingChanges = (existingProject, newProject) => {
     newProject.limsIds
   );
   if (limsIdsNotInRequest.length != 0) {
-    errors.push(missingMsg('project', newProject.projectIdentifier,  'LIMS IDs', limsIdsNotInRequest));
+    errors.push(
+      missingMsg(
+        'project',
+        newProject.projectIdentifier,
+        'LIMS IDs',
+        limsIdsNotInRequest
+      )
+    );
   }
   if (extraLimsIdsInRequest.length != 0) {
-    errors.push(bonusMsg('project', newProject.projectIdentifier, 'LIMS IDs', extraLimsIdsInRequest));
+    errors.push(
+      bonusMsg(
+        'project',
+        newProject.projectIdentifier,
+        'LIMS IDs',
+        extraLimsIdsInRequest
+      )
+    );
   }
   const [
     workflowRunIdsForOffsiteArchiveNotInRequest,
@@ -122,10 +136,24 @@ const getErrorsForConflictingChanges = (existingProject, newProject) => {
     newProject.workflowRunIdsForOffsiteArchive
   );
   if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
-    errors.push(missingMsg('project', newProject.projectIdentifier, 'offsite archive runs', workflowRunIdsForOffsiteArchiveNotInRequest));
+    errors.push(
+      missingMsg(
+        'project',
+        newProject.projectIdentifier,
+        'offsite archive runs',
+        workflowRunIdsForOffsiteArchiveNotInRequest
+      )
+    );
   }
   if (extraWorkflowRunIdsForOffsiteArchiveInRequest.length != 0) {
-    errors.push(bonusMsg('project', newProject.projectIdentifier, 'offsite archive runs', extraWorkflowRunIdsForOffsiteArchiveInRequest));
+    errors.push(
+      bonusMsg(
+        'project',
+        newProject.projectIdentifier,
+        'offsite archive runs',
+        extraWorkflowRunIdsForOffsiteArchiveInRequest
+      )
+    );
   }
   const [
     workflowRunIdsForVidarrArchivalNotInRequest,
@@ -135,20 +163,48 @@ const getErrorsForConflictingChanges = (existingProject, newProject) => {
     newProject.workflowRunIdsForVidarrArchival
   );
   if (workflowRunIdsForVidarrArchivalNotInRequest.length != 0) {
-    errors.push(missingMsg('project', newProject.projectIdentifier, 'onsite (vidarr-archival) runs', workflowRunIdsForVidarrArchivalNotInRequest));
+    errors.push(
+      missingMsg(
+        'project',
+        newProject.projectIdentifier,
+        'onsite (vidarr-archival) runs',
+        workflowRunIdsForVidarrArchivalNotInRequest
+      )
+    );
   }
   if (extraWorkflowRunIdsForVidarrArchivalInRequest.length != 0) {
-    errors.push(bonusMsg('project', newProject.projectIdentifier, 'onsite (vidarr-archival) runs', extraWorkflowRunIdsForVidarrArchivalInRequest));
+    errors.push(
+      bonusMsg(
+        'project',
+        newProject.projectIdentifier,
+        'onsite (vidarr-archival) runs',
+        extraWorkflowRunIdsForVidarrArchivalInRequest
+      )
+    );
   }
   const [archiveWithNotInRequest, extraArchiveWithInRequest] = arrayDiff(
     existingProject.archiveWith,
     newProject.archiveWith
   );
   if (archiveWithNotInRequest.length != 0) {
-    errors.push(missingMsg('project', newProject.projectIdentifier, 'archive-with projects', archiveWithNotInRequest));
+    errors.push(
+      missingMsg(
+        'project',
+        newProject.projectIdentifier,
+        'archive-with projects',
+        archiveWithNotInRequest
+      )
+    );
   }
   if (extraArchiveWithInRequest.length != 0) {
-    errors.push(bonusMsg('project', newProject.projectIdentifier, 'archive-with projects', extraArchiveWithInRequest));
+    errors.push(
+      bonusMsg(
+        'project',
+        newProject.projectIdentifier,
+        'archive-with projects',
+        extraArchiveWithInRequest
+      )
+    );
   }
   if (existingProject.archiveTarget != newProject.archiveTarget) {
     errors.push(
@@ -163,7 +219,7 @@ const addProjectArchive = async (req, res, next) => {
     //authenticate api-key from header before continuing
     await authenticator.authenticateRequest(req);
 
-    let projectIdentifier = req.body.projectIdentifier
+    let projectIdentifier = req.body.projectIdentifier;
     const existingProjects = await archiveDao.getByArchiveEntityIdentifier(
       projectIdentifier,
       false,
@@ -190,7 +246,7 @@ const addProjectArchive = async (req, res, next) => {
         }
         if (!hasArchivingStarted(existingProject)) {
           // can modify a project that hasn't been archived if there are no errors
-          await upsert(req.body, false);  // this mutates req.body
+          await upsert(req.body, false); // this mutates req.body
           let updatedProject = await archiveDao.getByArchiveEntityIdentifier(
             projectIdentifier,
             false,
@@ -200,10 +256,7 @@ const addProjectArchive = async (req, res, next) => {
           return true;
         } else {
           // if project has started archiving, can only modify project metadata
-          await archiveDao.updateMetadata(
-            projectIdentifier,
-            req.body.metadata
-          );
+          await archiveDao.updateMetadata(projectIdentifier, req.body.metadata);
           let updatedProject = await archiveDao.getByArchiveEntityIdentifier(
             projectIdentifier,
             false,
@@ -366,6 +419,30 @@ const resumeProjectArchiveProcessing = async (req, res, next) => {
   }
 };
 
+const stopProjectArchiveProcessing = async (req, res, next) => {
+  try {
+    await archiveDao.setEntityArchiveDoNotProcess(req.params.projectIdentifier);
+    projectArchiveStopProcessing.set(
+      { projectIdentifier: req.params.projectIdentifier },
+      1
+    );
+    const projectArchive = await archiveDao.getByArchiveEntityIdentifier(
+      req.params.projectIdentifier,
+      false,
+      projectEntityType
+    );
+    res.status(200).json(replaceGenericKeyName(projectArchive));
+  } catch (e) {
+    handleErrors(
+      e,
+      `Error stopping processing for project ${req.params.projectIdentifier}`,
+      logger,
+      next
+    );
+    res.status(404).end();
+  }
+};
+
 function replaceProjectKeyName (originalProject) {
   const newProject = {};
   for (const key of Object.keys(originalProject)) {
@@ -425,4 +502,5 @@ module.exports = {
   setFilesLoadedIntoVidarrArchival: setFilesLoadedIntoVidarrArchival,
   setFilesSentOffsite: setFilesSentOffsite,
   resumeProjectArchiveProcessing: resumeProjectArchiveProcessing,
+  stopProjectArchiveProcessing: stopProjectArchiveProcessing,
 };

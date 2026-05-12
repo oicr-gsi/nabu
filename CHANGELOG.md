@@ -6,6 +6,9 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Changed
+
+* add a stop processing endpoint that stops archiving for a specified case or project
 ### Fixed
 
 * better practice for error logging to capture the stack trace correctly

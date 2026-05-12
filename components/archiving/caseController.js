@@ -115,10 +115,24 @@ const getErrorsForConflictingChanges = (existingCase, newCase) => {
     newCase.limsIds
   );
   if (limsIdsNotInRequest.length != 0) {
-    errors.push(missingMsg('case', newCase.caseIdentifier, 'LIMS IDs', limsIdsNotInRequest));
+    errors.push(
+      missingMsg(
+        'case',
+        newCase.caseIdentifier,
+        'LIMS IDs',
+        limsIdsNotInRequest
+      )
+    );
   }
   if (extraLimsIdsInRequest.length != 0) {
-    errors.push(bonusMsg('case', newCase.caseIdentifier, 'LIMS IDs', extraLimsIdsInRequest));
+    errors.push(
+      bonusMsg(
+        'case',
+        newCase.caseIdentifier,
+        'LIMS IDs',
+        extraLimsIdsInRequest
+      )
+    );
   }
   const [
     workflowRunIdsForOffsiteArchiveNotInRequest,
@@ -128,10 +142,24 @@ const getErrorsForConflictingChanges = (existingCase, newCase) => {
     newCase.workflowRunIdsForOffsiteArchive
   );
   if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
-    errors.push(missingMsg('case',newCase.caseIdentifier, 'offsite archive runs', workflowRunIdsForOffsiteArchiveNotInRequest));
+    errors.push(
+      missingMsg(
+        'case',
+        newCase.caseIdentifier,
+        'offsite archive runs',
+        workflowRunIdsForOffsiteArchiveNotInRequest
+      )
+    );
   }
   if (extraWorkflowRunIdsForOffsiteArchiveInRequest.length != 0) {
-    errors.push(bonusMsg('case', newCase.caseIdentifier, 'offsite archive runs', extraWorkflowRunIdsForOffsiteArchiveInRequest));
+    errors.push(
+      bonusMsg(
+        'case',
+        newCase.caseIdentifier,
+        'offsite archive runs',
+        extraWorkflowRunIdsForOffsiteArchiveInRequest
+      )
+    );
   }
   const [
     workflowRunIdsForVidarrArchivalNotInRequest,
@@ -141,20 +169,48 @@ const getErrorsForConflictingChanges = (existingCase, newCase) => {
     newCase.workflowRunIdsForVidarrArchival
   );
   if (workflowRunIdsForVidarrArchivalNotInRequest.length != 0) {
-    errors.push(missingMsg('case', newCase.caseIdentifier, 'onsite (vidarr-archival) runs', workflowRunIdsForVidarrArchivalNotInRequest));
+    errors.push(
+      missingMsg(
+        'case',
+        newCase.caseIdentifier,
+        'onsite (vidarr-archival) runs',
+        workflowRunIdsForVidarrArchivalNotInRequest
+      )
+    );
   }
   if (extraWorkflowRunIdsForVidarrArchivalInRequest.length != 0) {
-    errors.push(bonusMsg('case', newCase.caseIdentifier, 'onsite (vidarr-archival) runs', extraWorkflowRunIdsForVidarrArchivalInRequest));
+    errors.push(
+      bonusMsg(
+        'case',
+        newCase.caseIdentifier,
+        'onsite (vidarr-archival) runs',
+        extraWorkflowRunIdsForVidarrArchivalInRequest
+      )
+    );
   }
   const [archiveWithNotInRequest, extraArchiveWithInRequest] = arrayDiff(
     existingCase.archiveWith,
     newCase.archiveWith
   );
   if (workflowRunIdsForOffsiteArchiveNotInRequest.length != 0) {
-    errors.push(missingMsg('case', newCase.caseIdentifier, 'archive-with cases', archiveWithNotInRequest));
+    errors.push(
+      missingMsg(
+        'case',
+        newCase.caseIdentifier,
+        'archive-with cases',
+        archiveWithNotInRequest
+      )
+    );
   }
   if (extraArchiveWithInRequest.length != 0) {
-    errors.push(bonusMsg('case', newCase.caseIdentifier, 'archive-with cases', extraArchiveWithInRequest));
+    errors.push(
+      bonusMsg(
+        'case',
+        newCase.caseIdentifier,
+        'archive-with cases',
+        extraArchiveWithInRequest
+      )
+    );
   }
   if (existingCase.archiveTarget != newCase.archiveTarget) {
     errors.push(
@@ -169,7 +225,7 @@ const addCaseArchive = async (req, res, next) => {
     //authenticate api-key from header before continuing
     await authenticator.authenticateRequest(req);
 
-    let caseIdentifier = req.body.caseIdentifier
+    let caseIdentifier = req.body.caseIdentifier;
     const existingCases = await archiveDao.getByArchiveEntityIdentifier(
       caseIdentifier,
       false,
@@ -196,7 +252,7 @@ const addCaseArchive = async (req, res, next) => {
         }
         if (!hasArchivingStarted(existingCase)) {
           // can modify a case that hasn't been archived if there are no errors
-          await upsert(req.body, false);  // this mutates req.body
+          await upsert(req.body, false); // this mutates req.body
           let updatedCase = await archiveDao.getByArchiveEntityIdentifier(
             caseIdentifier,
             false,
@@ -206,10 +262,7 @@ const addCaseArchive = async (req, res, next) => {
           return true;
         } else {
           // if case has started archiving, can only modify case metadata
-          await archiveDao.updateMetadata(
-            caseIdentifier,
-            req.body.metadata
-          );
+          await archiveDao.updateMetadata(caseIdentifier, req.body.metadata);
           let updatedCase = await archiveDao.getByArchiveEntityIdentifier(
             caseIdentifier,
             false,
@@ -369,6 +422,30 @@ const resumeCaseArchiveProcessing = async (req, res, next) => {
   }
 };
 
+const stopCaseArchiveProcessing = async (req, res, next) => {
+  try {
+    await archiveDao.setEntityArchiveDoNotProcess(req.params.caseIdentifier);
+    caseArchiveStopProcessing.set(
+      { caseIdentifier: req.params.caseIdentifier },
+      1
+    );
+    const caseArchive = await archiveDao.getByArchiveEntityIdentifier(
+      req.params.caseIdentifier,
+      false,
+      caseEntityType
+    );
+    res.status(200).json(replaceGenericKeyName(caseArchive));
+  } catch (e) {
+    handleErrors(
+      e,
+      `Error stopping processing for case ${req.params.caseIdentifier}`,
+      logger,
+      next
+    );
+    res.status(404).end();
+  }
+};
+
 function replaceCaseKeyName (originalCase) {
   if (originalCase.hasOwnProperty('caseIdentifier')) {
     originalCase.archiveEntityIdentifier = originalCase.caseIdentifier;
@@ -417,4 +494,5 @@ module.exports = {
   setFilesLoadedIntoVidarrArchival: setFilesLoadedIntoVidarrArchival,
   setFilesSentOffsite: setFilesSentOffsite,
   resumeCaseArchiveProcessing: resumeCaseArchiveProcessing,
+  stopCaseArchiveProcessing: stopCaseArchiveProcessing,
 };
