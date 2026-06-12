@@ -156,7 +156,6 @@ app.get('/metrics', async (req, res) => {
 app.post('/token', authenticationController.addNewKey);
 
 app.use(errorHandler);
-app.use(prom.monitorAfterRequest);
 
 // Start server and listen on port
 app.set('port', port);
