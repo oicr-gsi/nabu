@@ -6,11 +6,16 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Changed
+
+* removed some high-cardinality metrics which were not in use
+
 ## 3.17.0 [2026-05-13]
 
 ### Changed
 
 * add a stop processing endpoint that stops archiving for a specified case or project
+
 ### Fixed
 
 * better practice for error logging to capture the stack trace correctly
