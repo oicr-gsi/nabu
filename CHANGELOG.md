@@ -6,6 +6,9 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+
+## 3.18.0 [2026-06-12]
+
 ### Changed
 
 * removed some high-cardinality metrics which were not in use
