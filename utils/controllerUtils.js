@@ -93,19 +93,19 @@ function streamResponse (req, res, daoFn, transformAndSend, methodName, logger) 
           res.status(500).end();
         }
       });
-    });
-    streamed.catch((err) => {
+    }).then(result => {
+      logger.info({
+        streamRowsProcessed: result.processed,
+        streamingDuration: result.duration,
+        method: methodName,
+      })
+    }).catch((err) => {
       if (err.message === 'Client disconnected; destroying stream') {
         logger.info('Stream destroyed due to client disconnect');
         return;
       }
       // For real errors, log them instead of re-throwing into the void
       logger.error(err);
-    });
-    logger.info({
-      streamRowsProcessed: streamed.processed,
-      streamingDuration: streamed.duration,
-      method: methodName,
     });
 }
 
