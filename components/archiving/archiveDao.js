@@ -87,7 +87,7 @@ const archiveColsFilesUnloaded = [archiveEntityId, filesUnloaded];
 
 const addArchiveEntity = (kase, newArchive = true, entityType) => {
   return new Promise((resolve, reject) => {
-    db.task('add-archives', async (tx) => {
+    db.tx('add-archives', async (tx) => {
       const archiveEntityData = {
         entity_identifier: kase.archiveEntityIdentifier,
         requisition_id: kase.requisitionId,
