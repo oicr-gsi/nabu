@@ -73,9 +73,30 @@ const bonusMsg = (entityType, entityIdentifier, whatIsBonus, bonusItems) => {
   return `The request for ${entityType} ${entityIdentifier} contains extra ${whatIsBonus}: (${bonusItems}) compared to those which are present in the existing ${entityType}.`
 }
 
+// How long the stream may go without producing a row before we treat the consumer as stuck.
+// Catches a client that stays connected but stops reading (e.g. a stalled network path that
+// never sends a TCP FIN): pipe() backpressure pauses the DB stream's 'data' events in that case,
+// which req.on('close') alone won't detect since the socket never actually closes.
+const STREAM_INACTIVITY_TIMEOUT_MS = 60000;
+
 function streamResponse (req, res, daoFn, transformAndSend, methodName, logger) {
     const streamed = daoFn((stream) => {
       res.status(200);
+
+      let inactivityTimer;
+      const resetInactivityTimer = () => {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+          if (!res.writableEnded) {
+            stream.destroy(new Error(`Stream produced no data for ${STREAM_INACTIVITY_TIMEOUT_MS}ms; destroying stream`));
+          }
+        }, STREAM_INACTIVITY_TIMEOUT_MS);
+      };
+      resetInactivityTimer();
+      stream.on('data', resetInactivityTimer);
+      stream.on('end', () => clearTimeout(inactivityTimer));
+      stream.on('close', () => clearTimeout(inactivityTimer));
+
       req.on('close', () => {
         // destroy the stream if the request ended early, before the streamed data finished transmission.
         // destroy by passing an error to trigger pg-promise cleanup (including releasing the database connection)
@@ -85,10 +106,12 @@ function streamResponse (req, res, daoFn, transformAndSend, methodName, logger) 
       });
       transformAndSend(stream)();
       stream.on('error', (err) => {
-        if (err.message === 'Client disconnected; destroying stream') {
-          return; // client has disconnected, so no sense in trying to return an HTTP status code
+        clearTimeout(inactivityTimer);
+        if (err.message === 'Client disconnected; destroying stream' || err.message.startsWith('Stream produced no data for')) {
+          logger.info(err.message);
+          return; // client has disconnected or stalled, so no sense in trying to return an HTTP status code
         }
-        logger.error(err);
+        // Logging happens once, in the .catch() below, since daoFn's promise rejects with this same error.
         if (!res.writableEnded) {
           res.status(500).end();
         }
@@ -100,9 +123,8 @@ function streamResponse (req, res, daoFn, transformAndSend, methodName, logger) 
         method: methodName,
       })
     }).catch((err) => {
-      if (err.message === 'Client disconnected; destroying stream') {
-        logger.info('Stream destroyed due to client disconnect');
-        return;
+      if (err.message === 'Client disconnected; destroying stream' || err.message.startsWith('Stream produced no data for')) {
+        return; // already logged at info level by the stream's 'error' handler above
       }
       // For real errors, log them instead of re-throwing into the void
       logger.error(err);
