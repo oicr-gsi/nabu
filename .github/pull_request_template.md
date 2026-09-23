@@ -1,4 +1,4 @@
 Jira ticket:
 
-- [ ] Includes a change file
+- [ ] Updates changelog
 - [ ] Updates developer documentation (or n/a)
