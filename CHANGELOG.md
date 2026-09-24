@@ -6,6 +6,8 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+## 3.18.1 [2026-09-24]
+
 ### Fixed
 
 * close database connections that are stalled
