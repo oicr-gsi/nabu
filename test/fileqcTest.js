@@ -226,6 +226,35 @@ describe('Unit test FileQcController', () => {
       .to.deep.equal(expected);
     done();
   });
+
+  it('should merge large result sets without scanning every FPR for every FQC', function (done) {
+    // A quadratic merge takes several seconds at this size, blocking the event loop for every
+    // other request; a linear one takes milliseconds.
+    this.timeout(2000);
+    const fprCount = 20000;
+    const largeFprs = [];
+    const largeFqcs = [];
+    for (let i = 0; i < fprCount; i++) {
+      const fileid = `vidarr:research/file/${i.toString(16).padStart(64, '0')}`;
+      largeFprs.push({ fileid: fileid, md5sum: 'aabb', fileswid: `${i}`, stalestatus: 'OKAY' });
+      // every other file has been QCed
+      if (i % 2 == 0) {
+        largeFqcs.push({ fileid: fileid, md5sum: 'aabb', qcpassed: true, username: 'test' });
+      }
+    }
+    // plus some QCed files which are no longer in file provenance
+    for (let i = 0; i < 100; i++) {
+      largeFqcs.push({ fileid: `vidarr:research/file/gone${i}`, md5sum: 'aabb', qcpassed: false, username: 'test' });
+    }
+
+    const actual = mergeFileResults(largeFprs, largeFqcs);
+    const countBy = (fn) => actual.filter(fn).length;
+    expect(actual).to.have.lengthOf(fprCount + 100);
+    expect(countBy((r) => r.qcstatus == 'PASS' && r.stalestatus == 'OKAY')).to.equal(fprCount / 2);
+    expect(countBy((r) => r.qcstatus == 'PENDING')).to.equal(fprCount / 2);
+    expect(countBy((r) => r.stalestatus == 'NOT IN FILE PROVENANCE')).to.equal(100);
+    done();
+  });
 });
 
 const get = (server, path) => {

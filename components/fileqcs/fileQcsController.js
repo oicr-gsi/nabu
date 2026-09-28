@@ -361,11 +361,17 @@ function mergeFprsAndFqcs (
 ) {
   // first, remove run info if necessary
   fprs = fprs.map((fpr) => maybeRemoveRunInfo(includeRunInfo, fpr));
+  // Index both sides by file ID. Scanning one array for each item in the other is quadratic,
+  // and on large projects blocks the event loop for long enough to time out other requests.
+  const fprsByFileid = new Map();
+  fprs.forEach((fpr) => {
+    if (!fprsByFileid.has(fpr.fileid)) fprsByFileid.set(fpr.fileid, fpr);
+  });
+  const fileids = new Set(fqcs.map((fqc) => fqc.fileid));
   // merge the FileQCs with FPRs first...
-  const fileids = fqcs.map((fqc) => fqc.fileid);
   const mergedFqcs = fqcs.map((fqc) => {
-    const filteredFprs = fprs.filter((fpr) => fpr.fileid == fqc.fileid);
-    return maybeMergeResult(filteredFprs, [fqc], fqc.fileid);
+    const fpr = fprsByFileid.get(fqc.fileid);
+    return maybeMergeResult(fpr ? [fpr] : [], [fqc], fqc.fileid);
   });
   if (['PASS', 'FAIL'].includes(filterByQcStatus)) {
     // we only want records that are QCed
@@ -373,7 +379,7 @@ function mergeFprsAndFqcs (
   }
   // ...then the requested FPRs with no associated FileQCs...
   const bareFprs = fprs
-    .filter((fpr) => !fileids.includes(fpr.fileid))
+    .filter((fpr) => !fileids.has(fpr.fileid))
     .map((fpr) => yesFprNoFqc(fpr));
   if ('PENDING' == filterByQcStatus) {
     // we only want records that are not QCed
