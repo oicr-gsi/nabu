@@ -20,6 +20,12 @@ CREATE TABLE fpr (
 .mode tabs
 .import fpr-latest.tsv fpr
 
+-- created after the import so the bulk load doesn't pay to maintain them row by row
+CREATE INDEX fpr_project_workflow_index ON fpr (project, workflow);
+CREATE INDEX fpr_workflow_index ON fpr (workflow);
+CREATE INDEX fpr_fileswid_index ON fpr (fileswid);
+CREATE INDEX fpr_run_index ON fpr (run);
+
 CREATE TABLE IF NOT EXISTS fpr_import_time (
   lastimported TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

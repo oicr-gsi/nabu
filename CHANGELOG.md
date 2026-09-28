@@ -6,6 +6,11 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+### Fixed
+
+* `POST /get-fileqcs` no longer blocks other requests when merging large projects
+* index the File Provenance Report table on the columns it is queried by
+
 ## 3.18.1 [2026-09-24]
 
 ### Fixed
