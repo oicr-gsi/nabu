@@ -6,6 +6,8 @@ and this project attempts to adhere to Semantic Versioning.
 
 ## UNRELEASED
 
+## 3.13.2 [2026-09-28]
+
 ### Fixed
 
 * `POST /get-fileqcs` no longer blocks other requests when merging large projects
